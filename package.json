@@ -1,0 +1,13 @@
+{
+  "name": "tanabata-fes-2026",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local Tanabata wish submission, moderation, and projection mapping display.",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

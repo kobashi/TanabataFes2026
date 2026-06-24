@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>七夕願い事 投影</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/projection.js" defer></script>
+  </head>
+  <body class="projection-page">
+    <main class="projection-stage" aria-label="七夕祭り投影画面">
+      <div class="star-field" aria-hidden="true"></div>
+      <div class="meteor-field" aria-hidden="true">
+        <span class="meteor meteor-1"></span>
+        <span class="meteor meteor-2"></span>
+        <span class="meteor meteor-3"></span>
+      </div>
+      <div class="cloud-layer" aria-hidden="true">
+        <span class="cloud cloud-1"></span>
+        <span class="cloud cloud-2"></span>
+        <span class="cloud cloud-3"></span>
+      </div>
+      <div class="moon" aria-hidden="true"></div>
+      <div class="bamboo bamboo-left" aria-hidden="true"></div>
+      <div class="bamboo bamboo-right" aria-hidden="true"></div>
+      <section id="tanzaku-stage" class="tanzaku-stage"></section>
+      <p id="empty-state" class="empty-state">願い事の承認を待っています</p>
+    </main>
+  </body>
+</html>

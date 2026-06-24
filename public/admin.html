@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>七夕願い事 管理</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/admin.js" defer></script>
+  </head>
+  <body class="admin-page">
+    <header class="admin-header">
+      <div>
+        <p class="eyebrow">Moderation</p>
+        <h1>願い事管理</h1>
+        <p id="live-state" class="admin-live-state" aria-live="polite">未接続</p>
+      </div>
+      <form id="key-form" class="key-form">
+        <label for="admin-key">管理キー</label>
+        <input id="admin-key" name="admin-key" type="password" autocomplete="current-password" placeholder="管理キー">
+        <button type="submit">接続</button>
+      </form>
+    </header>
+    <main class="admin-layout">
+      <section class="admin-column" aria-labelledby="pending-title">
+        <h2 id="pending-title">承認待ち</h2>
+        <div id="pending-list" class="wish-list"></div>
+      </section>
+      <section class="admin-column" aria-labelledby="approved-title">
+        <h2 id="approved-title">投影中</h2>
+        <div id="approved-list" class="wish-list"></div>
+      </section>
+      <section class="admin-column" aria-labelledby="rejected-title">
+        <h2 id="rejected-title">非表示</h2>
+        <div id="rejected-list" class="wish-list"></div>
+      </section>
+    </main>
+  </body>
+</html>
