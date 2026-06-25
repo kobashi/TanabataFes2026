@@ -6,6 +6,8 @@ const lists = {
   rejected: document.querySelector("#rejected-list")
 };
 const liveState = document.querySelector("#live-state");
+const moderationForm = document.querySelector("#moderation-form");
+const moderationState = document.querySelector("#moderation-state");
 
 let adminKey = localStorage.getItem("tanabataAdminKey") || "";
 let eventSource = null;
@@ -35,6 +37,20 @@ async function api(path, options = {}) {
     throw new Error(result.error || "操作に失敗しました。");
   }
   return result;
+}
+
+function setModerationState(text) {
+  if (moderationState) {
+    moderationState.textContent = text;
+  }
+}
+
+function modeLabel(mode) {
+  return {
+    manual: "手動確認",
+    auto: "自動承認",
+    ai: "AI自動モデレート"
+  }[mode] || "未設定";
 }
 
 function makeButton(label, action, status) {
@@ -68,7 +84,8 @@ function renderList(status, wishes) {
 
     const meta = document.createElement("p");
     meta.className = "admin-wish-meta";
-    meta.textContent = `投稿 ${formatDate(wish.createdAt)}${wish.approvedAt ? ` / 承認 ${formatDate(wish.approvedAt)}` : ""}`;
+    const moderationNote = wish.moderation?.reason ? ` / ${wish.moderation.reason}` : "";
+    meta.textContent = `投稿 ${formatDate(wish.createdAt)}${wish.approvedAt ? ` / 承認 ${formatDate(wish.approvedAt)}` : ""}${moderationNote}`;
 
     const actions = document.createElement("div");
     actions.className = "admin-actions";
@@ -84,10 +101,26 @@ function renderList(status, wishes) {
 
 async function refresh() {
   if (!adminKey) return;
-  const { wishes } = await api("/api/wishes");
+  const [{ wishes }, { settings }] = await Promise.all([
+    api("/api/wishes"),
+    api("/api/admin/settings")
+  ]);
+  renderModerationSettings(settings);
   renderList("pending", wishes.filter((wish) => wish.status === "pending"));
   renderList("approved", wishes.filter((wish) => wish.status === "approved"));
   renderList("rejected", wishes.filter((wish) => wish.status === "rejected"));
+}
+
+function renderModerationSettings(settings) {
+  if (!moderationForm || !settings) return;
+
+  moderationForm.querySelectorAll("input[name='moderation-mode']").forEach((input) => {
+    input.checked = input.value === settings.moderationMode;
+    input.disabled = input.value === "ai" && !settings.aiAvailable;
+  });
+
+  const aiNote = settings.aiAvailable ? "" : " / AIは未設定";
+  setModerationState(`${modeLabel(settings.moderationMode)}${aiNote}`);
 }
 
 function setLiveState(text) {
@@ -128,6 +161,28 @@ keyForm.addEventListener("submit", async (event) => {
   await refresh();
   connectLiveUpdates();
 });
+
+if (moderationForm) {
+  moderationForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const selected = moderationForm.querySelector("input[name='moderation-mode']:checked");
+    if (!selected) return;
+
+    const button = moderationForm.querySelector("button");
+    button.disabled = true;
+    try {
+      const { settings } = await api("/api/admin/settings", {
+        method: "PATCH",
+        body: JSON.stringify({ moderationMode: selected.value })
+      });
+      renderModerationSettings(settings);
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      button.disabled = false;
+    }
+  });
+}
 
 document.addEventListener("click", async (event) => {
   const button = event.target.closest("button[data-action]");

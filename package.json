@@ -4,8 +4,15 @@
   "private": true,
   "description": "Local Tanabata wish submission, moderation, and projection mapping display.",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "node scripts/start-with-env.js",
+    "dev": "node server.js",
+    "check": "node --check server.js && node --check public/app.js && node --check public/admin.js && node --check public/projection.js && node --check scripts/start-with-env.js && node --check scripts/backup-data.js && node --check scripts/smoke-test.js && node --check scripts/caddy-switch.js",
+    "backup": "node scripts/backup-data.js",
+    "smoke": "node scripts/smoke-test.js",
+    "proxy:start": "caddy run --config Caddyfile --adapter caddyfile",
+    "proxy:validate": "caddy validate --config Caddyfile --adapter caddyfile",
+    "proxy:reload": "caddy reload --config Caddyfile --adapter caddyfile",
+    "proxy:switch": "node scripts/caddy-switch.js"
   },
   "engines": {
     "node": ">=20"

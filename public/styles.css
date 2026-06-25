@@ -287,11 +287,61 @@ input:focus {
   z-index: 2;
 }
 
+.admin-controls {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 28px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(13, 16, 32, 0.96);
+}
+
+.admin-controls h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
 .key-form {
   display: grid;
   grid-template-columns: 160px 220px auto;
   align-items: end;
   gap: 10px;
+}
+
+.moderation-form {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.mode-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  font-weight: 700;
+}
+
+.mode-option input {
+  width: auto;
+  min-height: auto;
+  accent-color: var(--accent);
+}
+
+.mode-option:has(input:checked) {
+  border-color: rgba(255, 204, 77, 0.78);
+  background: rgba(255, 204, 77, 0.16);
+}
+
+.mode-option:has(input:disabled) {
+  opacity: 0.48;
 }
 
 .admin-layout {
@@ -827,17 +877,28 @@ input:focus {
 
 @media (max-width: 920px) {
   .admin-header,
+  .admin-controls,
   .admin-layout {
     grid-template-columns: 1fr;
   }
 
-  .admin-header {
+  .admin-header,
+  .admin-controls {
     display: grid;
     align-items: stretch;
   }
 
   .key-form {
     grid-template-columns: 1fr;
+  }
+
+  .moderation-form {
+    justify-content: stretch;
+  }
+
+  .mode-option,
+  .moderation-form button {
+    width: 100%;
   }
 }
 

@@ -1,0 +1,10 @@
+{
+	auto_https off
+	admin 127.0.0.1:2019
+}
+
+:{$TANABATA_PROXY_PORT:3000} {
+	reverse_proxy {$TANABATA_UPSTREAM:127.0.0.1:3001} {
+		flush_interval -1
+	}
+}

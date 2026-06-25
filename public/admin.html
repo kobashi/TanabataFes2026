@@ -20,6 +20,28 @@
         <button type="submit">接続</button>
       </form>
     </header>
+    <section class="admin-controls" aria-labelledby="moderation-mode-title">
+      <div>
+        <p class="eyebrow">Automation</p>
+        <h2 id="moderation-mode-title">承認モード</h2>
+        <p id="moderation-state" class="admin-live-state" aria-live="polite">設定未取得</p>
+      </div>
+      <form id="moderation-form" class="moderation-form">
+        <label class="mode-option">
+          <input type="radio" name="moderation-mode" value="manual">
+          <span>手動確認</span>
+        </label>
+        <label class="mode-option">
+          <input type="radio" name="moderation-mode" value="auto">
+          <span>自動承認</span>
+        </label>
+        <label class="mode-option">
+          <input type="radio" name="moderation-mode" value="ai">
+          <span>AI自動モデレート</span>
+        </label>
+        <button type="submit">適用</button>
+      </form>
+    </section>
     <main class="admin-layout">
       <section class="admin-column" aria-labelledby="pending-title">
         <h2 id="pending-title">承認待ち</h2>
