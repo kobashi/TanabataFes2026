@@ -97,5 +97,8 @@ npm run backup
 - OpenAI Moderation APIでflagged: `rejected`
 - 連絡先、SNS ID、URL、個人情報、強い表現、検索避け、悪戯表現、AIスコア高め: `pending`
 - API失敗、タイムアウト: `pending`
-
 迷う投稿は自動承認せず、人間が確認する運用です。
+
+## 学外公開
+
+Cloudflare を使う場合は、`cloudflared -> Caddy -> Node` の順でつなぎます。詳しい手順は [Cloudflare Tunnel 運用](CLOUDFLARE_TUNNEL.md) を参照してください。

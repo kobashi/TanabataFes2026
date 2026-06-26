@@ -74,6 +74,8 @@ Caddyを使う場合は、Nodeの `PORT` を `.env` で 3001 / 3002 に切り替
 
 - [運用ダイジェスト](docs/OPERATIONS_DIGEST.md)
 - [運用手順](docs/OPERATIONS.md)
+- [Cloudflare Tunnel 運用](docs/CLOUDFLARE_TUNNEL.md)
+- [今後のモデレーション課題メモ](docs/FUTURE_MODERATION_IDEAS.md)
 - [開発メモ](docs/DEVELOPMENT_NOTES.md)
 
 ## ライセンス
