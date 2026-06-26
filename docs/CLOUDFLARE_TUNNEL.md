@@ -90,13 +90,15 @@ cloudflared tunnel run tanabata-fes-2026
 
 ## 管理画面の扱い
 
-このアプリは `ADMIN_KEY` でも管理画面を守れますが、学外公開するなら Cloudflare Access を併用するとより安全です。
+このアプリでは `/admin` は公開URLのまま運用できます。今回は Cloudflare Access で追加保護せず、アプリ側の `ADMIN_KEY` だけで管理します。
 
 最低限でも次を守ると安心です。
 
 - `ADMIN_KEY` を推測されにくい値にする
 - `HOST` は `127.0.0.1` のままにして、外部には直接待ち受けない
+- `/admin` のURLを不用意に共有しない
 - `data/` を定期バックアップする
+- Cloudflare 側では `/` と `/projection` を主な公開対象として扱い、`/admin` は同じ公開URLの一部として使う
 
 ## 既存運用との関係
 
@@ -109,4 +111,3 @@ cloudflared tunnel run tanabata-fes-2026
 - つながらない場合: `cloudflared` が起動しているか、DNS が tunnel に向いているか確認します
 - 画面が古い場合: Caddy とブラウザを再読み込みします
 - 管理画面だけ危ない場合: Cloudflare Access で `/admin` を保護します
-

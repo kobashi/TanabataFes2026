@@ -102,3 +102,5 @@ npm run backup
 ## 学外公開
 
 Cloudflare を使う場合は、`cloudflared -> Caddy -> Node` の順でつなぎます。詳しい手順は [Cloudflare Tunnel 運用](CLOUDFLARE_TUNNEL.md) を参照してください。
+
+`/admin` は公開URLのまま運用できます。追加のAccess保護は入れず、`ADMIN_KEY` を厳重に管理します。
