@@ -28,19 +28,41 @@ Cloudflare Tunnel は `http://127.0.0.1:3000` に向けます。
 
 ## 1. Node と Caddy を起動する
 
-Node は `.env` の `PORT` を `3001` か `3002` にして起動します。
+Node は `.env` の `HOST` を `127.0.0.1`、`PORT` を `3001` か `3002` にして起動します。Caddy が `3000` を使うため、Node は `3000` では起動しません。
 
 ```sh
 npm start
 ```
 
-Caddy を起動します。
+Caddy を別ターミナルで起動します。Node が `3002` の場合は upstream を明示します。
 
 ```sh
-npm run proxy:start
+TANABATA_UPSTREAM=127.0.0.1:3002 npm run proxy:start
 ```
 
-## 2. cloudflared を用意する
+## TryCloudflare で一時テストする
+
+ランダムな `trycloudflare.com` ドメインで短時間テストする場合は、named tunnel の設定ファイルやDNS設定は不要です。
+
+```sh
+cloudflared tunnel --url http://127.0.0.1:3000
+```
+
+起動ログに表示される `https://...trycloudflare.com` を外部端末から開きます。
+
+Caddy を挟まず Node 直で試す場合は、Node のポートに合わせます。
+
+```sh
+cloudflared tunnel --url http://127.0.0.1:3002
+```
+
+TryCloudflare はテスト用です。URLは毎回変わり、停止すると使えなくなります。
+
+## named tunnel で固定URL公開する
+
+固定のサブドメインで公開する場合は、以下の手順で named tunnel を使います。
+
+### 1. cloudflared を用意する
 
 `cloudflared` をインストールして、Cloudflare にログインします。
 
@@ -48,7 +70,7 @@ npm run proxy:start
 cloudflared tunnel login
 ```
 
-## 3. tunnel を作る
+### 2. tunnel を作る
 
 ```sh
 cloudflared tunnel create tanabata-fes-2026
@@ -56,7 +78,7 @@ cloudflared tunnel create tanabata-fes-2026
 
 作成後に出る tunnel UUID と credentials ファイルの場所を控えます。
 
-## 4. DNS を tunnel に向ける
+### 3. DNS を tunnel に向ける
 
 公開したいホスト名を tunnel に割り当てます。
 
@@ -66,7 +88,7 @@ cloudflared tunnel route dns tanabata-fes-2026 tanabata.example.com
 
 `tanabata.example.com` は実際に使うサブドメインに置き換えます。
 
-## 5. 設定ファイルを置く
+### 4. 設定ファイルを置く
 
 `cloudflared/config.yml.example` を参考に、`~/.cloudflared/config.yml` を作ります。
 
@@ -80,7 +102,7 @@ ingress:
   - service: http_status:404
 ```
 
-## 6. tunnel を起動する
+### 5. tunnel を起動する
 
 ```sh
 cloudflared tunnel run tanabata-fes-2026
@@ -109,5 +131,7 @@ cloudflared tunnel run tanabata-fes-2026
 ## トラブル確認
 
 - つながらない場合: `cloudflared` が起動しているか、DNS が tunnel に向いているか確認します
+- `cloudflared` は動いているが 502 になる場合: Caddy が起動しているか、Caddy の向き先と Node のポートが合っているか確認します
+- `npm run proxy:switch` で `connect: connection refused` が出る場合: Caddy が起動していません。先に `npm run proxy:start` を実行します
 - 画面が古い場合: Caddy とブラウザを再読み込みします
-- 管理画面だけ危ない場合: Cloudflare Access で `/admin` を保護します
+- TryCloudflare のURLが見つからない場合: `Your quick Tunnel has been created!` の直後に表示される `https://...trycloudflare.com` を確認します

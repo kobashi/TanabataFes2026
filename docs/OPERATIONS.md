@@ -122,7 +122,7 @@ Caddyfileを検証する。
 npm run proxy:validate
 ```
 
-Node側は `.env` に `PORT=3001` のように書いて起動する。
+Node側は `.env` に `HOST=127.0.0.1` と `PORT=3001` または `PORT=3002` のように書いて起動する。Caddy が `3000` を使うため、Node は `3000` では起動しない。
 
 別ターミナルでCaddyを起動する。
 
@@ -130,7 +130,15 @@ Node側は `.env` に `PORT=3001` のように書いて起動する。
 npm run proxy:start
 ```
 
+Node を `3001` 以外で起動している場合は、起動時に `TANABATA_UPSTREAM` を明示します。
+
+```sh
+TANABATA_UPSTREAM=127.0.0.1:3002 npm run proxy:start
+```
+
 `TANABATA_UPSTREAM` と `TANABATA_PROXY_PORT` を一時上書きすると、Caddyの向き先だけ変えられる。
+
+`npm run proxy:switch -- 127.0.0.1:3002` は、Caddy がすでに起動しているときだけ使う。`connect: connection refused` が出る場合は、先に `npm run proxy:start` を実行する。すでに Caddy が動いている状態で `npm run proxy:start` をもう一度実行すると、`3000` の取り合いで失敗することがある。
 
 ### 新バージョンへ切り替える
 
@@ -141,7 +149,7 @@ npm run proxy:start
 TARGET=http://127.0.0.1:3002 npm run smoke
 ```
 
-3. Caddyの転送先を `3002` に切り替える。
+3. Caddyの転送先を `3002` に切り替える。Caddy が止まっている場合だけ、先に `npm run proxy:start` で起動する。
 
 ```sh
 npm run proxy:switch -- 127.0.0.1:3002
@@ -155,7 +163,7 @@ TARGET=http://127.0.0.1:3000 npm run smoke
 
 5. 問題なければ旧バージョンの `3001` を停止する。
 
-切り戻す場合は次を実行する。
+切り戻す場合は次を実行する。Caddy が止まっている場合だけ、先に `npm run proxy:start` で起動する。
 
 ```sh
 npm run proxy:switch -- 127.0.0.1:3001
@@ -164,6 +172,7 @@ npm run proxy:switch -- 127.0.0.1:3001
 ### 注意
 
 - Caddyを `:3000` で起動するため、Nodeアプリ本体は `3000` では起動しない。
+- `proxy:switch` は Caddy の管理API `127.0.0.1:2019` に設定を送る。`connect: connection refused` の場合は Caddy が起動していない。
 - 管理画面のSSE接続は切替時に再接続されることがある。
 - `Caddyfile` の `auto_https off` は構内WiFiのHTTP運用向け設定。公開サーバーで運用する場合はHTTPS構成に変更する。
 - `.env` を更新したら、Nodeプロセスを再起動して反映する。
