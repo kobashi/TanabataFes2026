@@ -73,7 +73,8 @@
 
 - 投稿行数: `MAX_WISH_LINES = 2`
 - 1行文字数: `MAX_WISH_LINE_LENGTH = 13`
-- 表示短冊数: `DISPLAY_COUNT = 12`
+- 表示短冊数: 既定 `12`、管理画面の投影設定で変更可能
+- ローテーション移動量: 既定 `1`、管理画面の投影設定で変更可能。最大値は表示短冊数
 - 待機短冊数: `WAITING_COUNT = 3`
 - ローテーション間隔: `ROTATE_INTERVAL_MS = 18000`
 - 流れ星周期: CSS `.meteor` の `animation: meteor-fall 80s linear infinite`

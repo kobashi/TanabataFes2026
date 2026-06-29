@@ -4,3 +4,5 @@ node_modules/
 data/wishes.json
 data/backups/
 data/settings.json
+data/dev/
+data/proxy-state.json

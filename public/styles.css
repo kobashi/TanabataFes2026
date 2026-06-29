@@ -302,6 +302,63 @@ input:focus {
   font-size: 1.25rem;
 }
 
+.admin-controls-actions {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.detail-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  font-weight: 700;
+}
+
+.detail-toggle input {
+  width: 38px;
+  height: 22px;
+  min-height: 22px;
+  margin: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  appearance: none;
+  position: relative;
+  flex: none;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.detail-toggle input::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff7d7;
+  transform: translateY(-50%);
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+
+.detail-toggle input:checked {
+  border-color: rgba(121, 231, 255, 0.7);
+  background: rgba(121, 231, 255, 0.38);
+}
+
+.detail-toggle input:checked::after {
+  transform: translate(16px, -50%);
+  background: #071019;
+}
+
 .key-form {
   display: grid;
   grid-template-columns: 160px 220px auto;
@@ -310,6 +367,14 @@ input:focus {
 }
 
 .moderation-form {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.projection-settings-form {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -344,6 +409,20 @@ input:focus {
   opacity: 0.48;
 }
 
+.number-option {
+  display: grid;
+  gap: 6px;
+  min-width: 108px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.number-option input {
+  width: 108px;
+  min-height: 38px;
+}
+
 .admin-layout {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -363,6 +442,27 @@ input:focus {
 .wish-list {
   display: grid;
   gap: 12px;
+}
+
+.admin-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 40px;
+  margin-top: 12px;
+}
+
+.admin-pager button {
+  min-height: 36px;
+  padding: 0 12px;
+}
+
+.admin-pager-info {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .admin-wish {
@@ -896,7 +996,20 @@ input:focus {
     justify-content: stretch;
   }
 
+  .projection-settings-form {
+    justify-content: stretch;
+  }
+
+  .admin-controls-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .detail-toggle,
   .mode-option,
+  .number-option,
+  .number-option input,
+  .projection-settings-form button,
   .moderation-form button {
     width: 100%;
   }

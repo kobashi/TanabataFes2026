@@ -1,5 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
+const { spawn } = require("node:child_process");
+const { getInactiveUpstream, getPort } = require("./upstream-state");
 
 function parseEnvFile(content) {
   const env = {};
@@ -25,7 +27,13 @@ function parseEnvFile(content) {
   return env;
 }
 
-const envFile = path.join(__dirname, "..", ".env");
+const rootDir = path.join(__dirname, "..");
+const envFile = path.join(rootDir, ".env");
+const inheritedHost = process.env.HOST;
+const inheritedPort = process.env.PORT;
+const inheritedDataDir = process.env.DATA_DIR;
+const inactiveUpstream = getInactiveUpstream();
+
 if (fs.existsSync(envFile)) {
   const parsed = parseEnvFile(fs.readFileSync(envFile, "utf8"));
   for (const [key, value] of Object.entries(parsed)) {
@@ -35,30 +43,19 @@ if (fs.existsSync(envFile)) {
   }
 }
 
-const target = process.env.TARGET || `http://127.0.0.1:${process.env.PORT || 3000}`;
-const adminKey = process.env.ADMIN_KEY || "tanabata2026";
+process.env.HOST = inheritedHost || process.env.DEV_HOST || inactiveUpstream.split(":")[0];
+process.env.PORT = inheritedPort || process.env.DEV_PORT || getPort(inactiveUpstream);
+process.env.DATA_DIR = inheritedDataDir || process.env.DEV_DATA_DIR || "data";
 
-async function check(path, options = {}) {
-  const response = await fetch(new URL(path, target), options);
-  if (!response.ok) {
-    throw new Error(`${path} returned ${response.status}`);
+const child = spawn(process.execPath, [path.join(rootDir, "server.js")], {
+  stdio: "inherit",
+  env: process.env
+});
+
+child.on("exit", (code, signal) => {
+  if (signal) {
+    process.kill(process.pid, signal);
+    return;
   }
-  return response;
-}
-
-async function main() {
-  await check("/");
-  await check("/admin");
-  await check("/projection");
-  await check("/api/health");
-  await check("/api/approved");
-  await check("/api/wishes", {
-    headers: { "X-Admin-Key": adminKey }
-  });
-  console.log(`smoke ok: ${target}`);
-}
-
-main().catch((error) => {
-  console.error(error.message || error);
-  process.exit(1);
+  process.exit(code ?? 1);
 });

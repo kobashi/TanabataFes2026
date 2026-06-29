@@ -1,4 +1,5 @@
 const { spawnSync } = require("node:child_process");
+const { writeActiveUpstream } = require("./upstream-state");
 
 const upstream = process.argv[2] || process.env.TANABATA_UPSTREAM || "";
 
@@ -27,6 +28,14 @@ const result = spawnSync("caddy", ["reload", "--config", "Caddyfile", "--adapter
 
 if (result.error) {
   fail(result.error.message);
+}
+
+if (result.status === 0) {
+  try {
+    writeActiveUpstream(upstream);
+  } catch (error) {
+    fail(error.message);
+  }
 }
 
 process.exit(result.status ?? 1);

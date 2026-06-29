@@ -2,9 +2,9 @@ const stage = document.querySelector("#tanzaku-stage");
 const emptyState = document.querySelector("#empty-state");
 
 const colors = ["ivory", "crimson", "aqua", "violet", "gold", "leaf"];
-const DISPLAY_COUNT = 12;
+const DEFAULT_DISPLAY_COUNT = 12;
+const DEFAULT_MOVE_COUNT = 1;
 const WAITING_COUNT = 3;
-const SLOT_COUNT = DISPLAY_COUNT + WAITING_COUNT;
 const ROTATE_INTERVAL_MS = 18000;
 const REFRESH_INTERVAL_MS = 7000;
 const TYPE_INTERVAL_MS = 46;
@@ -17,8 +17,12 @@ const WIND_GUST_MS = 2200;
 const WIND_PIVOT = "50% -18vh";
 const LAYOUT_STORAGE_KEY = "tanabataProjectionLayout.v1";
 
-const savedLayout = loadSavedLayout();
-const slots = Array.from({ length: SLOT_COUNT }, (_, index) => createSlot(index));
+let savedLayout = loadSavedLayout();
+let projectionSettings = {
+  displayCount: DEFAULT_DISPLAY_COUNT,
+  moveCount: DEFAULT_MOVE_COUNT
+};
+let slots = Array.from({ length: getSlotCount() }, (_, index) => createSlot(index));
 
 let knownApprovedIds = new Set();
 let initialSeeded = false;
@@ -39,20 +43,37 @@ function loadSavedLayout() {
 
 function saveLayout() {
   try {
+    savedLayout = slots.map((slot) => ({ x: slot.meta.x, y: slot.meta.y }));
     localStorage.setItem(
       LAYOUT_STORAGE_KEY,
-      JSON.stringify(slots.map((slot) => ({ x: slot.meta.x, y: slot.meta.y })))
+      JSON.stringify(savedLayout)
     );
   } catch {
     // Ignore storage failures in private mode / kiosk restrictions.
   }
 }
 
+function getSlotCount() {
+  return projectionSettings.displayCount + WAITING_COUNT;
+}
+
+function normalizeProjectionSettings(settings = {}) {
+  const displayCount = Number(settings.projectionDisplayCount);
+  const nextDisplayCount = Number.isInteger(displayCount) && displayCount > 0 ? displayCount : DEFAULT_DISPLAY_COUNT;
+  const moveCount = Number(settings.projectionMoveCount);
+  const nextMoveCount = Number.isInteger(moveCount) && moveCount > 0 ? moveCount : DEFAULT_MOVE_COUNT;
+
+  return {
+    displayCount: nextDisplayCount,
+    moveCount: Math.min(nextMoveCount, nextDisplayCount)
+  };
+}
+
 function createSlot(index) {
   const stored = savedLayout[index] || {};
   return {
     index,
-    mode: index < DISPLAY_COUNT ? "display" : "waiting",
+    mode: index < projectionSettings.displayCount ? "display" : "waiting",
     state: null,
     wish: null,
     element: null,
@@ -257,13 +278,33 @@ function mount() {
   saveLayout();
 }
 
+function rebuildSlots(wishes = []) {
+  slots.forEach(clearSlotTimers);
+  slots = Array.from({ length: getSlotCount() }, (_, index) => createSlot(index));
+  slots.forEach((slot) => buildSlotElement(slot));
+  mount();
+  seedSlots(wishes);
+}
+
+function applyProjectionSettings(settings, wishes = []) {
+  const nextSettings = normalizeProjectionSettings(settings);
+  const displayCountChanged = nextSettings.displayCount !== projectionSettings.displayCount;
+  projectionSettings = nextSettings;
+
+  if (displayCountChanged) {
+    rebuildSlots(wishes);
+  }
+
+  return displayCountChanged;
+}
+
 function seedSlots(wishes) {
-  const initial = wishes.slice(0, SLOT_COUNT);
-  backlog = wishes.slice(SLOT_COUNT);
+  const initial = wishes.slice(0, getSlotCount());
+  backlog = wishes.slice(getSlotCount());
 
   slots.forEach((slot, index) => {
     clearSlotTimers(slot);
-    slot.mode = index < DISPLAY_COUNT ? "display" : "waiting";
+    slot.mode = index < projectionSettings.displayCount ? "display" : "waiting";
     slot.state = null;
     slot.dragging = false;
     slot.wish = initial[index] || null;
@@ -386,6 +427,12 @@ function rotateWindow() {
   promoteWaitingSlotToDisplay(target, nextWish, true);
 }
 
+function rotateWindows() {
+  for (let index = 0; index < projectionSettings.moveCount; index += 1) {
+    rotateWindow();
+  }
+}
+
 function reconcileApprovedWishes(wishes) {
   if (!initialSeeded && !slots.some((slot) => Boolean(slot.wish))) {
     seedSlots(wishes);
@@ -398,6 +445,15 @@ function reconcileApprovedWishes(wishes) {
       knownApprovedIds.add(wish.id);
     }
   }
+}
+
+function ensureRotationStarted(wishes) {
+  if (rotationStarted || !wishes.length) return;
+  rotationStarted = true;
+  setInterval(() => {
+    rotateWindows();
+    renderSlots();
+  }, ROTATE_INTERVAL_MS);
 }
 
 function onSlotPointerDown(event) {
@@ -467,16 +523,16 @@ async function loadWishes() {
   const response = await fetch("/api/approved", { cache: "no-store" });
   const result = await response.json();
   const nextWishes = result.wishes || [];
+  const settingsChanged = applyProjectionSettings(result.settings, nextWishes);
+  if (settingsChanged) {
+    renderSlots();
+    ensureRotationStarted(nextWishes);
+    return;
+  }
+
   reconcileApprovedWishes(nextWishes);
   renderSlots();
-
-  if (!rotationStarted && nextWishes.length > 0) {
-    rotationStarted = true;
-    setInterval(() => {
-      rotateWindow();
-      renderSlots();
-    }, ROTATE_INTERVAL_MS);
-  }
+  ensureRotationStarted(nextWishes);
 }
 
 slots.forEach((slot) => buildSlotElement(slot));

@@ -5,13 +5,33 @@ const lists = {
   approved: document.querySelector("#approved-list"),
   rejected: document.querySelector("#rejected-list")
 };
+const pagers = {
+  pending: document.querySelector("#pending-pager"),
+  approved: document.querySelector("#approved-pager"),
+  rejected: document.querySelector("#rejected-pager")
+};
 const liveState = document.querySelector("#live-state");
 const moderationForm = document.querySelector("#moderation-form");
 const moderationState = document.querySelector("#moderation-state");
+const detailsToggle = document.querySelector("#wish-details-toggle");
+const projectionSettingsForm = document.querySelector("#projection-settings-form");
+const projectionSettingsState = document.querySelector("#projection-settings-state");
+const projectionDisplayCountInput = document.querySelector("#projection-display-count");
+const projectionMoveCountInput = document.querySelector("#projection-move-count");
+const PAGE_SIZE = 8;
 
 let adminKey = localStorage.getItem("tanabataAdminKey") || "";
 let eventSource = null;
+let wishDetailsVisible = localStorage.getItem("tanabataAdminWishDetails") === "true";
+const pages = {
+  pending: 1,
+  approved: 1,
+  rejected: 1
+};
 keyInput.value = adminKey;
+if (detailsToggle) {
+  detailsToggle.checked = wishDetailsVisible;
+}
 
 function formatDate(value) {
   if (!value) return "";
@@ -45,6 +65,12 @@ function setModerationState(text) {
   }
 }
 
+function setProjectionSettingsState(text) {
+  if (projectionSettingsState) {
+    projectionSettingsState.textContent = text;
+  }
+}
+
 function modeLabel(mode) {
   return {
     manual: "手動確認",
@@ -62,18 +88,62 @@ function makeButton(label, action, status) {
   return button;
 }
 
+function makePagerButton(label, status, page, disabled) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = label;
+  button.dataset.pageStatus = status;
+  button.dataset.page = String(page);
+  button.disabled = disabled;
+  return button;
+}
+
+function setWishDetailsVisible(visible) {
+  wishDetailsVisible = Boolean(visible);
+  localStorage.setItem("tanabataAdminWishDetails", String(wishDetailsVisible));
+  if (detailsToggle) {
+    detailsToggle.checked = wishDetailsVisible;
+  }
+  document.body.dataset.adminWishDetails = wishDetailsVisible ? "visible" : "hidden";
+}
+
+function renderPager(status, total, currentPage, totalPages) {
+  const root = pagers[status];
+  if (!root) return;
+
+  root.textContent = "";
+  if (totalPages <= 1) return;
+
+  const prev = makePagerButton("前へ", status, currentPage - 1, currentPage <= 1);
+  const next = makePagerButton("次へ", status, currentPage + 1, currentPage >= totalPages);
+
+  const info = document.createElement("span");
+  info.className = "admin-pager-info";
+  info.textContent = `${currentPage} / ${totalPages}（全${total}件）`;
+
+  root.append(prev, info, next);
+}
+
 function renderList(status, wishes) {
   const root = lists[status];
   root.textContent = "";
+  const totalPages = Math.max(1, Math.ceil(wishes.length / PAGE_SIZE));
+  const currentPage = Math.min(Math.max(pages[status] || 1, 1), totalPages);
+  pages[status] = currentPage;
+
   if (!wishes.length) {
     const empty = document.createElement("p");
     empty.className = "admin-empty";
     empty.textContent = "該当なし";
     root.append(empty);
+    renderPager(status, 0, 1, 1);
     return;
   }
 
-  wishes.forEach((wish) => {
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const visibleWishes = wishes.slice(start, start + PAGE_SIZE);
+
+  visibleWishes.forEach((wish) => {
     const item = document.createElement("article");
     item.className = "admin-wish";
     item.dataset.id = wish.id;
@@ -86,6 +156,7 @@ function renderList(status, wishes) {
     meta.className = "admin-wish-meta";
     const moderationNote = wish.moderation?.reason ? ` / ${wish.moderation.reason}` : "";
     meta.textContent = `投稿 ${formatDate(wish.createdAt)}${wish.approvedAt ? ` / 承認 ${formatDate(wish.approvedAt)}` : ""}${moderationNote}`;
+    meta.hidden = !wishDetailsVisible;
 
     const actions = document.createElement("div");
     actions.className = "admin-actions";
@@ -97,6 +168,8 @@ function renderList(status, wishes) {
     item.append(text, meta, actions);
     root.append(item);
   });
+
+  renderPager(status, wishes.length, currentPage, totalPages);
 }
 
 async function refresh() {
@@ -106,6 +179,7 @@ async function refresh() {
     api("/api/admin/settings")
   ]);
   renderModerationSettings(settings);
+  renderProjectionSettings(settings);
   renderList("pending", wishes.filter((wish) => wish.status === "pending"));
   renderList("approved", wishes.filter((wish) => wish.status === "approved"));
   renderList("rejected", wishes.filter((wish) => wish.status === "rejected"));
@@ -121,6 +195,25 @@ function renderModerationSettings(settings) {
 
   const aiNote = settings.aiAvailable ? "" : " / AIは未設定";
   setModerationState(`${modeLabel(settings.moderationMode)}${aiNote}`);
+}
+
+function renderProjectionSettings(settings) {
+  if (
+    !projectionSettingsForm ||
+    !projectionDisplayCountInput ||
+    !projectionMoveCountInput ||
+    !settings
+  ) return;
+
+  const displayCount = settings.projectionDisplayCount || 12;
+  const moveCount = settings.projectionMoveCount || 1;
+  const displayMax = settings.projectionDisplayCountMax || 30;
+
+  projectionDisplayCountInput.value = String(displayCount);
+  projectionDisplayCountInput.max = String(displayMax);
+  projectionMoveCountInput.value = String(moveCount);
+  projectionMoveCountInput.max = String(displayCount);
+  setProjectionSettingsState(`表示 ${displayCount} / 移動 ${moveCount}`);
 }
 
 function setLiveState(text) {
@@ -162,6 +255,13 @@ keyForm.addEventListener("submit", async (event) => {
   connectLiveUpdates();
 });
 
+if (detailsToggle) {
+  detailsToggle.addEventListener("change", () => {
+    setWishDetailsVisible(detailsToggle.checked);
+    refresh().catch(() => {});
+  });
+}
+
 if (moderationForm) {
   moderationForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -184,7 +284,49 @@ if (moderationForm) {
   });
 }
 
+if (projectionDisplayCountInput && projectionMoveCountInput) {
+  projectionDisplayCountInput.addEventListener("input", () => {
+    const displayCount = Number(projectionDisplayCountInput.value) || 1;
+    projectionMoveCountInput.max = String(displayCount);
+    if (Number(projectionMoveCountInput.value) > displayCount) {
+      projectionMoveCountInput.value = String(displayCount);
+    }
+  });
+}
+
+if (projectionSettingsForm) {
+  projectionSettingsForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = projectionSettingsForm.querySelector("button");
+    button.disabled = true;
+    try {
+      const { settings } = await api("/api/admin/settings", {
+        method: "PATCH",
+        body: JSON.stringify({
+          projectionDisplayCount: Number(projectionDisplayCountInput.value),
+          projectionMoveCount: Number(projectionMoveCountInput.value)
+        })
+      });
+      renderProjectionSettings(settings);
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      button.disabled = false;
+    }
+  });
+}
+
 document.addEventListener("click", async (event) => {
+  const pagerButton = event.target.closest("button[data-page-status]");
+  if (pagerButton) {
+    const status = pagerButton.dataset.pageStatus;
+    if (Object.prototype.hasOwnProperty.call(pages, status)) {
+      pages[status] = Number(pagerButton.dataset.page) || 1;
+      await refresh();
+    }
+    return;
+  }
+
   const button = event.target.closest("button[data-action]");
   if (!button) return;
   const item = button.closest(".admin-wish");
@@ -209,6 +351,7 @@ document.addEventListener("click", async (event) => {
 });
 
 refresh().then(() => {
+  setWishDetailsVisible(wishDetailsVisible);
   connectLiveUpdates();
 }).catch(() => {});
 setInterval(() => refresh().catch(() => {}), 30000);

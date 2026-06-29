@@ -11,15 +11,19 @@ const OPENAI_MODERATION_MODEL = process.env.OPENAI_MODERATION_MODEL || "omni-mod
 const MODERATION_TIMEOUT_MS = Number(process.env.MODERATION_TIMEOUT_MS || 5000);
 const MAX_WISH_LINES = 2;
 const MAX_WISH_LINE_LENGTH = 13;
+const MIN_PROJECTION_DISPLAY_COUNT = 1;
+const MAX_PROJECTION_DISPLAY_COUNT = 30;
 
 const rootDir = __dirname;
 const publicDir = path.join(rootDir, "public");
-const dataDir = path.join(rootDir, "data");
+const dataDir = path.resolve(rootDir, process.env.DATA_DIR || "data");
 const dataFile = path.join(dataDir, "wishes.json");
 const settingsFile = path.join(dataDir, "settings.json");
 
 const DEFAULT_SETTINGS = {
-  moderationMode: "manual"
+  moderationMode: "manual",
+  projectionDisplayCount: 12,
+  projectionMoveCount: 1
 };
 const MODERATION_MODES = new Set(["manual", "auto", "ai"]);
 const CAUTION_RULES = [
@@ -111,13 +115,39 @@ async function readSettings() {
     const raw = await fs.readFile(settingsFile, "utf8");
     const parsed = JSON.parse(raw || "{}");
     const mode = MODERATION_MODES.has(parsed.moderationMode) ? parsed.moderationMode : DEFAULT_SETTINGS.moderationMode;
-    return { ...DEFAULT_SETTINGS, ...parsed, moderationMode: mode };
+    const displayCount = normalizeInteger(
+      parsed.projectionDisplayCount,
+      DEFAULT_SETTINGS.projectionDisplayCount,
+      MIN_PROJECTION_DISPLAY_COUNT,
+      MAX_PROJECTION_DISPLAY_COUNT
+    );
+    const moveCount = normalizeInteger(
+      parsed.projectionMoveCount,
+      DEFAULT_SETTINGS.projectionMoveCount,
+      1,
+      displayCount
+    );
+    return {
+      ...DEFAULT_SETTINGS,
+      ...parsed,
+      moderationMode: mode,
+      projectionDisplayCount: displayCount,
+      projectionMoveCount: moveCount
+    };
   } catch (error) {
     if (error.code !== "ENOENT") {
       throw error;
     }
     return { ...DEFAULT_SETTINGS };
   }
+}
+
+function normalizeInteger(value, fallback, min, max) {
+  const number = Number(value);
+  if (!Number.isInteger(number)) {
+    return fallback;
+  }
+  return Math.max(min, Math.min(max, number));
 }
 
 async function writeSettings(settings) {
@@ -203,6 +233,9 @@ function adminWish(wish) {
 function publicSettings(settings) {
   return {
     moderationMode: settings.moderationMode,
+    projectionDisplayCount: settings.projectionDisplayCount,
+    projectionMoveCount: settings.projectionMoveCount,
+    projectionDisplayCountMax: MAX_PROJECTION_DISPLAY_COUNT,
     aiAvailable: Boolean(OPENAI_API_KEY)
   };
 }
@@ -392,17 +425,48 @@ async function handleApi(req, res, url) {
     }
 
     const body = await parseJsonBody(req);
-    const nextMode = String(body.moderationMode || "");
-    if (!MODERATION_MODES.has(nextMode)) {
-      sendError(res, 400, "moderationMode は manual / auto / ai のいずれかです。");
-      return;
-    }
-    if (nextMode === "ai" && !OPENAI_API_KEY) {
-      sendError(res, 400, "AIモデレートにはサーバー側の API キー設定が必要です。");
-      return;
+    const nextSettings = { ...settings };
+
+    if (Object.prototype.hasOwnProperty.call(body, "moderationMode")) {
+      const nextMode = String(body.moderationMode || "");
+      if (!MODERATION_MODES.has(nextMode)) {
+        sendError(res, 400, "moderationMode は manual / auto / ai のいずれかです。");
+        return;
+      }
+      if (nextMode === "ai" && !OPENAI_API_KEY) {
+        sendError(res, 400, "AIモデレートにはサーバー側の API キー設定が必要です。");
+        return;
+      }
+      nextSettings.moderationMode = nextMode;
     }
 
-    const nextSettings = { ...settings, moderationMode: nextMode };
+    if (Object.prototype.hasOwnProperty.call(body, "projectionDisplayCount")) {
+      const displayCount = Number(body.projectionDisplayCount);
+      if (
+        !Number.isInteger(displayCount) ||
+        displayCount < MIN_PROJECTION_DISPLAY_COUNT ||
+        displayCount > MAX_PROJECTION_DISPLAY_COUNT
+      ) {
+        sendError(res, 400, `表示数は${MIN_PROJECTION_DISPLAY_COUNT}から${MAX_PROJECTION_DISPLAY_COUNT}までです。`);
+        return;
+      }
+      nextSettings.projectionDisplayCount = displayCount;
+      nextSettings.projectionMoveCount = Math.min(nextSettings.projectionMoveCount, displayCount);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionMoveCount")) {
+      const moveCount = Number(body.projectionMoveCount);
+      if (
+        !Number.isInteger(moveCount) ||
+        moveCount < 1 ||
+        moveCount > nextSettings.projectionDisplayCount
+      ) {
+        sendError(res, 400, `移動量は1から表示数${nextSettings.projectionDisplayCount}までです。`);
+        return;
+      }
+      nextSettings.projectionMoveCount = moveCount;
+    }
+
     await writeSettings(nextSettings);
     broadcastAdminUpdate();
     sendJson(res, 200, { settings: publicSettings(nextSettings) });
@@ -487,11 +551,16 @@ async function handleApi(req, res, url) {
   }
 
   if (req.method === "GET" && url.pathname === "/api/approved") {
+    const settings = await readSettings();
     const wishes = await readWishes();
     const approved = wishes
       .filter((wish) => wish.status === "approved")
       .sort((a, b) => String(b.approvedAt).localeCompare(String(a.approvedAt)));
-    sendJson(res, 200, { wishes: approved.map(publicWish), generatedAt: new Date().toISOString() });
+    sendJson(res, 200, {
+      wishes: approved.map(publicWish),
+      settings: publicSettings(settings),
+      generatedAt: new Date().toISOString()
+    });
     return;
   }
 
