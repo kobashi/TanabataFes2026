@@ -16,8 +16,14 @@ const moderationState = document.querySelector("#moderation-state");
 const detailsToggle = document.querySelector("#wish-details-toggle");
 const projectionSettingsForm = document.querySelector("#projection-settings-form");
 const projectionSettingsState = document.querySelector("#projection-settings-state");
+const projectionTypingIntervalInput = document.querySelector("#projection-typing-interval-ms");
+const projectionRotateIntervalInput = document.querySelector("#projection-rotate-interval-ms");
+const projectionEffectAutoInput = document.querySelector("#projection-effect-auto-enabled");
+const projectionEffectIntervalInput = document.querySelector("#projection-effect-interval-ms");
 const projectionDisplayCountInput = document.querySelector("#projection-display-count");
 const projectionMoveCountInput = document.querySelector("#projection-move-count");
+const projectionEffectsForm = document.querySelector("#projection-effects-form");
+const projectionEffectsState = document.querySelector("#projection-effects-state");
 const PAGE_SIZE = 8;
 
 let adminKey = localStorage.getItem("tanabataAdminKey") || "";
@@ -68,6 +74,12 @@ function setModerationState(text) {
 function setProjectionSettingsState(text) {
   if (projectionSettingsState) {
     projectionSettingsState.textContent = text;
+  }
+}
+
+function setProjectionEffectsState(text) {
+  if (projectionEffectsState) {
+    projectionEffectsState.textContent = text;
   }
 }
 
@@ -200,6 +212,10 @@ function renderModerationSettings(settings) {
 function renderProjectionSettings(settings) {
   if (
     !projectionSettingsForm ||
+    !projectionTypingIntervalInput ||
+    !projectionRotateIntervalInput ||
+    !projectionEffectAutoInput ||
+    !projectionEffectIntervalInput ||
     !projectionDisplayCountInput ||
     !projectionMoveCountInput ||
     !settings
@@ -207,13 +223,33 @@ function renderProjectionSettings(settings) {
 
   const displayCount = settings.projectionDisplayCount || 12;
   const moveCount = settings.projectionMoveCount || 1;
+  const typingIntervalMs = settings.projectionTypingIntervalMs || 240;
+  const rotateIntervalMs = settings.projectionRotateIntervalMs || 18000;
+  const effectAutoEnabled = settings.projectionEffectAutoEnabled === true;
+  const effectIntervalMs = settings.projectionEffectIntervalMs || 300000;
   const displayMax = settings.projectionDisplayCountMax || 30;
+  const typingMin = settings.projectionTypingIntervalMsMin || 120;
+  const typingMax = settings.projectionTypingIntervalMsMax || 1000;
+  const rotateMin = settings.projectionRotateIntervalMsMin || 5000;
+  const rotateMax = settings.projectionRotateIntervalMsMax || 120000;
+  const effectMin = settings.projectionEffectIntervalMsMin || 60000;
+  const effectMax = settings.projectionEffectIntervalMsMax || 1800000;
 
+  projectionTypingIntervalInput.value = String(typingIntervalMs);
+  projectionTypingIntervalInput.min = String(typingMin);
+  projectionTypingIntervalInput.max = String(typingMax);
+  projectionRotateIntervalInput.value = String(rotateIntervalMs);
+  projectionRotateIntervalInput.min = String(rotateMin);
+  projectionRotateIntervalInput.max = String(rotateMax);
+  projectionEffectAutoInput.checked = effectAutoEnabled;
+  projectionEffectIntervalInput.value = String(effectIntervalMs);
+  projectionEffectIntervalInput.min = String(effectMin);
+  projectionEffectIntervalInput.max = String(effectMax);
   projectionDisplayCountInput.value = String(displayCount);
   projectionDisplayCountInput.max = String(displayMax);
   projectionMoveCountInput.value = String(moveCount);
   projectionMoveCountInput.max = String(displayCount);
-  setProjectionSettingsState(`表示 ${displayCount} / 移動 ${moveCount}`);
+  setProjectionSettingsState(`文字 ${typingIntervalMs}ms / 間隔 ${rotateIntervalMs}ms / 自動 ${effectAutoEnabled ? "ON" : "OFF"} / イベント ${effectIntervalMs}ms / 表示 ${displayCount} / 移動 ${moveCount}`);
 }
 
 function setLiveState(text) {
@@ -294,7 +330,15 @@ if (projectionDisplayCountInput && projectionMoveCountInput) {
   });
 }
 
-if (projectionSettingsForm) {
+if (
+  projectionSettingsForm &&
+  projectionTypingIntervalInput &&
+  projectionRotateIntervalInput &&
+  projectionEffectAutoInput &&
+  projectionEffectIntervalInput &&
+  projectionDisplayCountInput &&
+  projectionMoveCountInput
+) {
   projectionSettingsForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const button = projectionSettingsForm.querySelector("button");
@@ -303,6 +347,10 @@ if (projectionSettingsForm) {
       const { settings } = await api("/api/admin/settings", {
         method: "PATCH",
         body: JSON.stringify({
+          projectionTypingIntervalMs: Number(projectionTypingIntervalInput.value),
+          projectionRotateIntervalMs: Number(projectionRotateIntervalInput.value),
+          projectionEffectAutoEnabled: projectionEffectAutoInput.checked,
+          projectionEffectIntervalMs: Number(projectionEffectIntervalInput.value),
           projectionDisplayCount: Number(projectionDisplayCountInput.value),
           projectionMoveCount: Number(projectionMoveCountInput.value)
         })
@@ -311,6 +359,25 @@ if (projectionSettingsForm) {
     } catch (error) {
       alert(error.message);
     } finally {
+      button.disabled = false;
+    }
+  });
+}
+
+if (projectionEffectsForm) {
+  projectionEffectsForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = projectionEffectsForm.querySelector("button");
+    button.disabled = true;
+    setProjectionEffectsState("流星群を開始中");
+    try {
+      await api("/api/admin/effects/meteor-shower", { method: "POST" });
+      setProjectionEffectsState("流星群を送信しました");
+    } catch (error) {
+      setProjectionEffectsState("送信失敗");
+      alert(error.message);
+    } finally {
+      setTimeout(() => setProjectionEffectsState("待機中"), 5000);
       button.disabled = false;
     }
   });

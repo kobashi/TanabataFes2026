@@ -88,6 +88,13 @@ npm run smoke
 
 `npm run smoke` は `TARGET` と `ADMIN_KEY` を一時的に上書きできる。ふだんは `.env` の値を使う。
 
+### まとめ
+
+- コードは `server.js` と `public/*.js` を本番・開発で共用する。
+- 実行中の Node プロセスは別なので、`server.js` の修正は再起動した側にだけ反映される。
+- データは `data/` と `data/dev/` に分ける。
+- 切り替えは `npm run dev` で開発側を起動し、`npm run proxy:switch` で Caddy の向きを移す。
+
 ### 止めずに開発する手順
 
 前提のポート割り当て:

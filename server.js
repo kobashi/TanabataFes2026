@@ -13,6 +13,12 @@ const MAX_WISH_LINES = 2;
 const MAX_WISH_LINE_LENGTH = 13;
 const MIN_PROJECTION_DISPLAY_COUNT = 1;
 const MAX_PROJECTION_DISPLAY_COUNT = 30;
+const MIN_PROJECTION_TYPING_INTERVAL_MS = 120;
+const MAX_PROJECTION_TYPING_INTERVAL_MS = 1000;
+const MIN_PROJECTION_ROTATE_INTERVAL_MS = 5000;
+const MAX_PROJECTION_ROTATE_INTERVAL_MS = 120000;
+const MIN_PROJECTION_EFFECT_INTERVAL_MS = 60000;
+const MAX_PROJECTION_EFFECT_INTERVAL_MS = 1800000;
 
 const rootDir = __dirname;
 const publicDir = path.join(rootDir, "public");
@@ -23,7 +29,11 @@ const settingsFile = path.join(dataDir, "settings.json");
 const DEFAULT_SETTINGS = {
   moderationMode: "manual",
   projectionDisplayCount: 12,
-  projectionMoveCount: 1
+  projectionMoveCount: 1,
+  projectionTypingIntervalMs: 240,
+  projectionRotateIntervalMs: 18000,
+  projectionEffectAutoEnabled: false,
+  projectionEffectIntervalMs: 300000
 };
 const MODERATION_MODES = new Set(["manual", "auto", "ai"]);
 const CAUTION_RULES = [
@@ -82,6 +92,8 @@ const contentTypes = {
 let writeQueue = Promise.resolve();
 let settingsWriteQueue = Promise.resolve();
 const adminClients = new Set();
+let latestProjectionEffect = null;
+let lastProjectionEffectAt = 0;
 
 async function ensureStore() {
   await fs.mkdir(dataDir, { recursive: true });
@@ -127,12 +139,34 @@ async function readSettings() {
       1,
       displayCount
     );
+    const typingIntervalMs = normalizeInteger(
+      parsed.projectionTypingIntervalMs,
+      DEFAULT_SETTINGS.projectionTypingIntervalMs,
+      MIN_PROJECTION_TYPING_INTERVAL_MS,
+      MAX_PROJECTION_TYPING_INTERVAL_MS
+    );
+    const rotateIntervalMs = normalizeInteger(
+      parsed.projectionRotateIntervalMs,
+      DEFAULT_SETTINGS.projectionRotateIntervalMs,
+      MIN_PROJECTION_ROTATE_INTERVAL_MS,
+      MAX_PROJECTION_ROTATE_INTERVAL_MS
+    );
+    const effectIntervalMs = normalizeInteger(
+      parsed.projectionEffectIntervalMs,
+      DEFAULT_SETTINGS.projectionEffectIntervalMs,
+      MIN_PROJECTION_EFFECT_INTERVAL_MS,
+      MAX_PROJECTION_EFFECT_INTERVAL_MS
+    );
     return {
       ...DEFAULT_SETTINGS,
       ...parsed,
       moderationMode: mode,
       projectionDisplayCount: displayCount,
-      projectionMoveCount: moveCount
+      projectionMoveCount: moveCount,
+      projectionTypingIntervalMs: typingIntervalMs,
+      projectionRotateIntervalMs: rotateIntervalMs,
+      projectionEffectAutoEnabled: parsed.projectionEffectAutoEnabled === true,
+      projectionEffectIntervalMs: effectIntervalMs
     };
   } catch (error) {
     if (error.code !== "ENOENT") {
@@ -179,6 +213,39 @@ function broadcastAdminUpdate() {
   for (const client of adminClients) {
     client.write(payload);
   }
+}
+
+function createProjectionEffect(type) {
+  const now = Date.now();
+  lastProjectionEffectAt = now;
+  return {
+    id: crypto.randomUUID(),
+    type,
+    createdAt: new Date(now).toISOString(),
+    expiresAt: new Date(now + 30000).toISOString()
+  };
+}
+
+function getLatestProjectionEffect(settings) {
+  const now = Date.now();
+  if (settings?.projectionEffectAutoEnabled && lastProjectionEffectAt === 0) {
+    lastProjectionEffectAt = now;
+  }
+
+  if (
+    settings?.projectionEffectAutoEnabled &&
+    (!latestProjectionEffect || now > Date.parse(latestProjectionEffect.expiresAt)) &&
+    now - lastProjectionEffectAt >= settings.projectionEffectIntervalMs
+  ) {
+    latestProjectionEffect = createProjectionEffect("meteor-shower");
+  }
+
+  if (!latestProjectionEffect) return null;
+  if (Date.now() > Date.parse(latestProjectionEffect.expiresAt)) {
+    latestProjectionEffect = null;
+    return null;
+  }
+  return latestProjectionEffect;
 }
 
 function parseJsonBody(req) {
@@ -235,7 +302,17 @@ function publicSettings(settings) {
     moderationMode: settings.moderationMode,
     projectionDisplayCount: settings.projectionDisplayCount,
     projectionMoveCount: settings.projectionMoveCount,
+    projectionTypingIntervalMs: settings.projectionTypingIntervalMs,
+    projectionRotateIntervalMs: settings.projectionRotateIntervalMs,
+    projectionEffectAutoEnabled: settings.projectionEffectAutoEnabled,
+    projectionEffectIntervalMs: settings.projectionEffectIntervalMs,
     projectionDisplayCountMax: MAX_PROJECTION_DISPLAY_COUNT,
+    projectionTypingIntervalMsMin: MIN_PROJECTION_TYPING_INTERVAL_MS,
+    projectionTypingIntervalMsMax: MAX_PROJECTION_TYPING_INTERVAL_MS,
+    projectionRotateIntervalMsMin: MIN_PROJECTION_ROTATE_INTERVAL_MS,
+    projectionRotateIntervalMsMax: MAX_PROJECTION_ROTATE_INTERVAL_MS,
+    projectionEffectIntervalMsMin: MIN_PROJECTION_EFFECT_INTERVAL_MS,
+    projectionEffectIntervalMsMax: MAX_PROJECTION_EFFECT_INTERVAL_MS,
     aiAvailable: Boolean(OPENAI_API_KEY)
   };
 }
@@ -412,6 +489,12 @@ async function handleApi(req, res, url) {
     return;
   }
 
+  if (req.method === "GET" && url.pathname === "/api/projection/effect") {
+    const settings = await readSettings();
+    sendJson(res, 200, { effect: getLatestProjectionEffect(settings) });
+    return;
+  }
+
   if (url.pathname === "/api/admin/settings" && ["GET", "PATCH"].includes(req.method)) {
     if (!isAdmin(req, url)) {
       sendError(res, 401, "管理キーが必要です。");
@@ -467,9 +550,68 @@ async function handleApi(req, res, url) {
       nextSettings.projectionMoveCount = moveCount;
     }
 
+    if (Object.prototype.hasOwnProperty.call(body, "projectionTypingIntervalMs")) {
+      const typingIntervalMs = Number(body.projectionTypingIntervalMs);
+      if (
+        !Number.isInteger(typingIntervalMs) ||
+        typingIntervalMs < MIN_PROJECTION_TYPING_INTERVAL_MS ||
+        typingIntervalMs > MAX_PROJECTION_TYPING_INTERVAL_MS
+      ) {
+        sendError(res, 400, `文字アニメーション速度は${MIN_PROJECTION_TYPING_INTERVAL_MS}から${MAX_PROJECTION_TYPING_INTERVAL_MS}までです。`);
+        return;
+      }
+      nextSettings.projectionTypingIntervalMs = typingIntervalMs;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionRotateIntervalMs")) {
+      const rotateIntervalMs = Number(body.projectionRotateIntervalMs);
+      if (
+        !Number.isInteger(rotateIntervalMs) ||
+        rotateIntervalMs < MIN_PROJECTION_ROTATE_INTERVAL_MS ||
+        rotateIntervalMs > MAX_PROJECTION_ROTATE_INTERVAL_MS
+      ) {
+        sendError(res, 400, `短冊ローテーション間隔は${MIN_PROJECTION_ROTATE_INTERVAL_MS}から${MAX_PROJECTION_ROTATE_INTERVAL_MS}までです。`);
+        return;
+      }
+      nextSettings.projectionRotateIntervalMs = rotateIntervalMs;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionEffectAutoEnabled")) {
+      nextSettings.projectionEffectAutoEnabled = body.projectionEffectAutoEnabled === true;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionEffectIntervalMs")) {
+      const effectIntervalMs = Number(body.projectionEffectIntervalMs);
+      if (
+        !Number.isInteger(effectIntervalMs) ||
+        effectIntervalMs < MIN_PROJECTION_EFFECT_INTERVAL_MS ||
+        effectIntervalMs > MAX_PROJECTION_EFFECT_INTERVAL_MS
+      ) {
+        sendError(res, 400, `イベント間隔は${MIN_PROJECTION_EFFECT_INTERVAL_MS}から${MAX_PROJECTION_EFFECT_INTERVAL_MS}までです。`);
+        return;
+      }
+      nextSettings.projectionEffectIntervalMs = effectIntervalMs;
+    }
+
+    if (!settings.projectionEffectAutoEnabled && nextSettings.projectionEffectAutoEnabled) {
+      lastProjectionEffectAt = Date.now();
+    }
+
     await writeSettings(nextSettings);
     broadcastAdminUpdate();
     sendJson(res, 200, { settings: publicSettings(nextSettings) });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/admin/effects/meteor-shower") {
+    if (!isAdmin(req, url)) {
+      sendError(res, 401, "管理キーが必要です。");
+      return;
+    }
+
+    latestProjectionEffect = createProjectionEffect("meteor-shower");
+    broadcastAdminUpdate();
+    sendJson(res, 200, { effect: latestProjectionEffect });
     return;
   }
 
