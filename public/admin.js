@@ -30,6 +30,7 @@ const PAGE_SIZE = 8;
 let adminKey = localStorage.getItem("tanabataAdminKey") || "";
 let eventSource = null;
 let wishDetailsVisible = localStorage.getItem("tanabataAdminWishDetails") === "true";
+let projectionSettingsDirty = false;
 const pages = {
   pending: 1,
   approved: 1,
@@ -192,7 +193,7 @@ async function refresh() {
     api("/api/admin/settings")
   ]);
   renderModerationSettings(settings);
-  renderProjectionSettings(settings);
+  renderProjectionSettings(settings, { force: false });
   renderList("pending", wishes.filter((wish) => wish.status === "pending"));
   renderList("approved", wishes.filter((wish) => wish.status === "approved"));
   renderList("rejected", wishes.filter((wish) => wish.status === "rejected"));
@@ -210,7 +211,7 @@ function renderModerationSettings(settings) {
   setModerationState(`${modeLabel(settings.moderationMode)}${aiNote}`);
 }
 
-function renderProjectionSettings(settings) {
+function renderProjectionSettings(settings, { force = false } = {}) {
   if (
     !projectionSettingsForm ||
     !projectionTypingIntervalInput ||
@@ -222,6 +223,11 @@ function renderProjectionSettings(settings) {
     !projectionMoveCountInput ||
     !settings
   ) return;
+
+  if (!force && projectionSettingsDirty) {
+    setProjectionSettingsState("編集中");
+    return;
+  }
 
   const displayCount = settings.projectionDisplayCount || 12;
   const slotCount = settings.projectionSlotCount || displayCount + 3;
@@ -346,9 +352,20 @@ function syncProjectionCountInputs() {
   }
 }
 
+function markProjectionSettingsDirty() {
+  projectionSettingsDirty = true;
+  setProjectionSettingsState("編集中");
+}
+
 if (projectionDisplayCountInput && projectionSlotCountInput && projectionMoveCountInput) {
-  projectionDisplayCountInput.addEventListener("input", syncProjectionCountInputs);
-  projectionSlotCountInput.addEventListener("input", syncProjectionCountInputs);
+  projectionDisplayCountInput.addEventListener("input", () => {
+    markProjectionSettingsDirty();
+    syncProjectionCountInputs();
+  });
+  projectionSlotCountInput.addEventListener("input", () => {
+    markProjectionSettingsDirty();
+    syncProjectionCountInputs();
+  });
 }
 
 if (
@@ -361,6 +378,9 @@ if (
   projectionSlotCountInput &&
   projectionMoveCountInput
 ) {
+  projectionSettingsForm.addEventListener("input", markProjectionSettingsDirty);
+  projectionSettingsForm.addEventListener("change", markProjectionSettingsDirty);
+
   projectionSettingsForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const button = projectionSettingsForm.querySelector("button");
@@ -378,7 +398,8 @@ if (
           projectionMoveCount: Number(projectionMoveCountInput.value)
         })
       });
-      renderProjectionSettings(settings);
+      projectionSettingsDirty = false;
+      renderProjectionSettings(settings, { force: true });
     } catch (error) {
       alert(error.message);
     } finally {
