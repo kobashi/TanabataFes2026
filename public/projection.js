@@ -575,8 +575,8 @@ function promoteWaitingSlotToDisplay(targetSlot, wish, { animate = true, foregro
   nextRotationOrder += 1;
   if (foreground) {
     placeSlotWhereVisible(targetSlot);
-    bringSlotToFront(targetSlot);
   }
+  bringSlotToFront(targetSlot);
   return assignWish(targetSlot, wish, { animate });
 }
 

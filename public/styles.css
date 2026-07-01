@@ -952,7 +952,6 @@ input:focus {
 }
 
 .tanzaku--leaving {
-  z-index: 12;
   animation: tanzaku-leave 1.1s ease-in forwards;
   filter: blur(0.2px);
   opacity: 1;
