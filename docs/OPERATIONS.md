@@ -32,6 +32,13 @@ npm start
 7. AI自動モデレートではAI判定で問題なしの場合に承認され、flaggedの場合は非表示になる。判定に失敗した場合は手動確認待ちになる。
 8. 承認済みの願い事が投影画面に表示される。
 
+## 投影端末のブラウザ確認
+
+- 投影用PCでは、事前にChromeを最新版へ更新しておく。
+- 古いChromeでは、投影画面の星、月、発光表現などCSS描画の一部が表示されないことがある。
+- 流れ星や雲が表示されていても、星や月だけ欠ける場合はChrome更新を最初に確認する。
+- 更新後も直らない場合は、ChromeのハードウェアアクセラレーションON/OFFを切り替えて再読み込みする。
+
 ## データ保存
 
 - 願い事は `data/wishes.json` に保存される。
@@ -76,6 +83,20 @@ AI自動モデレートを使う場合、`.env` に `OPENAI_API_KEY` と `OPENAI
 - `data/wishes.json` は本番データとして扱い、編集前と切り替え前に必ずバックアップする。
 - `.env` を変えた場合: Nodeプロセスを再起動する。
 
+### ターミナルとプロセスの注意
+
+Codexやターミナルを更新、再起動、終了すると、そのターミナルから前景起動した `npm start`、`npm run dev`、`npm run proxy:start` などは停止する可能性がある。本番相当の運用中プロセスは、Codexの作業ターミナルに依存させず、別ターミナル、`tmux`、`launchd`、プロセスマネージャなどで管理する。
+
+どの端末に紐づいたプロセスか確認する場合は、ポートからPIDを調べて `TTY`、`PPID`、`SID` を見る。
+
+```sh
+lsof -nP -iTCP:3000 -sTCP:LISTEN
+ps -p <PID> -o pid,ppid,pgid,sid,tty,stat,command
+ps -axo pid,ppid,tty,stat,command | grep -E "node|npm|caddy"
+```
+
+`TTY` が `??` の場合は、既にターミナルから切り離されている、または `launchd` など別の親プロセス配下で動いている可能性がある。
+
 ### 日常確認
 
 ```sh
@@ -94,6 +115,32 @@ npm run smoke
 - 実行中の Node プロセスは別なので、`server.js` の修正は再起動した側にだけ反映される。
 - データは `data/` と `data/dev/` に分ける。
 - 切り替えは `npm run dev` で開発側を起動し、`npm run proxy:switch` で Caddy の向きを移す。
+
+### 本番Nodeを再起動する手順
+
+本番URL `:3000` を維持したままNodeを再起動したい場合は、現在のNodeを直接止めず、反対側ポートで新しいNodeを起動してからCaddyを切り替える。
+
+現在Caddyが向いている本番Nodeを確認する。
+
+```sh
+cat data/proxy-state.json
+```
+
+`activeUpstream` が `127.0.0.1:3002` なら次は `3001`、`127.0.0.1:3001` なら次は `3002` を使う。反対側Nodeを起動する。
+
+```sh
+npm run dev
+npm run smoke:dev
+```
+
+問題なければCaddyを反対側Nodeへ切り替える。
+
+```sh
+npm run proxy:switch -- 127.0.0.1:3001
+npm run smoke:prod
+```
+
+`activeUpstream` が `3001` だった場合は、切り替え先を `127.0.0.1:3002` にする。切り替え後は、投影画面 `/projection` と管理画面 `/admin` をブラウザで再読み込みする。
 
 ### 止めずに開発する手順
 

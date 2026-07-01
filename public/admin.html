@@ -58,6 +58,10 @@
         <fieldset class="settings-group">
           <legend>表示</legend>
           <label class="number-option">
+            <span>総スロット数</span>
+            <input id="projection-slot-count" type="number" min="1" max="60" step="1" inputmode="numeric">
+          </label>
+          <label class="number-option">
             <span>表示数</span>
             <input id="projection-display-count" type="number" min="1" max="30" step="1" inputmode="numeric">
           </label>
@@ -70,7 +74,7 @@
           <legend>タイミング</legend>
           <label class="number-option">
             <span>文字アニメーション速度</span>
-            <input id="projection-typing-interval-ms" type="number" min="120" max="1000" step="10" inputmode="numeric">
+            <input id="projection-typing-interval-ms" type="number" min="60" max="1000" step="10" inputmode="numeric">
           </label>
           <label class="number-option">
             <span>ローテーション間隔</span>

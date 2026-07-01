@@ -868,6 +868,7 @@ input:focus {
 
 .tanzaku {
   position: absolute;
+  z-index: var(--z);
   left: calc(var(--x) * 1vw);
   top: calc(var(--y) * 1vh);
   width: var(--tanzaku-width);

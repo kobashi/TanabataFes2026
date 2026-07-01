@@ -13,7 +13,8 @@ const MAX_WISH_LINES = 2;
 const MAX_WISH_LINE_LENGTH = 13;
 const MIN_PROJECTION_DISPLAY_COUNT = 1;
 const MAX_PROJECTION_DISPLAY_COUNT = 30;
-const MIN_PROJECTION_TYPING_INTERVAL_MS = 120;
+const MAX_PROJECTION_SLOT_COUNT = 60;
+const MIN_PROJECTION_TYPING_INTERVAL_MS = 60;
 const MAX_PROJECTION_TYPING_INTERVAL_MS = 1000;
 const MIN_PROJECTION_ROTATE_INTERVAL_MS = 5000;
 const MAX_PROJECTION_ROTATE_INTERVAL_MS = 120000;
@@ -29,6 +30,7 @@ const settingsFile = path.join(dataDir, "settings.json");
 const DEFAULT_SETTINGS = {
   moderationMode: "manual",
   projectionDisplayCount: 12,
+  projectionSlotCount: 15,
   projectionMoveCount: 1,
   projectionTypingIntervalMs: 240,
   projectionRotateIntervalMs: 18000,
@@ -127,11 +129,17 @@ async function readSettings() {
     const raw = await fs.readFile(settingsFile, "utf8");
     const parsed = JSON.parse(raw || "{}");
     const mode = MODERATION_MODES.has(parsed.moderationMode) ? parsed.moderationMode : DEFAULT_SETTINGS.moderationMode;
+    const slotCount = normalizeInteger(
+      parsed.projectionSlotCount,
+      DEFAULT_SETTINGS.projectionSlotCount,
+      MIN_PROJECTION_DISPLAY_COUNT,
+      MAX_PROJECTION_SLOT_COUNT
+    );
     const displayCount = normalizeInteger(
       parsed.projectionDisplayCount,
-      DEFAULT_SETTINGS.projectionDisplayCount,
+      Math.min(DEFAULT_SETTINGS.projectionDisplayCount, slotCount),
       MIN_PROJECTION_DISPLAY_COUNT,
-      MAX_PROJECTION_DISPLAY_COUNT
+      Math.min(MAX_PROJECTION_DISPLAY_COUNT, slotCount)
     );
     const moveCount = normalizeInteger(
       parsed.projectionMoveCount,
@@ -162,6 +170,7 @@ async function readSettings() {
       ...parsed,
       moderationMode: mode,
       projectionDisplayCount: displayCount,
+      projectionSlotCount: slotCount,
       projectionMoveCount: moveCount,
       projectionTypingIntervalMs: typingIntervalMs,
       projectionRotateIntervalMs: rotateIntervalMs,
@@ -301,12 +310,14 @@ function publicSettings(settings) {
   return {
     moderationMode: settings.moderationMode,
     projectionDisplayCount: settings.projectionDisplayCount,
+    projectionSlotCount: settings.projectionSlotCount,
     projectionMoveCount: settings.projectionMoveCount,
     projectionTypingIntervalMs: settings.projectionTypingIntervalMs,
     projectionRotateIntervalMs: settings.projectionRotateIntervalMs,
     projectionEffectAutoEnabled: settings.projectionEffectAutoEnabled,
     projectionEffectIntervalMs: settings.projectionEffectIntervalMs,
     projectionDisplayCountMax: MAX_PROJECTION_DISPLAY_COUNT,
+    projectionSlotCountMax: MAX_PROJECTION_SLOT_COUNT,
     projectionTypingIntervalMsMin: MIN_PROJECTION_TYPING_INTERVAL_MS,
     projectionTypingIntervalMsMax: MAX_PROJECTION_TYPING_INTERVAL_MS,
     projectionRotateIntervalMsMin: MIN_PROJECTION_ROTATE_INTERVAL_MS,
@@ -523,31 +534,45 @@ async function handleApi(req, res, url) {
       nextSettings.moderationMode = nextMode;
     }
 
-    if (Object.prototype.hasOwnProperty.call(body, "projectionDisplayCount")) {
-      const displayCount = Number(body.projectionDisplayCount);
+    if (Object.prototype.hasOwnProperty.call(body, "projectionSlotCount")) {
+      const slotCount = Number(body.projectionSlotCount);
       if (
-        !Number.isInteger(displayCount) ||
-        displayCount < MIN_PROJECTION_DISPLAY_COUNT ||
-        displayCount > MAX_PROJECTION_DISPLAY_COUNT
+        !Number.isInteger(slotCount) ||
+        slotCount < MIN_PROJECTION_DISPLAY_COUNT ||
+        slotCount > MAX_PROJECTION_SLOT_COUNT
       ) {
-        sendError(res, 400, `表示数は${MIN_PROJECTION_DISPLAY_COUNT}から${MAX_PROJECTION_DISPLAY_COUNT}までです。`);
+        sendError(res, 400, `総スロット数は${MIN_PROJECTION_DISPLAY_COUNT}から${MAX_PROJECTION_SLOT_COUNT}までです。`);
         return;
       }
-      nextSettings.projectionDisplayCount = displayCount;
-      nextSettings.projectionMoveCount = Math.min(nextSettings.projectionMoveCount, displayCount);
+      nextSettings.projectionSlotCount = slotCount;
+      nextSettings.projectionDisplayCount = Math.min(nextSettings.projectionDisplayCount, slotCount);
+      nextSettings.projectionMoveCount = Math.min(nextSettings.projectionMoveCount, nextSettings.projectionDisplayCount);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionDisplayCount")) {
+      const displayCount = Number(body.projectionDisplayCount);
+      const displayMax = Math.min(MAX_PROJECTION_DISPLAY_COUNT, nextSettings.projectionSlotCount);
+      if (
+        !Number.isInteger(displayCount) ||
+        displayCount < MIN_PROJECTION_DISPLAY_COUNT
+      ) {
+        sendError(res, 400, `表示数は${MIN_PROJECTION_DISPLAY_COUNT}以上です。`);
+        return;
+      }
+      nextSettings.projectionDisplayCount = Math.min(displayCount, displayMax);
+      nextSettings.projectionMoveCount = Math.min(nextSettings.projectionMoveCount, nextSettings.projectionDisplayCount);
     }
 
     if (Object.prototype.hasOwnProperty.call(body, "projectionMoveCount")) {
       const moveCount = Number(body.projectionMoveCount);
       if (
         !Number.isInteger(moveCount) ||
-        moveCount < 1 ||
-        moveCount > nextSettings.projectionDisplayCount
+        moveCount < 1
       ) {
-        sendError(res, 400, `移動量は1から表示数${nextSettings.projectionDisplayCount}までです。`);
+        sendError(res, 400, "移動量は1以上です。");
         return;
       }
-      nextSettings.projectionMoveCount = moveCount;
+      nextSettings.projectionMoveCount = Math.min(moveCount, nextSettings.projectionDisplayCount);
     }
 
     if (Object.prototype.hasOwnProperty.call(body, "projectionTypingIntervalMs")) {

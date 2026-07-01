@@ -21,6 +21,7 @@ const projectionRotateIntervalInput = document.querySelector("#projection-rotate
 const projectionEffectAutoInput = document.querySelector("#projection-effect-auto-enabled");
 const projectionEffectIntervalInput = document.querySelector("#projection-effect-interval-ms");
 const projectionDisplayCountInput = document.querySelector("#projection-display-count");
+const projectionSlotCountInput = document.querySelector("#projection-slot-count");
 const projectionMoveCountInput = document.querySelector("#projection-move-count");
 const projectionEffectsForm = document.querySelector("#projection-effects-form");
 const projectionEffectsState = document.querySelector("#projection-effects-state");
@@ -217,17 +218,20 @@ function renderProjectionSettings(settings) {
     !projectionEffectAutoInput ||
     !projectionEffectIntervalInput ||
     !projectionDisplayCountInput ||
+    !projectionSlotCountInput ||
     !projectionMoveCountInput ||
     !settings
   ) return;
 
   const displayCount = settings.projectionDisplayCount || 12;
+  const slotCount = settings.projectionSlotCount || displayCount + 3;
   const moveCount = settings.projectionMoveCount || 1;
   const typingIntervalMs = settings.projectionTypingIntervalMs || 240;
   const rotateIntervalMs = settings.projectionRotateIntervalMs || 18000;
   const effectAutoEnabled = settings.projectionEffectAutoEnabled === true;
   const effectIntervalMs = settings.projectionEffectIntervalMs || 300000;
   const displayMax = settings.projectionDisplayCountMax || 30;
+  const slotMax = settings.projectionSlotCountMax || 60;
   const typingMin = settings.projectionTypingIntervalMsMin || 120;
   const typingMax = settings.projectionTypingIntervalMsMax || 1000;
   const rotateMin = settings.projectionRotateIntervalMsMin || 5000;
@@ -245,11 +249,15 @@ function renderProjectionSettings(settings) {
   projectionEffectIntervalInput.value = String(effectIntervalMs);
   projectionEffectIntervalInput.min = String(effectMin);
   projectionEffectIntervalInput.max = String(effectMax);
+  projectionSlotCountInput.value = String(slotCount);
+  projectionSlotCountInput.min = "1";
+  projectionSlotCountInput.max = String(slotMax);
   projectionDisplayCountInput.value = String(displayCount);
-  projectionDisplayCountInput.max = String(displayMax);
+  projectionDisplayCountInput.dataset.max = String(displayMax);
+  projectionDisplayCountInput.max = String(Math.min(displayMax, slotCount));
   projectionMoveCountInput.value = String(moveCount);
   projectionMoveCountInput.max = String(displayCount);
-  setProjectionSettingsState(`文字 ${typingIntervalMs}ms / 間隔 ${rotateIntervalMs}ms / 自動 ${effectAutoEnabled ? "ON" : "OFF"} / イベント ${effectIntervalMs}ms / 表示 ${displayCount} / 移動 ${moveCount}`);
+  setProjectionSettingsState(`文字 ${typingIntervalMs}ms / 間隔 ${rotateIntervalMs}ms / 自動 ${effectAutoEnabled ? "ON" : "OFF"} / イベント ${effectIntervalMs}ms / スロット ${slotCount} / 表示 ${displayCount} / 移動 ${moveCount}`);
 }
 
 function setLiveState(text) {
@@ -320,14 +328,27 @@ if (moderationForm) {
   });
 }
 
-if (projectionDisplayCountInput && projectionMoveCountInput) {
-  projectionDisplayCountInput.addEventListener("input", () => {
-    const displayCount = Number(projectionDisplayCountInput.value) || 1;
-    projectionMoveCountInput.max = String(displayCount);
-    if (Number(projectionMoveCountInput.value) > displayCount) {
-      projectionMoveCountInput.value = String(displayCount);
-    }
-  });
+function syncProjectionCountInputs() {
+  if (!projectionDisplayCountInput || !projectionSlotCountInput || !projectionMoveCountInput) return;
+
+  const slotCount = Number(projectionSlotCountInput.value) || 1;
+  const displayMax = Number(projectionDisplayCountInput.dataset.max) || 30;
+  const displayLimit = Math.min(displayMax, slotCount);
+  projectionDisplayCountInput.max = String(displayLimit);
+  if (Number(projectionDisplayCountInput.value) > displayLimit) {
+    projectionDisplayCountInput.value = String(displayLimit);
+  }
+
+  const displayCount = Number(projectionDisplayCountInput.value) || 1;
+  projectionMoveCountInput.max = String(displayCount);
+  if (Number(projectionMoveCountInput.value) > displayCount) {
+    projectionMoveCountInput.value = String(displayCount);
+  }
+}
+
+if (projectionDisplayCountInput && projectionSlotCountInput && projectionMoveCountInput) {
+  projectionDisplayCountInput.addEventListener("input", syncProjectionCountInputs);
+  projectionSlotCountInput.addEventListener("input", syncProjectionCountInputs);
 }
 
 if (
@@ -337,6 +358,7 @@ if (
   projectionEffectAutoInput &&
   projectionEffectIntervalInput &&
   projectionDisplayCountInput &&
+  projectionSlotCountInput &&
   projectionMoveCountInput
 ) {
   projectionSettingsForm.addEventListener("submit", async (event) => {
@@ -351,6 +373,7 @@ if (
           projectionRotateIntervalMs: Number(projectionRotateIntervalInput.value),
           projectionEffectAutoEnabled: projectionEffectAutoInput.checked,
           projectionEffectIntervalMs: Number(projectionEffectIntervalInput.value),
+          projectionSlotCount: Number(projectionSlotCountInput.value),
           projectionDisplayCount: Number(projectionDisplayCountInput.value),
           projectionMoveCount: Number(projectionMoveCountInput.value)
         })

@@ -4,10 +4,10 @@ const emptyState = document.querySelector("#empty-state");
 
 const colors = ["ivory", "crimson", "aqua", "violet", "gold", "leaf"];
 const DEFAULT_DISPLAY_COUNT = 12;
+const DEFAULT_SLOT_COUNT = 15;
 const DEFAULT_MOVE_COUNT = 1;
 const DEFAULT_TYPING_INTERVAL_MS = 240;
 const DEFAULT_ROTATE_INTERVAL_MS = 18000;
-const WAITING_COUNT = 3;
 const REFRESH_INTERVAL_MS = 7000;
 const EFFECT_POLL_INTERVAL_MS = 2500;
 const TYPE_INTERVAL_MIN_RATIO = 0.2;
@@ -25,14 +25,37 @@ const WIND_SWEEP_MS = 2200;
 const WIND_GUST_MS = 2200;
 const WIND_PIVOT = "50% -18vh";
 const LAYOUT_STORAGE_KEY = "tanabataProjectionLayout.v1";
+const DEFAULT_TANZAKU_BOUNDS = { width: 9, height: 42 };
+const PLACEMENT_CANDIDATES = [
+  { x: 10, y: 8 },
+  { x: 24, y: 10 },
+  { x: 39, y: 8 },
+  { x: 54, y: 10 },
+  { x: 70, y: 8 },
+  { x: 84, y: 12 },
+  { x: 14, y: 48 },
+  { x: 30, y: 50 },
+  { x: 46, y: 48 },
+  { x: 62, y: 50 },
+  { x: 78, y: 48 }
+];
 
 let savedLayout = loadSavedLayout();
+const initiallyStoredLayoutIndexes = new Set(
+  savedLayout
+    .map((entry, index) => (
+      typeof entry?.x === "number" && typeof entry?.y === "number" ? index : null
+    ))
+    .filter((index) => index !== null)
+);
 let projectionSettings = {
   displayCount: DEFAULT_DISPLAY_COUNT,
+  slotCount: DEFAULT_SLOT_COUNT,
   moveCount: DEFAULT_MOVE_COUNT,
   typingIntervalMs: DEFAULT_TYPING_INTERVAL_MS,
   rotateIntervalMs: DEFAULT_ROTATE_INTERVAL_MS
 };
+let nextZOrder = 1;
 let slots = Array.from({ length: getSlotCount() }, (_, index) => createSlot(index));
 
 let knownApprovedIds = new Set();
@@ -72,12 +95,16 @@ function saveLayout() {
 }
 
 function getSlotCount() {
-  return projectionSettings.displayCount + WAITING_COUNT;
+  return projectionSettings.slotCount;
 }
 
 function normalizeProjectionSettings(settings = {}) {
+  const slotCount = Number(settings.projectionSlotCount);
+  const nextSlotCount = Number.isInteger(slotCount) && slotCount > 0 ? slotCount : DEFAULT_SLOT_COUNT;
   const displayCount = Number(settings.projectionDisplayCount);
-  const nextDisplayCount = Number.isInteger(displayCount) && displayCount > 0 ? displayCount : DEFAULT_DISPLAY_COUNT;
+  const nextDisplayCount = Number.isInteger(displayCount) && displayCount > 0
+    ? Math.min(displayCount, nextSlotCount)
+    : Math.min(DEFAULT_DISPLAY_COUNT, nextSlotCount);
   const moveCount = Number(settings.projectionMoveCount);
   const nextMoveCount = Number.isInteger(moveCount) && moveCount > 0 ? moveCount : DEFAULT_MOVE_COUNT;
   const typingIntervalMs = Number(settings.projectionTypingIntervalMs);
@@ -87,6 +114,7 @@ function normalizeProjectionSettings(settings = {}) {
 
   return {
     displayCount: nextDisplayCount,
+    slotCount: nextSlotCount,
     moveCount: Math.min(nextMoveCount, nextDisplayCount),
     typingIntervalMs: nextTypingIntervalMs,
     rotateIntervalMs: nextRotateIntervalMs
@@ -111,6 +139,7 @@ function createSlot(index) {
     meta: {
       x: typeof stored.x === "number" ? stored.x : 8 + ((index * 19) % 84),
       y: typeof stored.y === "number" ? stored.y : 8 + ((index * 23) % 58),
+      z: nextZOrder++,
       delay: `${(index % 6) * -0.7}s`,
       tilt: `${((index % 5) - 2) * 3}deg`
     }
@@ -163,6 +192,7 @@ function buildSlotElement(slot) {
   card.className = `tanzaku tanzaku-${colors[slot.index % colors.length]}`;
   card.style.setProperty("--x", `${slot.meta.x}`);
   card.style.setProperty("--y", `${slot.meta.y}`);
+  card.style.setProperty("--z", `${slot.meta.z}`);
   card.style.setProperty("--delay", slot.meta.delay);
   card.style.setProperty("--tilt", slot.meta.tilt);
   card.dataset.slotIndex = String(slot.index);
@@ -192,11 +222,74 @@ function updateSlotPosition(slot, x, y, { persist = true } = {}) {
   }
 }
 
+function bringSlotToFront(slot) {
+  slot.meta.z = nextZOrder++;
+  if (slot.element) {
+    slot.element.style.setProperty("--z", `${slot.meta.z}`);
+  }
+}
+
 function pointerToPercent(clientX, clientY) {
   return {
     x: Math.max(0, Math.min(100, (clientX / window.innerWidth) * 100)),
     y: Math.max(0, Math.min(100, (clientY / window.innerHeight) * 100))
   };
+}
+
+function getSlotBounds(slot, position = slot.meta) {
+  if (!slot.element) {
+    return {
+      x: position.x,
+      y: position.y,
+      width: DEFAULT_TANZAKU_BOUNDS.width,
+      height: DEFAULT_TANZAKU_BOUNDS.height
+    };
+  }
+
+  const rect = slot.element.getBoundingClientRect();
+  return {
+    x: position.x,
+    y: position.y,
+    width: (rect.width / window.innerWidth) * 100 || DEFAULT_TANZAKU_BOUNDS.width,
+    height: (rect.height / window.innerHeight) * 100 || DEFAULT_TANZAKU_BOUNDS.height
+  };
+}
+
+function getOverlapArea(a, b) {
+  const right = Math.min(a.x + a.width, b.x + b.width);
+  const left = Math.max(a.x, b.x);
+  const bottom = Math.min(a.y + a.height, b.y + b.height);
+  const top = Math.max(a.y, b.y);
+  return Math.max(0, right - left) * Math.max(0, bottom - top);
+}
+
+function getCandidatePlacementScore(targetSlot, candidate) {
+  const candidateBounds = getSlotBounds(targetSlot, candidate);
+  return getDisplaySlots()
+    .filter((slot) => slot !== targetSlot && slot.wish)
+    .reduce((score, slot) => {
+      const slotBounds = getSlotBounds(slot);
+      const overlap = getOverlapArea(candidateBounds, slotBounds);
+      const dx = candidate.x - slot.meta.x;
+      const dy = candidate.y - slot.meta.y;
+      const distance = Math.sqrt((dx * dx) + (dy * dy));
+      return score + (overlap * 1000) - distance;
+    }, 0);
+}
+
+function placeSlotWhereVisible(targetSlot) {
+  if (initiallyStoredLayoutIndexes.has(targetSlot.index)) return;
+
+  const best = PLACEMENT_CANDIDATES
+    .map((candidate) => ({
+      ...candidate,
+      score: getCandidatePlacementScore(targetSlot, candidate)
+    }))
+    .sort((a, b) => a.score - b.score)[0];
+
+  if (best) {
+    updateSlotPosition(targetSlot, best.x, best.y, { persist: false });
+  }
 }
 
 function refreshSlot(slot) {
@@ -215,6 +308,7 @@ function refreshSlot(slot) {
   slot.element.style.pointerEvents = hidden ? "none" : "auto";
   slot.element.style.setProperty("--x", `${slot.meta.x}`);
   slot.element.style.setProperty("--y", `${slot.meta.y}`);
+  slot.element.style.setProperty("--z", `${slot.meta.z}`);
 
   if (!hasWish) {
     slot.textNode.textContent = "";
@@ -326,14 +420,16 @@ function rebuildSlots(wishes = []) {
 
 function applyProjectionSettings(settings, wishes = []) {
   const nextSettings = normalizeProjectionSettings(settings);
-  const displayCountChanged = nextSettings.displayCount !== projectionSettings.displayCount;
+  const slotShapeChanged =
+    nextSettings.displayCount !== projectionSettings.displayCount ||
+    nextSettings.slotCount !== projectionSettings.slotCount;
   projectionSettings = nextSettings;
 
-  if (displayCountChanged) {
+  if (slotShapeChanged) {
     rebuildSlots(wishes);
   }
 
-  return displayCountChanged;
+  return slotShapeChanged;
 }
 
 function seedSlots(wishes) {
@@ -429,6 +525,14 @@ function getWaitingSlots() {
   return slots.filter((slot) => slot.mode === "waiting" && slot.state !== "leaving");
 }
 
+function getVisibleWishIds(excludedSlot = null) {
+  return new Set(
+    getDisplaySlots()
+      .filter((slot) => slot !== excludedSlot && slot.wish)
+      .map((slot) => slot.wish.id)
+  );
+}
+
 function getOldestSlot(candidates) {
   const ordered = candidates
     .filter((slot) => slot.wish)
@@ -448,52 +552,82 @@ function getOldestWaitingSlot() {
   return getOldestSlot(getWaitingSlots()) || getEmptyWaitingSlot();
 }
 
+function getNextWaitingSlot(excludedWishIds) {
+  const waitingSlots = getWaitingSlots();
+  return (
+    getOldestSlot(waitingSlots.filter((slot) => slot.wish && !excludedWishIds.has(slot.wish.id))) ||
+    waitingSlots.find((slot) => !slot.wish) ||
+    null
+  );
+}
+
 function moveDisplaySlotToWaiting(sourceSlot) {
   if (!sourceSlot || sourceSlot.mode !== "display" || !sourceSlot.wish) return;
   return startLeaving(sourceSlot);
 }
 
-function promoteWaitingSlotToDisplay(targetSlot, wish, animate = true) {
+function promoteWaitingSlotToDisplay(targetSlot, wish, { animate = true, foreground = false } = {}) {
   if (!targetSlot) return Promise.resolve();
   targetSlot.mode = "display";
   targetSlot.state = null;
   targetSlot.dragging = false;
   targetSlot.rotationOrder = nextRotationOrder;
   nextRotationOrder += 1;
+  if (foreground) {
+    placeSlotWhereVisible(targetSlot);
+    bringSlotToFront(targetSlot);
+  }
   return assignWish(targetSlot, wish, { animate });
 }
 
-function pullFromBacklog() {
-  if (!backlog.length) return null;
-  return backlog.shift();
+function pullUniqueFromBacklog(excludedWishIds) {
+  const index = backlog.findIndex((wish) => !excludedWishIds.has(wish.id));
+  if (index === -1) return null;
+  const [wish] = backlog.splice(index, 1);
+  return wish;
 }
 
 async function introduceNewWish(wish) {
   const target = getEmptyWaitingSlot() || getOldestWaitingSlot();
   const source = getOldestDisplaySlot();
 
-  if (!target || !source || source === target) {
+  if (!source) {
     backlog.push(wish);
+    return;
+  }
+
+  if (!target || source === target) {
+    await moveDisplaySlotToWaiting(source);
+    await promoteWaitingSlotToDisplay(source, wish, { animate: true, foreground: true });
     return;
   }
 
   const displacedWish = target.wish;
   if (displacedWish) backlog.unshift(displacedWish);
-
   await moveDisplaySlotToWaiting(source);
-  await promoteWaitingSlotToDisplay(target, wish, true);
+  await promoteWaitingSlotToDisplay(target, wish, { animate: true, foreground: true });
 }
 
 async function rotateWindow() {
   const source = getOldestDisplaySlot();
-  const target = getOldestWaitingSlot();
-  if (!source || !target || source === target) return;
+  if (!source) return;
 
-  const nextWish = target.wish || pullFromBacklog() || source.wish;
+  const visibleWishIds = getVisibleWishIds(source);
+  const target = getNextWaitingSlot(visibleWishIds);
+  if (!target || source === target) {
+    const nextWish = pullUniqueFromBacklog(visibleWishIds);
+    if (!nextWish) return;
+
+    await moveDisplaySlotToWaiting(source);
+    await promoteWaitingSlotToDisplay(source, nextWish, { animate: true });
+    return;
+  }
+
+  const nextWish = target.wish || pullUniqueFromBacklog(visibleWishIds) || source.wish;
   if (!nextWish) return;
 
   await moveDisplaySlotToWaiting(source);
-  await promoteWaitingSlotToDisplay(target, nextWish, true);
+  await promoteWaitingSlotToDisplay(target, nextWish, { animate: true });
 }
 
 async function rotateWindows() {
