@@ -20,11 +20,13 @@ const MIN_PROJECTION_ROTATE_INTERVAL_MS = 5000;
 const MAX_PROJECTION_ROTATE_INTERVAL_MS = 120000;
 const MIN_PROJECTION_EFFECT_INTERVAL_MS = 60000;
 const MAX_PROJECTION_EFFECT_INTERVAL_MS = 1800000;
+const PROJECTION_PRESET_COUNT = 3;
 
 const rootDir = __dirname;
 const publicDir = path.join(rootDir, "public");
 const dataDir = path.resolve(rootDir, process.env.DATA_DIR || "data");
 const dataFile = path.join(dataDir, "wishes.json");
+const backupDir = path.join(dataDir, "backups");
 const settingsFile = path.join(dataDir, "settings.json");
 
 const DEFAULT_SETTINGS = {
@@ -35,7 +37,8 @@ const DEFAULT_SETTINGS = {
   projectionTypingIntervalMs: 240,
   projectionRotateIntervalMs: 18000,
   projectionEffectAutoEnabled: false,
-  projectionEffectIntervalMs: 300000
+  projectionEffectIntervalMs: 300000,
+  projectionPresets: Array.from({ length: PROJECTION_PRESET_COUNT }, () => null)
 };
 const MODERATION_MODES = new Set(["manual", "auto", "ai"]);
 const CAUTION_RULES = [
@@ -106,6 +109,18 @@ async function ensureStore() {
   }
 }
 
+function backupRevision() {
+  return new Date().toISOString().replace(/[:.]/g, "-");
+}
+
+function backupFileForRevision(revision) {
+  const safeRevision = String(revision || "");
+  if (!/^20\d{2}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z$/.test(safeRevision)) {
+    return null;
+  }
+  return path.join(backupDir, `wishes-${safeRevision}.json`);
+}
+
 async function readWishes() {
   await ensureStore();
   const raw = await fs.readFile(dataFile, "utf8");
@@ -121,6 +136,91 @@ async function writeWishes(wishes) {
     await fs.rename(tmpFile, dataFile);
   });
   return writeQueue;
+}
+
+function normalizeBackupPayload(parsed, fallbackRevision = "") {
+  const wishes = Array.isArray(parsed) ? parsed : parsed?.wishes;
+  if (!Array.isArray(wishes)) {
+    throw new Error("backup payload is invalid");
+  }
+  const createdAt = Array.isArray(parsed)
+    ? fallbackRevision.replace(
+        /^(\d{4})-(\d{2})-(\d{2})T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z$/,
+        "$1-$2-$3T$4:$5:$6.$7Z"
+      )
+    : parsed.createdAt;
+  return {
+    revision: Array.isArray(parsed) ? fallbackRevision : parsed.revision || fallbackRevision,
+    createdAt: createdAt || null,
+    reason: Array.isArray(parsed) ? "manual-file" : parsed.reason || "manual",
+    wishes
+  };
+}
+
+async function createWishBackup(reason = "manual") {
+  await ensureStore();
+  await fs.mkdir(backupDir, { recursive: true });
+  const wishes = await readWishes();
+  const revision = backupRevision();
+  const payload = {
+    revision,
+    createdAt: new Date().toISOString(),
+    reason,
+    wishCount: wishes.length,
+    byStatus: countByStatus(wishes),
+    wishes
+  };
+  const backupFile = path.join(backupDir, `wishes-${revision}.json`);
+  await fs.writeFile(backupFile, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  return {
+    revision,
+    createdAt: payload.createdAt,
+    reason,
+    wishCount: payload.wishCount,
+    byStatus: payload.byStatus
+  };
+}
+
+async function readWishBackup(revision) {
+  const backupFile = backupFileForRevision(revision);
+  if (!backupFile) {
+    throw new Error("backup revision is invalid");
+  }
+  const raw = await fs.readFile(backupFile, "utf8");
+  return normalizeBackupPayload(JSON.parse(raw || "{}"), revision);
+}
+
+async function listWishBackups() {
+  await ensureStore();
+  await fs.mkdir(backupDir, { recursive: true });
+  const entries = await fs.readdir(backupDir, { withFileTypes: true });
+  const backups = [];
+
+  for (const entry of entries) {
+    if (!entry.isFile()) continue;
+    const match = entry.name.match(/^wishes-(20\d{2}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z)\.json$/);
+    if (!match) continue;
+    try {
+      const backup = await readWishBackup(match[1]);
+      backups.push({
+        revision: backup.revision,
+        createdAt: backup.createdAt,
+        reason: backup.reason,
+        wishCount: backup.wishes.length,
+        byStatus: countByStatus(backup.wishes)
+      });
+    } catch {
+      backups.push({
+        revision: match[1],
+        createdAt: null,
+        reason: "invalid",
+        wishCount: 0,
+        byStatus: {}
+      });
+    }
+  }
+
+  return backups.sort((a, b) => String(b.revision).localeCompare(String(a.revision)));
 }
 
 async function readSettings() {
@@ -175,7 +275,8 @@ async function readSettings() {
       projectionTypingIntervalMs: typingIntervalMs,
       projectionRotateIntervalMs: rotateIntervalMs,
       projectionEffectAutoEnabled: parsed.projectionEffectAutoEnabled === true,
-      projectionEffectIntervalMs: effectIntervalMs
+      projectionEffectIntervalMs: effectIntervalMs,
+      projectionPresets: normalizeProjectionPresets(parsed.projectionPresets)
     };
   } catch (error) {
     if (error.code !== "ENOENT") {
@@ -191,6 +292,77 @@ function normalizeInteger(value, fallback, min, max) {
     return fallback;
   }
   return Math.max(min, Math.min(max, number));
+}
+
+function projectionPresetFromSettings(settings) {
+  return {
+    projectionDisplayCount: settings.projectionDisplayCount,
+    projectionSlotCount: settings.projectionSlotCount,
+    projectionMoveCount: settings.projectionMoveCount,
+    projectionTypingIntervalMs: settings.projectionTypingIntervalMs,
+    projectionRotateIntervalMs: settings.projectionRotateIntervalMs,
+    projectionEffectAutoEnabled: settings.projectionEffectAutoEnabled === true,
+    projectionEffectIntervalMs: settings.projectionEffectIntervalMs
+  };
+}
+
+function normalizeProjectionPreset(rawPreset) {
+  if (!rawPreset || typeof rawPreset !== "object") return null;
+  const source = rawPreset.settings && typeof rawPreset.settings === "object"
+    ? rawPreset.settings
+    : rawPreset;
+
+  const slotCount = normalizeInteger(
+    source.projectionSlotCount,
+    DEFAULT_SETTINGS.projectionSlotCount,
+    MIN_PROJECTION_DISPLAY_COUNT,
+    MAX_PROJECTION_SLOT_COUNT
+  );
+  const displayCount = normalizeInteger(
+    source.projectionDisplayCount,
+    Math.min(DEFAULT_SETTINGS.projectionDisplayCount, slotCount),
+    MIN_PROJECTION_DISPLAY_COUNT,
+    Math.min(MAX_PROJECTION_DISPLAY_COUNT, slotCount)
+  );
+  return {
+    name: String(rawPreset.name || "").slice(0, 40),
+    savedAt: rawPreset.savedAt || null,
+    settings: {
+      projectionSlotCount: slotCount,
+      projectionDisplayCount: displayCount,
+      projectionMoveCount: normalizeInteger(
+        source.projectionMoveCount,
+        DEFAULT_SETTINGS.projectionMoveCount,
+        1,
+        displayCount
+      ),
+      projectionTypingIntervalMs: normalizeInteger(
+        source.projectionTypingIntervalMs,
+        DEFAULT_SETTINGS.projectionTypingIntervalMs,
+        MIN_PROJECTION_TYPING_INTERVAL_MS,
+        MAX_PROJECTION_TYPING_INTERVAL_MS
+      ),
+      projectionRotateIntervalMs: normalizeInteger(
+        source.projectionRotateIntervalMs,
+        DEFAULT_SETTINGS.projectionRotateIntervalMs,
+        MIN_PROJECTION_ROTATE_INTERVAL_MS,
+        MAX_PROJECTION_ROTATE_INTERVAL_MS
+      ),
+      projectionEffectAutoEnabled: source.projectionEffectAutoEnabled === true,
+      projectionEffectIntervalMs: normalizeInteger(
+        source.projectionEffectIntervalMs,
+        DEFAULT_SETTINGS.projectionEffectIntervalMs,
+        MIN_PROJECTION_EFFECT_INTERVAL_MS,
+        MAX_PROJECTION_EFFECT_INTERVAL_MS
+      )
+    }
+  };
+}
+
+function normalizeProjectionPresets(rawPresets) {
+  return Array.from({ length: PROJECTION_PRESET_COUNT }, (_, index) => {
+    return normalizeProjectionPreset(Array.isArray(rawPresets) ? rawPresets[index] : null);
+  });
 }
 
 async function writeSettings(settings) {
@@ -316,6 +488,7 @@ function publicSettings(settings) {
     projectionRotateIntervalMs: settings.projectionRotateIntervalMs,
     projectionEffectAutoEnabled: settings.projectionEffectAutoEnabled,
     projectionEffectIntervalMs: settings.projectionEffectIntervalMs,
+    projectionPresets: normalizeProjectionPresets(settings.projectionPresets),
     projectionDisplayCountMax: MAX_PROJECTION_DISPLAY_COUNT,
     projectionSlotCountMax: MAX_PROJECTION_SLOT_COUNT,
     projectionTypingIntervalMsMin: MIN_PROJECTION_TYPING_INTERVAL_MS,
@@ -618,6 +791,44 @@ async function handleApi(req, res, url) {
       nextSettings.projectionEffectIntervalMs = effectIntervalMs;
     }
 
+    if (Object.prototype.hasOwnProperty.call(body, "projectionPresetAction")) {
+      const action = String(body.projectionPresetAction || "");
+      const presetIndex = Number(body.projectionPresetIndex);
+      if (
+        !["save", "load", "clear"].includes(action) ||
+        !Number.isInteger(presetIndex) ||
+        presetIndex < 0 ||
+        presetIndex >= PROJECTION_PRESET_COUNT
+      ) {
+        sendError(res, 400, "プリセット操作が不正です。");
+        return;
+      }
+
+      const presets = normalizeProjectionPresets(nextSettings.projectionPresets);
+      if (action === "save") {
+        presets[presetIndex] = {
+          name: `プリセット${presetIndex + 1}`,
+          savedAt: new Date().toISOString(),
+          ...projectionPresetFromSettings(nextSettings)
+        };
+      }
+
+      if (action === "load") {
+        const preset = presets[presetIndex];
+        if (!preset) {
+          sendError(res, 404, "プリセットは未保存です。");
+          return;
+        }
+        Object.assign(nextSettings, preset.settings);
+      }
+
+      if (action === "clear") {
+        presets[presetIndex] = null;
+      }
+
+      nextSettings.projectionPresets = presets;
+    }
+
     if (!settings.projectionEffectAutoEnabled && nextSettings.projectionEffectAutoEnabled) {
       lastProjectionEffectAt = Date.now();
     }
@@ -637,6 +848,55 @@ async function handleApi(req, res, url) {
     latestProjectionEffect = createProjectionEffect("meteor-shower");
     broadcastAdminUpdate();
     sendJson(res, 200, { effect: latestProjectionEffect });
+    return;
+  }
+
+  if (url.pathname === "/api/admin/backups" && ["GET", "POST"].includes(req.method)) {
+    if (!isAdmin(req, url)) {
+      sendError(res, 401, "管理キーが必要です。");
+      return;
+    }
+
+    if (req.method === "GET") {
+      sendJson(res, 200, { backups: await listWishBackups() });
+      return;
+    }
+
+    const backup = await createWishBackup("manual");
+    sendJson(res, 201, { backup, backups: await listWishBackups() });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/admin/backups/restore") {
+    if (!isAdmin(req, url)) {
+      sendError(res, 401, "管理キーが必要です。");
+      return;
+    }
+
+    const body = await parseJsonBody(req);
+    const revision = String(body.revision || "");
+    let backup;
+    try {
+      backup = await readWishBackup(revision);
+    } catch {
+      sendError(res, 404, "バックアップが見つからないか、読み込めません。");
+      return;
+    }
+
+    const beforeRestore = await createWishBackup("before-restore");
+    await writeWishes(backup.wishes);
+    broadcastAdminUpdate();
+    sendJson(res, 200, {
+      ok: true,
+      restored: {
+        revision: backup.revision,
+        createdAt: backup.createdAt,
+        wishCount: backup.wishes.length,
+        byStatus: countByStatus(backup.wishes)
+      },
+      beforeRestore,
+      backups: await listWishBackups()
+    });
     return;
   }
 

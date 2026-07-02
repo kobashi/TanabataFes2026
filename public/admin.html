@@ -14,114 +14,183 @@
         <h1>願い事管理</h1>
         <p id="live-state" class="admin-live-state" aria-live="polite">未接続</p>
       </div>
-      <form id="key-form" class="key-form">
-        <label for="admin-key">管理キー</label>
-        <input id="admin-key" name="admin-key" type="password" autocomplete="current-password" placeholder="管理キー">
-        <button type="submit">接続</button>
-      </form>
     </header>
-    <section class="admin-controls" aria-labelledby="moderation-mode-title">
-      <div>
-        <p class="eyebrow">Automation</p>
-        <h2 id="moderation-mode-title">承認モード</h2>
-        <p id="moderation-state" class="admin-live-state" aria-live="polite">設定未取得</p>
-      </div>
-      <div class="admin-controls-actions">
-        <label class="detail-toggle" for="wish-details-toggle">
-          <input id="wish-details-toggle" type="checkbox" role="switch" aria-label="投稿詳細を表示">
-          <span>投稿詳細</span>
-        </label>
-        <form id="moderation-form" class="moderation-form">
-          <label class="mode-option">
-            <input type="radio" name="moderation-mode" value="manual">
-            <span>手動確認</span>
-          </label>
-          <label class="mode-option">
-            <input type="radio" name="moderation-mode" value="auto">
-            <span>自動承認</span>
-          </label>
-          <label class="mode-option">
-            <input type="radio" name="moderation-mode" value="ai">
-            <span>AI自動モデレート</span>
-          </label>
-          <button type="submit">適用</button>
-        </form>
-      </div>
-    </section>
-    <section class="admin-controls" aria-labelledby="projection-settings-title">
-      <div>
-        <p class="eyebrow">Projection</p>
-        <h2 id="projection-settings-title">投影設定</h2>
-        <p id="projection-settings-state" class="admin-live-state" aria-live="polite">設定未取得</p>
-      </div>
-      <form id="projection-settings-form" class="projection-settings-form">
-        <fieldset class="settings-group">
-          <legend>表示</legend>
-          <label class="number-option">
-            <span>総スロット数</span>
-            <input id="projection-slot-count" type="number" min="1" max="60" step="1" inputmode="numeric">
-          </label>
-          <label class="number-option">
-            <span>表示数</span>
-            <input id="projection-display-count" type="number" min="1" max="30" step="1" inputmode="numeric">
-          </label>
-          <label class="number-option">
-            <span>移動量</span>
-            <input id="projection-move-count" type="number" min="1" max="12" step="1" inputmode="numeric">
-          </label>
-        </fieldset>
-        <fieldset class="settings-group">
-          <legend>タイミング</legend>
-          <label class="number-option">
-            <span>文字アニメーション速度</span>
-            <input id="projection-typing-interval-ms" type="number" min="60" max="1000" step="10" inputmode="numeric">
-          </label>
-          <label class="number-option">
-            <span>ローテーション間隔</span>
-            <input id="projection-rotate-interval-ms" type="number" min="5000" max="120000" step="1000" inputmode="numeric">
-          </label>
-        </fieldset>
-        <fieldset class="settings-group">
-          <legend>自動演出</legend>
-          <label class="detail-toggle" for="projection-effect-auto-enabled">
-            <input id="projection-effect-auto-enabled" type="checkbox" role="switch" aria-label="流星群の自動演出">
-            <span>自動演出</span>
-          </label>
-          <label class="number-option">
-            <span>イベント間隔</span>
-            <input id="projection-effect-interval-ms" type="number" min="60000" max="1800000" step="10000" inputmode="numeric">
-          </label>
-        </fieldset>
-        <div class="settings-actions">
-          <button type="submit">適用</button>
-        </div>
-      </form>
-    </section>
-    <section class="admin-controls" aria-labelledby="projection-effects-title">
-      <div>
-        <p class="eyebrow">Direction</p>
-        <h2 id="projection-effects-title">演出</h2>
-        <p id="projection-effects-state" class="admin-live-state" aria-live="polite">待機中</p>
-      </div>
-      <form id="projection-effects-form" class="projection-effects-form">
-        <button id="meteor-shower-button" type="submit">流星群</button>
-      </form>
-    </section>
-    <main class="admin-layout">
-      <section class="admin-column" aria-labelledby="pending-title">
-        <h2 id="pending-title">承認待ち</h2>
-        <div id="pending-list" class="wish-list"></div>
-        <nav id="pending-pager" class="admin-pager" aria-label="承認待ちのページ切り替え"></nav>
+    <nav class="admin-tabs" aria-label="管理画面タブ">
+      <button type="button" class="admin-tab is-active" data-admin-tab="connection">接続</button>
+      <button type="button" class="admin-tab" data-admin-tab="wishes">願い事管理</button>
+      <button type="button" class="admin-tab" data-admin-tab="projection">投影設定</button>
+      <button type="button" class="admin-tab" data-admin-tab="backup">バックアップ</button>
+    </nav>
+    <main>
+      <section class="admin-tab-panel is-active" data-admin-panel="connection" aria-labelledby="connection-title">
+        <section class="admin-controls" aria-labelledby="connection-title">
+          <div>
+            <p class="eyebrow">Connection</p>
+            <h2 id="connection-title">接続</h2>
+            <p class="admin-live-state">管理キーを入力して接続します</p>
+          </div>
+          <form id="key-form" class="key-form">
+            <label for="admin-key">管理キー</label>
+            <input id="admin-key" name="admin-key" type="password" autocomplete="current-password" placeholder="管理キー">
+            <button type="submit">接続</button>
+          </form>
+        </section>
       </section>
-      <section class="admin-column" aria-labelledby="approved-title">
-        <h2 id="approved-title">投影中</h2>
-        <div id="approved-list" class="wish-list"></div>
-        <nav id="approved-pager" class="admin-pager" aria-label="投影中のページ切り替え"></nav>
+
+      <section class="admin-tab-panel" data-admin-panel="wishes" aria-labelledby="moderation-mode-title">
+        <section class="admin-controls" aria-labelledby="moderation-mode-title">
+          <div>
+            <p class="eyebrow">Automation</p>
+            <h2 id="moderation-mode-title">承認モード</h2>
+            <p id="moderation-state" class="admin-live-state" aria-live="polite">設定未取得</p>
+          </div>
+          <div class="admin-controls-actions">
+            <label class="detail-toggle" for="wish-details-toggle">
+              <input id="wish-details-toggle" type="checkbox" role="switch" aria-label="投稿詳細を表示">
+              <span>投稿詳細</span>
+            </label>
+            <form id="moderation-form" class="moderation-form">
+              <label class="mode-option">
+                <input type="radio" name="moderation-mode" value="manual">
+                <span>手動確認</span>
+              </label>
+              <label class="mode-option">
+                <input type="radio" name="moderation-mode" value="auto">
+                <span>自動承認</span>
+              </label>
+              <label class="mode-option">
+                <input type="radio" name="moderation-mode" value="ai">
+                <span>AI自動モデレート</span>
+              </label>
+              <button type="submit">適用</button>
+            </form>
+          </div>
+        </section>
+        <section class="admin-layout">
+          <section class="admin-column" aria-labelledby="pending-title">
+            <h2 id="pending-title">承認待ち</h2>
+            <div id="pending-list" class="wish-list"></div>
+            <nav id="pending-pager" class="admin-pager" aria-label="承認待ちのページ切り替え"></nav>
+          </section>
+          <section class="admin-column" aria-labelledby="approved-title">
+            <h2 id="approved-title">投影中</h2>
+            <div id="approved-list" class="wish-list"></div>
+            <nav id="approved-pager" class="admin-pager" aria-label="投影中のページ切り替え"></nav>
+          </section>
+          <section class="admin-column" aria-labelledby="rejected-title">
+            <h2 id="rejected-title">非表示</h2>
+            <div id="rejected-list" class="wish-list"></div>
+            <nav id="rejected-pager" class="admin-pager" aria-label="非表示のページ切り替え"></nav>
+          </section>
+        </section>
       </section>
-      <section class="admin-column" aria-labelledby="rejected-title">
-        <h2 id="rejected-title">非表示</h2>
-        <div id="rejected-list" class="wish-list"></div>
-        <nav id="rejected-pager" class="admin-pager" aria-label="非表示のページ切り替え"></nav>
+
+      <section class="admin-tab-panel" data-admin-panel="projection" aria-labelledby="projection-settings-title">
+        <section class="admin-controls projection-settings-panel" aria-labelledby="projection-settings-title">
+          <div class="projection-settings-head">
+            <p class="eyebrow">Projection</p>
+            <h2 id="projection-settings-title">投影設定</h2>
+            <p id="projection-settings-state" class="admin-live-state" aria-live="polite">設定未取得</p>
+          </div>
+          <section class="projection-presets" aria-label="投影設定プリセット">
+            <article class="projection-preset" data-projection-preset="0">
+              <h3>プリセット1</h3>
+              <p class="projection-preset-state">未保存</p>
+              <div class="projection-preset-actions">
+                <button type="button" data-preset-action="save" data-preset-index="0">保存</button>
+                <button type="button" data-preset-action="load" data-preset-index="0">読込</button>
+                <button type="button" data-preset-action="clear" data-preset-index="0">クリア</button>
+              </div>
+            </article>
+            <article class="projection-preset" data-projection-preset="1">
+              <h3>プリセット2</h3>
+              <p class="projection-preset-state">未保存</p>
+              <div class="projection-preset-actions">
+                <button type="button" data-preset-action="save" data-preset-index="1">保存</button>
+                <button type="button" data-preset-action="load" data-preset-index="1">読込</button>
+                <button type="button" data-preset-action="clear" data-preset-index="1">クリア</button>
+              </div>
+            </article>
+            <article class="projection-preset" data-projection-preset="2">
+              <h3>プリセット3</h3>
+              <p class="projection-preset-state">未保存</p>
+              <div class="projection-preset-actions">
+                <button type="button" data-preset-action="save" data-preset-index="2">保存</button>
+                <button type="button" data-preset-action="load" data-preset-index="2">読込</button>
+                <button type="button" data-preset-action="clear" data-preset-index="2">クリア</button>
+              </div>
+            </article>
+          </section>
+          <form id="projection-settings-form" class="projection-settings-form">
+            <fieldset class="settings-group">
+              <legend>表示</legend>
+              <label class="number-option">
+                <span>総スロット数</span>
+                <input id="projection-slot-count" type="number" min="1" max="60" step="1" inputmode="numeric">
+              </label>
+              <label class="number-option">
+                <span>表示数</span>
+                <input id="projection-display-count" type="number" min="1" max="30" step="1" inputmode="numeric">
+              </label>
+              <label class="number-option">
+                <span>移動量</span>
+                <input id="projection-move-count" type="number" min="1" max="12" step="1" inputmode="numeric">
+              </label>
+            </fieldset>
+            <fieldset class="settings-group">
+              <legend>タイミング</legend>
+              <label class="number-option">
+                <span>文字アニメーション速度</span>
+                <input id="projection-typing-interval-ms" type="number" min="60" max="1000" step="10" inputmode="numeric">
+              </label>
+              <label class="number-option">
+                <span>ローテーション間隔</span>
+                <input id="projection-rotate-interval-ms" type="number" min="5000" max="120000" step="1000" inputmode="numeric">
+              </label>
+            </fieldset>
+            <fieldset class="settings-group">
+              <legend>自動演出</legend>
+              <label class="detail-toggle" for="projection-effect-auto-enabled">
+                <input id="projection-effect-auto-enabled" type="checkbox" role="switch" aria-label="流星群の自動演出">
+                <span>自動演出</span>
+              </label>
+              <label class="number-option">
+                <span>イベント間隔</span>
+                <input id="projection-effect-interval-ms" type="number" min="60000" max="1800000" step="10000" inputmode="numeric">
+              </label>
+            </fieldset>
+            <div class="settings-actions">
+              <button type="submit">適用</button>
+            </div>
+          </form>
+        </section>
+        <section class="admin-controls" aria-labelledby="projection-effects-title">
+          <div>
+            <p class="eyebrow">Direction</p>
+            <h2 id="projection-effects-title">演出</h2>
+            <p id="projection-effects-state" class="admin-live-state" aria-live="polite">待機中</p>
+          </div>
+          <form id="projection-effects-form" class="projection-effects-form">
+            <button id="meteor-shower-button" type="submit">流星群</button>
+          </form>
+        </section>
+      </section>
+
+      <section class="admin-tab-panel" data-admin-panel="backup" aria-labelledby="backup-title">
+        <section class="admin-controls" aria-labelledby="backup-title">
+          <div>
+            <p class="eyebrow">Continuity</p>
+            <h2 id="backup-title">バックアップ</h2>
+            <p id="backup-state" class="admin-live-state" aria-live="polite">未取得</p>
+          </div>
+          <div class="admin-controls-actions">
+            <button id="backup-create-button" type="button">バックアップ作成</button>
+            <button id="backup-refresh-button" type="button">一覧更新</button>
+          </div>
+        </section>
+        <section class="backup-panel" aria-label="願い事バックアップ一覧">
+          <div id="backup-list" class="backup-list"></div>
+        </section>
       </section>
     </main>
   </body>

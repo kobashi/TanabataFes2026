@@ -25,12 +25,20 @@ const projectionSlotCountInput = document.querySelector("#projection-slot-count"
 const projectionMoveCountInput = document.querySelector("#projection-move-count");
 const projectionEffectsForm = document.querySelector("#projection-effects-form");
 const projectionEffectsState = document.querySelector("#projection-effects-state");
+const projectionPresetCards = document.querySelectorAll("[data-projection-preset]");
+const adminTabs = document.querySelectorAll("[data-admin-tab]");
+const adminPanels = document.querySelectorAll("[data-admin-panel]");
+const backupState = document.querySelector("#backup-state");
+const backupList = document.querySelector("#backup-list");
+const backupCreateButton = document.querySelector("#backup-create-button");
+const backupRefreshButton = document.querySelector("#backup-refresh-button");
 const PAGE_SIZE = 8;
 
 let adminKey = localStorage.getItem("tanabataAdminKey") || "";
 let eventSource = null;
 let wishDetailsVisible = localStorage.getItem("tanabataAdminWishDetails") === "true";
 let projectionSettingsDirty = false;
+let activeAdminTab = localStorage.getItem("tanabataAdminTab") || "connection";
 const pages = {
   pending: 1,
   approved: 1,
@@ -85,6 +93,37 @@ function setProjectionEffectsState(text) {
   }
 }
 
+function presetSummary(preset) {
+  if (!preset?.settings) return "";
+  const settings = preset.settings;
+  return `スロット ${settings.projectionSlotCount} / 表示 ${settings.projectionDisplayCount} / 移動 ${settings.projectionMoveCount} / 文字 ${settings.projectionTypingIntervalMs}ms / 間隔 ${settings.projectionRotateIntervalMs}ms`;
+}
+
+function renderProjectionPresets(presets = []) {
+  projectionPresetCards.forEach((card) => {
+    const index = Number(card.dataset.projectionPreset);
+    const preset = presets[index] || null;
+    const state = card.querySelector(".projection-preset-state");
+    const loadButton = card.querySelector("button[data-preset-action='load']");
+    const clearButton = card.querySelector("button[data-preset-action='clear']");
+    card.classList.toggle("projection-preset--saved", Boolean(preset));
+    card.classList.toggle("projection-preset--empty", !preset);
+    if (state) {
+      state.textContent = preset
+        ? `保存済み ${formatDate(preset.savedAt)} / ${presetSummary(preset)}`
+        : "未保存";
+    }
+    if (loadButton) loadButton.disabled = !preset;
+    if (clearButton) clearButton.disabled = !preset;
+  });
+}
+
+function setBackupState(text) {
+  if (backupState) {
+    backupState.textContent = text;
+  }
+}
+
 function modeLabel(mode) {
   return {
     manual: "手動確認",
@@ -110,6 +149,22 @@ function makePagerButton(label, status, page, disabled) {
   button.dataset.page = String(page);
   button.disabled = disabled;
   return button;
+}
+
+function setActiveAdminTab(tabName) {
+  activeAdminTab = tabName;
+  localStorage.setItem("tanabataAdminTab", tabName);
+  adminTabs.forEach((button) => {
+    const active = button.dataset.adminTab === tabName;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-selected", String(active));
+  });
+  adminPanels.forEach((panel) => {
+    panel.classList.toggle("is-active", panel.dataset.adminPanel === tabName);
+  });
+  if (tabName === "backup") {
+    refreshBackups().catch(() => {});
+  }
 }
 
 function setWishDetailsVisible(visible) {
@@ -186,6 +241,58 @@ function renderList(status, wishes) {
   renderPager(status, wishes.length, currentPage, totalPages);
 }
 
+function statusSummary(byStatus = {}) {
+  const pending = byStatus.pending || 0;
+  const approved = byStatus.approved || 0;
+  const rejected = byStatus.rejected || 0;
+  return `承認待ち ${pending} / 投影中 ${approved} / 非表示 ${rejected}`;
+}
+
+function renderBackups(backups = []) {
+  if (!backupList) return;
+
+  backupList.textContent = "";
+  if (!backups.length) {
+    const empty = document.createElement("p");
+    empty.className = "admin-empty";
+    empty.textContent = "バックアップはまだありません";
+    backupList.append(empty);
+    setBackupState("0件");
+    return;
+  }
+
+  backups.forEach((backup) => {
+    const item = document.createElement("article");
+    item.className = "backup-item";
+
+    const title = document.createElement("h3");
+    title.textContent = formatDate(backup.createdAt) || backup.revision;
+
+    const meta = document.createElement("p");
+    meta.className = "admin-wish-meta";
+    meta.textContent = `リビジョン ${backup.revision} / ${backup.wishCount}件 / ${statusSummary(backup.byStatus)} / ${backup.reason}`;
+
+    const actions = document.createElement("div");
+    actions.className = "admin-actions";
+    const restoreButton = document.createElement("button");
+    restoreButton.type = "button";
+    restoreButton.textContent = "復元";
+    restoreButton.dataset.backupRestore = backup.revision;
+    actions.append(restoreButton);
+
+    item.append(title, meta, actions);
+    backupList.append(item);
+  });
+
+  setBackupState(`${backups.length}件`);
+}
+
+async function refreshBackups() {
+  if (!adminKey) return;
+  const { backups } = await api("/api/admin/backups");
+  renderBackups(backups || []);
+}
+
 async function refresh() {
   if (!adminKey) return;
   const [{ wishes }, { settings }] = await Promise.all([
@@ -197,6 +304,9 @@ async function refresh() {
   renderList("pending", wishes.filter((wish) => wish.status === "pending"));
   renderList("approved", wishes.filter((wish) => wish.status === "approved"));
   renderList("rejected", wishes.filter((wish) => wish.status === "rejected"));
+  if (activeAdminTab === "backup") {
+    await refreshBackups();
+  }
 }
 
 function renderModerationSettings(settings) {
@@ -244,6 +354,7 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   const rotateMax = settings.projectionRotateIntervalMsMax || 120000;
   const effectMin = settings.projectionEffectIntervalMsMin || 60000;
   const effectMax = settings.projectionEffectIntervalMsMax || 1800000;
+  renderProjectionPresets(settings.projectionPresets || []);
 
   projectionTypingIntervalInput.value = String(typingIntervalMs);
   projectionTypingIntervalInput.min = String(typingMin);
@@ -305,6 +416,12 @@ keyForm.addEventListener("submit", async (event) => {
   connectLiveUpdates();
 });
 
+adminTabs.forEach((button) => {
+  button.addEventListener("click", () => {
+    setActiveAdminTab(button.dataset.adminTab);
+  });
+});
+
 if (detailsToggle) {
   detailsToggle.addEventListener("change", () => {
     setWishDetailsVisible(detailsToggle.checked);
@@ -357,6 +474,18 @@ function markProjectionSettingsDirty() {
   setProjectionSettingsState("編集中");
 }
 
+function currentProjectionSettingsPayload() {
+  return {
+    projectionTypingIntervalMs: Number(projectionTypingIntervalInput.value),
+    projectionRotateIntervalMs: Number(projectionRotateIntervalInput.value),
+    projectionEffectAutoEnabled: projectionEffectAutoInput.checked,
+    projectionEffectIntervalMs: Number(projectionEffectIntervalInput.value),
+    projectionSlotCount: Number(projectionSlotCountInput.value),
+    projectionDisplayCount: Number(projectionDisplayCountInput.value),
+    projectionMoveCount: Number(projectionMoveCountInput.value)
+  };
+}
+
 if (projectionDisplayCountInput && projectionSlotCountInput && projectionMoveCountInput) {
   projectionDisplayCountInput.addEventListener("input", () => {
     markProjectionSettingsDirty();
@@ -388,15 +517,7 @@ if (
     try {
       const { settings } = await api("/api/admin/settings", {
         method: "PATCH",
-        body: JSON.stringify({
-          projectionTypingIntervalMs: Number(projectionTypingIntervalInput.value),
-          projectionRotateIntervalMs: Number(projectionRotateIntervalInput.value),
-          projectionEffectAutoEnabled: projectionEffectAutoInput.checked,
-          projectionEffectIntervalMs: Number(projectionEffectIntervalInput.value),
-          projectionSlotCount: Number(projectionSlotCountInput.value),
-          projectionDisplayCount: Number(projectionDisplayCountInput.value),
-          projectionMoveCount: Number(projectionMoveCountInput.value)
-        })
+        body: JSON.stringify(currentProjectionSettingsPayload())
       });
       projectionSettingsDirty = false;
       renderProjectionSettings(settings, { force: true });
@@ -428,6 +549,100 @@ if (projectionEffectsForm) {
 }
 
 document.addEventListener("click", async (event) => {
+  const presetButton = event.target.closest("button[data-preset-action]");
+  if (!presetButton) return;
+
+  const action = presetButton.dataset.presetAction;
+  const index = Number(presetButton.dataset.presetIndex);
+  if (action === "clear") {
+    const ok = window.confirm(`プリセット${index + 1}をクリアします。`);
+    if (!ok) return;
+  }
+
+  presetButton.disabled = true;
+  let succeeded = false;
+  const payload = {
+    projectionPresetAction: action,
+    projectionPresetIndex: index
+  };
+  if (action === "save" && projectionSettingsForm) {
+    Object.assign(payload, currentProjectionSettingsPayload());
+  }
+  try {
+    const { settings } = await api("/api/admin/settings", {
+      method: "PATCH",
+      body: JSON.stringify(payload)
+    });
+    succeeded = true;
+    projectionSettingsDirty = false;
+    renderProjectionSettings(settings, { force: true });
+    setProjectionSettingsState(action === "save" ? "プリセット保存済み" : action === "load" ? "プリセット読込済み" : "プリセットクリア済み");
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    if (!succeeded || action === "save") {
+      presetButton.disabled = false;
+    }
+  }
+});
+
+if (backupRefreshButton) {
+  backupRefreshButton.addEventListener("click", async () => {
+    backupRefreshButton.disabled = true;
+    try {
+      await refreshBackups();
+    } catch (error) {
+      setBackupState("取得失敗");
+      alert(error.message);
+    } finally {
+      backupRefreshButton.disabled = false;
+    }
+  });
+}
+
+if (backupCreateButton) {
+  backupCreateButton.addEventListener("click", async () => {
+    backupCreateButton.disabled = true;
+    setBackupState("作成中");
+    try {
+      const { backups } = await api("/api/admin/backups", { method: "POST" });
+      renderBackups(backups || []);
+      setBackupState("作成しました");
+    } catch (error) {
+      setBackupState("作成失敗");
+      alert(error.message);
+    } finally {
+      backupCreateButton.disabled = false;
+    }
+  });
+}
+
+document.addEventListener("click", async (event) => {
+  const restoreButton = event.target.closest("button[data-backup-restore]");
+  if (restoreButton) {
+    const revision = restoreButton.dataset.backupRestore;
+    const ok = window.confirm(`バックアップ ${revision} を復元します。現在の願い事は復元前に自動バックアップされます。`);
+    if (!ok) return;
+
+    restoreButton.disabled = true;
+    setBackupState("復元中");
+    try {
+      const { backups } = await api("/api/admin/backups/restore", {
+        method: "POST",
+        body: JSON.stringify({ revision })
+      });
+      renderBackups(backups || []);
+      await refresh();
+      setBackupState("復元しました");
+    } catch (error) {
+      setBackupState("復元失敗");
+      alert(error.message);
+    } finally {
+      restoreButton.disabled = false;
+    }
+    return;
+  }
+
   const pagerButton = event.target.closest("button[data-page-status]");
   if (pagerButton) {
     const status = pagerButton.dataset.pageStatus;
@@ -463,6 +678,7 @@ document.addEventListener("click", async (event) => {
 
 refresh().then(() => {
   setWishDetailsVisible(wishDetailsVisible);
+  setActiveAdminTab(activeAdminTab);
   connectLiveUpdates();
 }).catch(() => {});
 setInterval(() => refresh().catch(() => {}), 30000);

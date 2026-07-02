@@ -1,6 +1,11 @@
 const stage = document.querySelector("#tanzaku-stage");
 const projectionStage = document.querySelector(".projection-stage");
 const emptyState = document.querySelector("#empty-state");
+const layoutMenuTrigger = document.querySelector("#layout-menu-trigger");
+const layoutMenu = document.querySelector("#layout-menu");
+const layoutMenuState = document.querySelector("#layout-menu-state");
+const layoutSaveButton = document.querySelector("#layout-save-button");
+const layoutLoadButton = document.querySelector("#layout-load-button");
 
 const colors = ["ivory", "crimson", "aqua", "violet", "gold", "leaf"];
 const DEFAULT_DISPLAY_COUNT = 12;
@@ -25,19 +30,15 @@ const WIND_SWEEP_MS = 2200;
 const WIND_GUST_MS = 2200;
 const WIND_PIVOT = "50% -18vh";
 const LAYOUT_STORAGE_KEY = "tanabataProjectionLayout.v1";
+const LAYOUT_PRESET_STORAGE_KEY = "tanabataProjectionLayoutPreset.v1";
 const DEFAULT_TANZAKU_BOUNDS = { width: 9, height: 42 };
-const PLACEMENT_CANDIDATES = [
-  { x: 10, y: 8 },
-  { x: 24, y: 10 },
-  { x: 39, y: 8 },
-  { x: 54, y: 10 },
-  { x: 70, y: 8 },
-  { x: 84, y: 12 },
-  { x: 14, y: 48 },
-  { x: 30, y: 50 },
-  { x: 46, y: 48 },
-  { x: 62, y: 50 },
-  { x: 78, y: 48 }
+const PLACEMENT_MIN_CANDIDATES = 12;
+const PLACEMENT_CANDIDATE_RATIO = 1.2;
+const PLACEMENT_COLUMNS = 6;
+const PLACEMENT_ROWS = [
+  { y: 8, offset: 0 },
+  { y: 28, offset: 0.5 },
+  { y: 48, offset: 0 }
 ];
 
 let savedLayout = loadSavedLayout();
@@ -82,15 +83,105 @@ function loadSavedLayout() {
   }
 }
 
+function getCurrentLayout() {
+  return slots.map((slot) => ({
+    x: Number(slot.meta.x),
+    y: Number(slot.meta.y)
+  }));
+}
+
 function saveLayout() {
   try {
-    savedLayout = slots.map((slot) => ({ x: slot.meta.x, y: slot.meta.y }));
+    savedLayout = getCurrentLayout();
     localStorage.setItem(
       LAYOUT_STORAGE_KEY,
       JSON.stringify(savedLayout)
     );
   } catch {
     // Ignore storage failures in private mode / kiosk restrictions.
+  }
+}
+
+function loadLayoutPreset() {
+  try {
+    const raw = localStorage.getItem(LAYOUT_PRESET_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.layout)) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function formatLayoutPresetDate(value) {
+  if (!value) return "";
+  try {
+    return new Intl.DateTimeFormat("ja-JP", {
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    }).format(new Date(value));
+  } catch {
+    return "";
+  }
+}
+
+function updateLayoutMenuState(message = "") {
+  if (!layoutMenuState || !layoutLoadButton) return;
+
+  const preset = loadLayoutPreset();
+  layoutLoadButton.disabled = !preset;
+  if (message) {
+    layoutMenuState.textContent = message;
+    return;
+  }
+
+  layoutMenuState.textContent = preset
+    ? `保存済み ${formatLayoutPresetDate(preset.savedAt)} / ${preset.layout.length}スロット`
+    : "保存なし";
+}
+
+function saveLayoutPreset() {
+  try {
+    const preset = {
+      savedAt: new Date().toISOString(),
+      slotCount: getSlotCount(),
+      layout: getCurrentLayout()
+    };
+    localStorage.setItem(LAYOUT_PRESET_STORAGE_KEY, JSON.stringify(preset));
+    updateLayoutMenuState("現在配置を保存しました");
+  } catch {
+    updateLayoutMenuState("保存できませんでした");
+  }
+}
+
+function applyLayoutPreset() {
+  const preset = loadLayoutPreset();
+  if (!preset) {
+    updateLayoutMenuState("保存配置がありません");
+    return;
+  }
+
+  let appliedCount = 0;
+  preset.layout.forEach((entry, index) => {
+    const slot = slots[index];
+    if (!slot || typeof entry?.x !== "number" || typeof entry?.y !== "number") return;
+    updateSlotPosition(slot, entry.x, entry.y, { persist: false });
+    appliedCount += 1;
+  });
+  saveLayout();
+  updateLayoutMenuState(`${appliedCount}スロットの配置を呼び出しました`);
+}
+
+function setLayoutMenuOpen(open) {
+  if (!layoutMenu || !layoutMenuTrigger) return;
+  layoutMenu.hidden = !open;
+  layoutMenuTrigger.setAttribute("aria-expanded", open ? "true" : "false");
+  if (open) {
+    updateLayoutMenuState();
   }
 }
 
@@ -277,10 +368,37 @@ function getCandidatePlacementScore(targetSlot, candidate) {
     }, 0);
 }
 
+function createPlacementCandidates() {
+  const targetCount = Math.max(
+    PLACEMENT_MIN_CANDIDATES,
+    Math.ceil(projectionSettings.slotCount * PLACEMENT_CANDIDATE_RATIO)
+  );
+  const rowCount = Math.max(1, Math.ceil(targetCount / PLACEMENT_COLUMNS));
+  const candidates = [];
+
+  for (let rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
+    const row = PLACEMENT_ROWS[rowIndex % PLACEMENT_ROWS.length];
+    const cycle = Math.floor(rowIndex / PLACEMENT_ROWS.length);
+    const y = Math.min(58, row.y + (cycle * 8));
+
+    for (let columnIndex = 0; columnIndex < PLACEMENT_COLUMNS; columnIndex += 1) {
+      const columnWidth = 80 / (PLACEMENT_COLUMNS - 1);
+      const shiftedColumn = columnIndex + row.offset;
+      const x = Math.min(86, 10 + (shiftedColumn * columnWidth));
+      candidates.push({
+        x: Number(x.toFixed(2)),
+        y: Number(y.toFixed(2))
+      });
+    }
+  }
+
+  return candidates.slice(0, targetCount);
+}
+
 function placeSlotWhereVisible(targetSlot) {
   if (initiallyStoredLayoutIndexes.has(targetSlot.index)) return;
 
-  const best = PLACEMENT_CANDIDATES
+  const best = createPlacementCandidates()
     .map((candidate) => ({
       ...candidate,
       score: getCandidatePlacementScore(targetSlot, candidate)
@@ -823,6 +941,37 @@ function onWindowPointerEnd(event) {
   if (!activeDrag || event.pointerId !== activeDrag.pointerId) return;
   endDrag();
 }
+
+if (layoutMenuTrigger && layoutMenu) {
+  layoutMenuTrigger.setAttribute("aria-haspopup", "menu");
+  layoutMenuTrigger.setAttribute("aria-expanded", "false");
+  layoutMenuTrigger.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setLayoutMenuOpen(layoutMenu.hidden);
+  });
+
+  layoutMenu.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+}
+
+if (layoutSaveButton) {
+  layoutSaveButton.addEventListener("click", saveLayoutPreset);
+}
+
+if (layoutLoadButton) {
+  layoutLoadButton.addEventListener("click", applyLayoutPreset);
+}
+
+document.addEventListener("click", () => {
+  setLayoutMenuOpen(false);
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    setLayoutMenuOpen(false);
+  }
+});
 
 async function loadWishes() {
   const response = await fetch("/api/approved", { cache: "no-store" });

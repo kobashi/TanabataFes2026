@@ -20,7 +20,15 @@
         <span class="cloud cloud-2"></span>
         <span class="cloud cloud-3"></span>
       </div>
-      <div class="moon" aria-hidden="true"></div>
+      <button id="layout-menu-trigger" class="moon" type="button" aria-label="短冊レイアウトメニュー"></button>
+      <div id="layout-menu" class="projection-layout-menu" hidden>
+        <p class="projection-layout-menu-title">短冊レイアウト</p>
+        <p id="layout-menu-state" class="projection-layout-menu-state">保存なし</p>
+        <div class="projection-layout-menu-actions">
+          <button id="layout-save-button" type="button">現在配置を保存</button>
+          <button id="layout-load-button" type="button">保存配置を呼び出し</button>
+        </div>
+      </div>
       <div class="bamboo bamboo-left" aria-hidden="true"></div>
       <div class="bamboo bamboo-right" aria-hidden="true"></div>
       <section id="tanzaku-stage" class="tanzaku-stage"></section>

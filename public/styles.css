@@ -328,6 +328,38 @@ input:focus {
   background: rgba(13, 16, 32, 0.96);
 }
 
+.admin-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 14px 28px 0;
+  background: rgba(13, 16, 32, 0.96);
+}
+
+.admin-tab {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-bottom-color: rgba(255, 255, 255, 0.28);
+  border-radius: 8px 8px 0 0;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.admin-tab.is-active {
+  border-color: rgba(121, 231, 255, 0.56);
+  background: rgba(121, 231, 255, 0.14);
+  color: #ffffff;
+}
+
+.admin-tab-panel {
+  display: none;
+}
+
+.admin-tab-panel.is-active {
+  display: block;
+}
+
 .admin-controls h2 {
   margin: 0;
   font-size: 1.25rem;
@@ -406,17 +438,91 @@ input:focus {
 }
 
 .projection-settings-form {
+  display: grid;
+  grid-template-columns: minmax(280px, 1.15fr) minmax(260px, 1fr) minmax(260px, 1fr) auto;
+  align-items: stretch;
+  gap: 12px;
+  width: 100%;
+}
+
+.projection-settings-panel {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+.projection-settings-head {
   display: flex;
   align-items: end;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.projection-presets {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.projection-preset {
+  display: grid;
+  gap: 10px;
+  min-height: 150px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(121, 231, 255, 0.12), transparent 48%),
+    rgba(255, 255, 255, 0.045);
+}
+
+.projection-preset--saved {
+  border-color: rgba(121, 231, 255, 0.5);
+  box-shadow: 0 0 0 1px rgba(121, 231, 255, 0.14), 0 18px 42px rgba(2, 6, 18, 0.22);
+}
+
+.projection-preset--empty {
+  border-style: dashed;
+  opacity: 0.78;
+}
+
+.projection-preset h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.projection-preset-state {
+  min-height: 44px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.projection-preset--saved .projection-preset-state {
+  color: #e9fbff;
+}
+
+.projection-preset-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  align-self: end;
+}
+
+.projection-preset-actions button {
+  min-height: 38px;
+  padding: 0 10px;
 }
 
 .settings-group {
   display: flex;
   align-items: end;
   flex-wrap: wrap;
+  justify-content: flex-start;
   gap: 10px;
   min-height: 76px;
   margin: 0;
@@ -436,6 +542,7 @@ input:focus {
 .settings-actions {
   display: flex;
   align-items: end;
+  justify-content: flex-end;
   min-height: 76px;
 }
 
@@ -558,6 +665,32 @@ input:focus {
   padding: 0 12px;
 }
 
+.backup-panel {
+  padding: 22px 28px;
+}
+
+.backup-list {
+  display: grid;
+  gap: 12px;
+}
+
+.backup-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.backup-item h3 {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 1rem;
+}
+
 .projection-page {
   overflow: hidden;
   background: #02030a;
@@ -580,6 +713,7 @@ input:focus {
   position: absolute;
   inset: 0;
   content: "";
+  z-index: 0;
   background-image:
     radial-gradient(circle, rgba(255, 255, 255, 0.95) 0 1px, transparent 1.4px),
     radial-gradient(circle, rgba(255, 222, 130, 0.85) 0 1px, transparent 1.5px);
@@ -781,13 +915,17 @@ input:focus {
   right: 8vw;
   width: 12vmin;
   aspect-ratio: 1;
+  padding: 0;
+  border: 0;
   border-radius: 50%;
   background:
     radial-gradient(circle at 36% 34%, #fffff4, #fff1ae 36%, #ffdf77 66%, #d6a43a 100%);
   box-shadow:
     0 0 14px rgba(255, 244, 190, 0.7),
     0 0 54px rgba(255, 220, 128, 0.42);
+  cursor: default;
   z-index: 1;
+  appearance: none;
 }
 
 .moon::before,
@@ -812,6 +950,76 @@ input:focus {
   opacity: 0.85;
 }
 
+.moon:focus-visible {
+  outline: 2px solid rgba(255, 255, 244, 0.9);
+  outline-offset: 8px;
+}
+
+.projection-layout-menu {
+  position: absolute;
+  top: calc(5vh + 13vmin);
+  right: 6vw;
+  z-index: 31;
+  width: min(320px, 82vw);
+  padding: 14px;
+  border: 1px solid rgba(255, 244, 190, 0.32);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255, 239, 166, 0.18), transparent 46%),
+    rgba(5, 8, 20, 0.88);
+  box-shadow:
+    0 20px 52px rgba(0, 0, 0, 0.46),
+    0 0 26px rgba(255, 220, 128, 0.14);
+  color: #fff7d7;
+  backdrop-filter: blur(14px);
+}
+
+.projection-layout-menu[hidden] {
+  display: none;
+}
+
+.projection-layout-menu-title {
+  margin: 0 0 4px;
+  color: #fffdf0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.projection-layout-menu-state {
+  min-height: 1.4em;
+  margin: 0 0 12px;
+  color: rgba(255, 247, 215, 0.74);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.projection-layout-menu-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.projection-layout-menu button {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 244, 190, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 247, 215, 0.12);
+  color: #fff7d7;
+  font-weight: 800;
+}
+
+.projection-layout-menu button:hover:not(:disabled) {
+  border-color: rgba(255, 244, 190, 0.54);
+  background: rgba(255, 247, 215, 0.2);
+}
+
+.projection-layout-menu button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
 .bamboo {
   position: absolute;
   bottom: -6vh;
@@ -824,6 +1032,7 @@ input:focus {
     -34px -2vh 0 -3px #2eb77b,
     54px -20vh 0 -3px #1f8e67;
   z-index: 3;
+  pointer-events: none;
 }
 
 .bamboo::before,
@@ -864,6 +1073,7 @@ input:focus {
   position: absolute;
   inset: 0;
   z-index: 4;
+  pointer-events: none;
 }
 
 .tanzaku {
@@ -886,6 +1096,7 @@ input:focus {
   overflow: visible;
   transition: opacity 0.45s ease, filter 0.45s ease;
   cursor: grab;
+  pointer-events: auto;
   user-select: none;
   touch-action: none;
   will-change: transform, left, top;
@@ -1102,6 +1313,21 @@ input:focus {
   }
 }
 
+@media (max-width: 1180px) {
+  .projection-settings-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .settings-actions {
+    min-height: auto;
+    justify-content: stretch;
+  }
+
+  .settings-actions button {
+    width: 100%;
+  }
+}
+
 @media (max-width: 920px) {
   .admin-header,
   .admin-controls,
@@ -1119,12 +1345,31 @@ input:focus {
     grid-template-columns: 1fr;
   }
 
+  .admin-tabs {
+    flex-wrap: wrap;
+    padding-inline: 18px;
+  }
+
+  .admin-tab {
+    flex: 1 1 140px;
+  }
+
   .moderation-form {
     justify-content: stretch;
   }
 
   .projection-settings-form {
+    grid-template-columns: 1fr;
     justify-content: stretch;
+  }
+
+  .projection-settings-head {
+    display: grid;
+    align-items: start;
+  }
+
+  .projection-presets {
+    grid-template-columns: 1fr;
   }
 
   .settings-group {
@@ -1145,12 +1390,23 @@ input:focus {
     justify-content: stretch;
   }
 
+  .backup-panel {
+    padding-inline: 18px;
+  }
+
+  .backup-item {
+    grid-template-columns: 1fr;
+  }
+
   .detail-toggle,
   .mode-option,
   .number-option,
   .number-option input,
   .projection-settings-form button,
   .projection-effects-form button,
+  .projection-preset-actions button,
+  .backup-item button,
+  .admin-controls-actions button,
   .moderation-form button {
     width: 100%;
   }
