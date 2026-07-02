@@ -159,6 +159,48 @@
                 <input id="projection-effect-interval-ms" type="number" min="60000" max="1800000" step="10000" inputmode="numeric">
               </label>
             </fieldset>
+            <fieldset class="settings-group">
+              <legend>背景</legend>
+              <label class="number-option">
+                <span>天の川明るさ</span>
+                <input id="projection-milky-way-gain" type="number" min="0.5" max="4" step="0.05" inputmode="decimal">
+              </label>
+              <label class="number-option">
+                <span>雲の発生量</span>
+                <input id="projection-cloud-count" type="number" min="0" max="12" step="1" inputmode="numeric">
+              </label>
+              <label class="number-option">
+                <span>雲の発生X</span>
+                <input id="projection-cloud-origin-x" type="number" min="-80" max="120" step="1" inputmode="decimal">
+              </label>
+              <label class="number-option">
+                <span>雲の発生Y</span>
+                <input id="projection-cloud-origin-y" type="number" min="-20" max="100" step="1" inputmode="decimal">
+              </label>
+              <label class="number-option">
+                <span>雲シード</span>
+                <input id="projection-cloud-seed" type="text" maxlength="80" autocomplete="off">
+              </label>
+            </fieldset>
+            <fieldset class="settings-group">
+              <legend>実験的演出</legend>
+              <label class="detail-toggle" for="projection-experimental-parallax-enabled">
+                <input id="projection-experimental-parallax-enabled" type="checkbox" role="switch" aria-label="視差による立体感">
+                <span>視差立体感</span>
+              </label>
+              <label class="range-option">
+                <span>視差強度 <output id="projection-parallax-strength-value" for="projection-parallax-strength">1</output></span>
+                <input id="projection-parallax-strength" type="range" min="0" max="3" step="0.05">
+              </label>
+              <label class="range-option">
+                <span>消失点X <output id="projection-parallax-vanishing-point-x-value" for="projection-parallax-vanishing-point-x">0</output></span>
+                <input id="projection-parallax-vanishing-point-x" type="range" min="-1" max="1" step="0.01">
+              </label>
+              <label class="range-option">
+                <span>消失点Y <output id="projection-parallax-vanishing-point-y-value" for="projection-parallax-vanishing-point-y">0</output></span>
+                <input id="projection-parallax-vanishing-point-y" type="range" min="-1" max="1" step="0.01">
+              </label>
+            </fieldset>
             <div class="settings-actions">
               <button type="submit">適用</button>
             </div>

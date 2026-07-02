@@ -20,6 +20,18 @@ const MIN_PROJECTION_ROTATE_INTERVAL_MS = 5000;
 const MAX_PROJECTION_ROTATE_INTERVAL_MS = 120000;
 const MIN_PROJECTION_EFFECT_INTERVAL_MS = 60000;
 const MAX_PROJECTION_EFFECT_INTERVAL_MS = 1800000;
+const MIN_PROJECTION_MILKY_WAY_GAIN = 0.5;
+const MAX_PROJECTION_MILKY_WAY_GAIN = 4;
+const MIN_PROJECTION_PARALLAX_STRENGTH = 0;
+const MAX_PROJECTION_PARALLAX_STRENGTH = 3;
+const MIN_PROJECTION_PARALLAX_VANISHING_POINT = -1;
+const MAX_PROJECTION_PARALLAX_VANISHING_POINT = 1;
+const MIN_PROJECTION_CLOUD_COUNT = 0;
+const MAX_PROJECTION_CLOUD_COUNT = 12;
+const MIN_PROJECTION_CLOUD_ORIGIN_X = -80;
+const MAX_PROJECTION_CLOUD_ORIGIN_X = 120;
+const MIN_PROJECTION_CLOUD_ORIGIN_Y = -20;
+const MAX_PROJECTION_CLOUD_ORIGIN_Y = 100;
 const PROJECTION_PRESET_COUNT = 3;
 
 const rootDir = __dirname;
@@ -38,6 +50,15 @@ const DEFAULT_SETTINGS = {
   projectionRotateIntervalMs: 18000,
   projectionEffectAutoEnabled: false,
   projectionEffectIntervalMs: 300000,
+  projectionMilkyWayGain: 1.75,
+  projectionExperimentalParallaxEnabled: false,
+  projectionParallaxStrength: 1,
+  projectionParallaxVanishingPointX: 0,
+  projectionParallaxVanishingPointY: 0,
+  projectionCloudCount: 3,
+  projectionCloudOriginX: -32,
+  projectionCloudOriginY: 12,
+  projectionCloudSeed: "tanabata-clouds",
   projectionPresets: Array.from({ length: PROJECTION_PRESET_COUNT }, () => null)
 };
 const MODERATION_MODES = new Set(["manual", "auto", "ai"]);
@@ -265,6 +286,48 @@ async function readSettings() {
       MIN_PROJECTION_EFFECT_INTERVAL_MS,
       MAX_PROJECTION_EFFECT_INTERVAL_MS
     );
+    const milkyWayGain = normalizeNumber(
+      parsed.projectionMilkyWayGain,
+      DEFAULT_SETTINGS.projectionMilkyWayGain,
+      MIN_PROJECTION_MILKY_WAY_GAIN,
+      MAX_PROJECTION_MILKY_WAY_GAIN
+    );
+    const parallaxStrength = normalizeNumber(
+      parsed.projectionParallaxStrength,
+      DEFAULT_SETTINGS.projectionParallaxStrength,
+      MIN_PROJECTION_PARALLAX_STRENGTH,
+      MAX_PROJECTION_PARALLAX_STRENGTH
+    );
+    const parallaxVanishingPointX = normalizeNumber(
+      parsed.projectionParallaxVanishingPointX,
+      DEFAULT_SETTINGS.projectionParallaxVanishingPointX,
+      MIN_PROJECTION_PARALLAX_VANISHING_POINT,
+      MAX_PROJECTION_PARALLAX_VANISHING_POINT
+    );
+    const parallaxVanishingPointY = normalizeNumber(
+      parsed.projectionParallaxVanishingPointY,
+      DEFAULT_SETTINGS.projectionParallaxVanishingPointY,
+      MIN_PROJECTION_PARALLAX_VANISHING_POINT,
+      MAX_PROJECTION_PARALLAX_VANISHING_POINT
+    );
+    const cloudCount = normalizeInteger(
+      parsed.projectionCloudCount,
+      DEFAULT_SETTINGS.projectionCloudCount,
+      MIN_PROJECTION_CLOUD_COUNT,
+      MAX_PROJECTION_CLOUD_COUNT
+    );
+    const cloudOriginX = normalizeNumber(
+      parsed.projectionCloudOriginX,
+      DEFAULT_SETTINGS.projectionCloudOriginX,
+      MIN_PROJECTION_CLOUD_ORIGIN_X,
+      MAX_PROJECTION_CLOUD_ORIGIN_X
+    );
+    const cloudOriginY = normalizeNumber(
+      parsed.projectionCloudOriginY,
+      DEFAULT_SETTINGS.projectionCloudOriginY,
+      MIN_PROJECTION_CLOUD_ORIGIN_Y,
+      MAX_PROJECTION_CLOUD_ORIGIN_Y
+    );
     return {
       ...DEFAULT_SETTINGS,
       ...parsed,
@@ -276,6 +339,15 @@ async function readSettings() {
       projectionRotateIntervalMs: rotateIntervalMs,
       projectionEffectAutoEnabled: parsed.projectionEffectAutoEnabled === true,
       projectionEffectIntervalMs: effectIntervalMs,
+      projectionMilkyWayGain: milkyWayGain,
+      projectionExperimentalParallaxEnabled: parsed.projectionExperimentalParallaxEnabled === true,
+      projectionParallaxStrength: parallaxStrength,
+      projectionParallaxVanishingPointX: parallaxVanishingPointX,
+      projectionParallaxVanishingPointY: parallaxVanishingPointY,
+      projectionCloudCount: cloudCount,
+      projectionCloudOriginX: cloudOriginX,
+      projectionCloudOriginY: cloudOriginY,
+      projectionCloudSeed: String(parsed.projectionCloudSeed || DEFAULT_SETTINGS.projectionCloudSeed).slice(0, 80),
       projectionPresets: normalizeProjectionPresets(parsed.projectionPresets)
     };
   } catch (error) {
@@ -294,6 +366,14 @@ function normalizeInteger(value, fallback, min, max) {
   return Math.max(min, Math.min(max, number));
 }
 
+function normalizeNumber(value, fallback, min, max) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return fallback;
+  }
+  return Math.max(min, Math.min(max, number));
+}
+
 function projectionPresetFromSettings(settings) {
   return {
     projectionDisplayCount: settings.projectionDisplayCount,
@@ -302,7 +382,16 @@ function projectionPresetFromSettings(settings) {
     projectionTypingIntervalMs: settings.projectionTypingIntervalMs,
     projectionRotateIntervalMs: settings.projectionRotateIntervalMs,
     projectionEffectAutoEnabled: settings.projectionEffectAutoEnabled === true,
-    projectionEffectIntervalMs: settings.projectionEffectIntervalMs
+    projectionEffectIntervalMs: settings.projectionEffectIntervalMs,
+    projectionMilkyWayGain: settings.projectionMilkyWayGain,
+    projectionExperimentalParallaxEnabled: settings.projectionExperimentalParallaxEnabled === true,
+    projectionParallaxStrength: settings.projectionParallaxStrength,
+    projectionParallaxVanishingPointX: settings.projectionParallaxVanishingPointX,
+    projectionParallaxVanishingPointY: settings.projectionParallaxVanishingPointY,
+    projectionCloudCount: settings.projectionCloudCount,
+    projectionCloudOriginX: settings.projectionCloudOriginX,
+    projectionCloudOriginY: settings.projectionCloudOriginY,
+    projectionCloudSeed: settings.projectionCloudSeed
   };
 }
 
@@ -354,7 +443,51 @@ function normalizeProjectionPreset(rawPreset) {
         DEFAULT_SETTINGS.projectionEffectIntervalMs,
         MIN_PROJECTION_EFFECT_INTERVAL_MS,
         MAX_PROJECTION_EFFECT_INTERVAL_MS
-      )
+      ),
+      projectionMilkyWayGain: normalizeNumber(
+        source.projectionMilkyWayGain,
+        DEFAULT_SETTINGS.projectionMilkyWayGain,
+        MIN_PROJECTION_MILKY_WAY_GAIN,
+        MAX_PROJECTION_MILKY_WAY_GAIN
+      ),
+      projectionExperimentalParallaxEnabled: source.projectionExperimentalParallaxEnabled === true,
+      projectionParallaxStrength: normalizeNumber(
+        source.projectionParallaxStrength,
+        DEFAULT_SETTINGS.projectionParallaxStrength,
+        MIN_PROJECTION_PARALLAX_STRENGTH,
+        MAX_PROJECTION_PARALLAX_STRENGTH
+      ),
+      projectionParallaxVanishingPointX: normalizeNumber(
+        source.projectionParallaxVanishingPointX,
+        DEFAULT_SETTINGS.projectionParallaxVanishingPointX,
+        MIN_PROJECTION_PARALLAX_VANISHING_POINT,
+        MAX_PROJECTION_PARALLAX_VANISHING_POINT
+      ),
+      projectionParallaxVanishingPointY: normalizeNumber(
+        source.projectionParallaxVanishingPointY,
+        DEFAULT_SETTINGS.projectionParallaxVanishingPointY,
+        MIN_PROJECTION_PARALLAX_VANISHING_POINT,
+        MAX_PROJECTION_PARALLAX_VANISHING_POINT
+      ),
+      projectionCloudCount: normalizeInteger(
+        source.projectionCloudCount,
+        DEFAULT_SETTINGS.projectionCloudCount,
+        MIN_PROJECTION_CLOUD_COUNT,
+        MAX_PROJECTION_CLOUD_COUNT
+      ),
+      projectionCloudOriginX: normalizeNumber(
+        source.projectionCloudOriginX,
+        DEFAULT_SETTINGS.projectionCloudOriginX,
+        MIN_PROJECTION_CLOUD_ORIGIN_X,
+        MAX_PROJECTION_CLOUD_ORIGIN_X
+      ),
+      projectionCloudOriginY: normalizeNumber(
+        source.projectionCloudOriginY,
+        DEFAULT_SETTINGS.projectionCloudOriginY,
+        MIN_PROJECTION_CLOUD_ORIGIN_Y,
+        MAX_PROJECTION_CLOUD_ORIGIN_Y
+      ),
+      projectionCloudSeed: String(source.projectionCloudSeed || DEFAULT_SETTINGS.projectionCloudSeed).slice(0, 80)
     }
   };
 }
@@ -488,6 +621,15 @@ function publicSettings(settings) {
     projectionRotateIntervalMs: settings.projectionRotateIntervalMs,
     projectionEffectAutoEnabled: settings.projectionEffectAutoEnabled,
     projectionEffectIntervalMs: settings.projectionEffectIntervalMs,
+    projectionMilkyWayGain: settings.projectionMilkyWayGain,
+    projectionExperimentalParallaxEnabled: settings.projectionExperimentalParallaxEnabled,
+    projectionParallaxStrength: settings.projectionParallaxStrength,
+    projectionParallaxVanishingPointX: settings.projectionParallaxVanishingPointX,
+    projectionParallaxVanishingPointY: settings.projectionParallaxVanishingPointY,
+    projectionCloudCount: settings.projectionCloudCount,
+    projectionCloudOriginX: settings.projectionCloudOriginX,
+    projectionCloudOriginY: settings.projectionCloudOriginY,
+    projectionCloudSeed: settings.projectionCloudSeed,
     projectionPresets: normalizeProjectionPresets(settings.projectionPresets),
     projectionDisplayCountMax: MAX_PROJECTION_DISPLAY_COUNT,
     projectionSlotCountMax: MAX_PROJECTION_SLOT_COUNT,
@@ -497,6 +639,18 @@ function publicSettings(settings) {
     projectionRotateIntervalMsMax: MAX_PROJECTION_ROTATE_INTERVAL_MS,
     projectionEffectIntervalMsMin: MIN_PROJECTION_EFFECT_INTERVAL_MS,
     projectionEffectIntervalMsMax: MAX_PROJECTION_EFFECT_INTERVAL_MS,
+    projectionMilkyWayGainMin: MIN_PROJECTION_MILKY_WAY_GAIN,
+    projectionMilkyWayGainMax: MAX_PROJECTION_MILKY_WAY_GAIN,
+    projectionParallaxStrengthMin: MIN_PROJECTION_PARALLAX_STRENGTH,
+    projectionParallaxStrengthMax: MAX_PROJECTION_PARALLAX_STRENGTH,
+    projectionParallaxVanishingPointMin: MIN_PROJECTION_PARALLAX_VANISHING_POINT,
+    projectionParallaxVanishingPointMax: MAX_PROJECTION_PARALLAX_VANISHING_POINT,
+    projectionCloudCountMin: MIN_PROJECTION_CLOUD_COUNT,
+    projectionCloudCountMax: MAX_PROJECTION_CLOUD_COUNT,
+    projectionCloudOriginXMin: MIN_PROJECTION_CLOUD_ORIGIN_X,
+    projectionCloudOriginXMax: MAX_PROJECTION_CLOUD_ORIGIN_X,
+    projectionCloudOriginYMin: MIN_PROJECTION_CLOUD_ORIGIN_Y,
+    projectionCloudOriginYMax: MAX_PROJECTION_CLOUD_ORIGIN_Y,
     aiAvailable: Boolean(OPENAI_API_KEY)
   };
 }
@@ -789,6 +943,105 @@ async function handleApi(req, res, url) {
         return;
       }
       nextSettings.projectionEffectIntervalMs = effectIntervalMs;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionMilkyWayGain")) {
+      const milkyWayGain = Number(body.projectionMilkyWayGain);
+      if (
+        !Number.isFinite(milkyWayGain) ||
+        milkyWayGain < MIN_PROJECTION_MILKY_WAY_GAIN ||
+        milkyWayGain > MAX_PROJECTION_MILKY_WAY_GAIN
+      ) {
+        sendError(res, 400, `天の川明るさは${MIN_PROJECTION_MILKY_WAY_GAIN}から${MAX_PROJECTION_MILKY_WAY_GAIN}までです。`);
+        return;
+      }
+      nextSettings.projectionMilkyWayGain = milkyWayGain;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionExperimentalParallaxEnabled")) {
+      nextSettings.projectionExperimentalParallaxEnabled = body.projectionExperimentalParallaxEnabled === true;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionParallaxStrength")) {
+      const parallaxStrength = Number(body.projectionParallaxStrength);
+      if (
+        !Number.isFinite(parallaxStrength) ||
+        parallaxStrength < MIN_PROJECTION_PARALLAX_STRENGTH ||
+        parallaxStrength > MAX_PROJECTION_PARALLAX_STRENGTH
+      ) {
+        sendError(res, 400, `視差強度は${MIN_PROJECTION_PARALLAX_STRENGTH}から${MAX_PROJECTION_PARALLAX_STRENGTH}までです。`);
+        return;
+      }
+      nextSettings.projectionParallaxStrength = parallaxStrength;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionParallaxVanishingPointX")) {
+      const vanishingPointX = Number(body.projectionParallaxVanishingPointX);
+      if (
+        !Number.isFinite(vanishingPointX) ||
+        vanishingPointX < MIN_PROJECTION_PARALLAX_VANISHING_POINT ||
+        vanishingPointX > MAX_PROJECTION_PARALLAX_VANISHING_POINT
+      ) {
+        sendError(res, 400, `視差消失点Xは${MIN_PROJECTION_PARALLAX_VANISHING_POINT}から${MAX_PROJECTION_PARALLAX_VANISHING_POINT}までです。`);
+        return;
+      }
+      nextSettings.projectionParallaxVanishingPointX = vanishingPointX;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionParallaxVanishingPointY")) {
+      const vanishingPointY = Number(body.projectionParallaxVanishingPointY);
+      if (
+        !Number.isFinite(vanishingPointY) ||
+        vanishingPointY < MIN_PROJECTION_PARALLAX_VANISHING_POINT ||
+        vanishingPointY > MAX_PROJECTION_PARALLAX_VANISHING_POINT
+      ) {
+        sendError(res, 400, `視差消失点Yは${MIN_PROJECTION_PARALLAX_VANISHING_POINT}から${MAX_PROJECTION_PARALLAX_VANISHING_POINT}までです。`);
+        return;
+      }
+      nextSettings.projectionParallaxVanishingPointY = vanishingPointY;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionCloudCount")) {
+      const cloudCount = Number(body.projectionCloudCount);
+      if (
+        !Number.isInteger(cloudCount) ||
+        cloudCount < MIN_PROJECTION_CLOUD_COUNT ||
+        cloudCount > MAX_PROJECTION_CLOUD_COUNT
+      ) {
+        sendError(res, 400, `雲の発生量は${MIN_PROJECTION_CLOUD_COUNT}から${MAX_PROJECTION_CLOUD_COUNT}までです。`);
+        return;
+      }
+      nextSettings.projectionCloudCount = cloudCount;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionCloudOriginX")) {
+      const cloudOriginX = Number(body.projectionCloudOriginX);
+      if (
+        !Number.isFinite(cloudOriginX) ||
+        cloudOriginX < MIN_PROJECTION_CLOUD_ORIGIN_X ||
+        cloudOriginX > MAX_PROJECTION_CLOUD_ORIGIN_X
+      ) {
+        sendError(res, 400, `雲の発生Xは${MIN_PROJECTION_CLOUD_ORIGIN_X}から${MAX_PROJECTION_CLOUD_ORIGIN_X}までです。`);
+        return;
+      }
+      nextSettings.projectionCloudOriginX = cloudOriginX;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionCloudOriginY")) {
+      const cloudOriginY = Number(body.projectionCloudOriginY);
+      if (
+        !Number.isFinite(cloudOriginY) ||
+        cloudOriginY < MIN_PROJECTION_CLOUD_ORIGIN_Y ||
+        cloudOriginY > MAX_PROJECTION_CLOUD_ORIGIN_Y
+      ) {
+        sendError(res, 400, `雲の発生Yは${MIN_PROJECTION_CLOUD_ORIGIN_Y}から${MAX_PROJECTION_CLOUD_ORIGIN_Y}までです。`);
+        return;
+      }
+      nextSettings.projectionCloudOriginY = cloudOriginY;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionCloudSeed")) {
+      nextSettings.projectionCloudSeed = String(body.projectionCloudSeed || DEFAULT_SETTINGS.projectionCloudSeed).slice(0, 80);
     }
 
     if (Object.prototype.hasOwnProperty.call(body, "projectionPresetAction")) {

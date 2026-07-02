@@ -10,16 +10,14 @@
   <body class="projection-page">
     <main class="projection-stage" aria-label="七夕祭り投影画面">
       <div class="star-field" aria-hidden="true"></div>
+      <canvas id="projection-effects-canvas" class="projection-effects-canvas" aria-hidden="true"></canvas>
+      <canvas id="projection-webgl-effects-canvas" class="projection-webgl-effects-canvas" aria-hidden="true"></canvas>
       <div class="meteor-field" aria-hidden="true">
         <span class="meteor meteor-1"></span>
         <span class="meteor meteor-2"></span>
         <span class="meteor meteor-3"></span>
       </div>
-      <div class="cloud-layer" aria-hidden="true">
-        <span class="cloud cloud-1"></span>
-        <span class="cloud cloud-2"></span>
-        <span class="cloud cloud-3"></span>
-      </div>
+      <div id="cloud-layer" class="cloud-layer" aria-hidden="true"></div>
       <button id="layout-menu-trigger" class="moon" type="button" aria-label="短冊レイアウトメニュー"></button>
       <div id="layout-menu" class="projection-layout-menu" hidden>
         <p class="projection-layout-menu-title">短冊レイアウト</p>
@@ -31,6 +29,13 @@
       </div>
       <div class="bamboo bamboo-left" aria-hidden="true"></div>
       <div class="bamboo bamboo-right" aria-hidden="true"></div>
+      <div class="parallax-viewer-oracle" aria-hidden="true">
+        <span class="parallax-oracle-star parallax-oracle-star--vega"></span>
+        <span class="parallax-oracle-boat">
+          <span class="parallax-oracle-boat-glow"></span>
+        </span>
+        <span class="parallax-oracle-star parallax-oracle-star--altair"></span>
+      </div>
       <section id="tanzaku-stage" class="tanzaku-stage"></section>
       <p id="empty-state" class="empty-state">願い事の承認を待っています</p>
     </main>
