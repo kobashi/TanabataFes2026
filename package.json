@@ -1,8 +1,9 @@
 {
   "name": "tanabata-fes-2026",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "private": true,
   "description": "Local Tanabata wish submission, moderation, and projection mapping display.",
+  "license": "MIT",
   "scripts": {
     "start": "node scripts/start-with-env.js",
     "dev": "node scripts/dev-with-env.js",
