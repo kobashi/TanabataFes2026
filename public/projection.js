@@ -3,14 +3,47 @@ const projectionStage = document.querySelector(".projection-stage");
 const effectsCanvas = document.querySelector("#projection-effects-canvas");
 const webglEffectsCanvas = document.querySelector("#projection-webgl-effects-canvas");
 const cloudLayer = document.querySelector("#cloud-layer");
+const vanishingPointMarker = document.querySelector("#vanishing-point-marker");
 const emptyState = document.querySelector("#empty-state");
 const layoutMenuTrigger = document.querySelector("#layout-menu-trigger");
 const layoutMenu = document.querySelector("#layout-menu");
 const layoutMenuState = document.querySelector("#layout-menu-state");
 const layoutSaveButton = document.querySelector("#layout-save-button");
 const layoutLoadButton = document.querySelector("#layout-load-button");
+const tanzakuFontSelect = document.querySelector("#tanzaku-font-select");
+const tanzakuFontSizeInput = document.querySelector("#tanzaku-font-size");
+const tanzakuFontSizeValue = document.querySelector("#tanzaku-font-size-value");
+const oracleBoatSizeInput = document.querySelector("#oracle-boat-size");
+const oracleBoatSizeValue = document.querySelector("#oracle-boat-size-value");
 
 const colors = ["ivory", "crimson", "aqua", "violet", "gold", "leaf"];
+const tanzakuFontOptions = [
+  {
+    id: "mincho",
+    label: "明朝",
+    family: "\"Hiragino Mincho ProN\", \"Yu Mincho\", \"YuMincho\", \"Noto Serif JP\", serif"
+  },
+  {
+    id: "gothic",
+    label: "ゴシック",
+    family: "\"Hiragino Sans\", \"Yu Gothic\", \"YuGothic\", \"Noto Sans JP\", sans-serif"
+  },
+  {
+    id: "maru",
+    label: "丸ゴシック",
+    family: "\"Hiragino Maru Gothic ProN\", \"Yu Gothic\", \"YuGothic\", sans-serif"
+  },
+  {
+    id: "kyokasho",
+    label: "教科書体",
+    family: "\"Yu Kyokasho\", \"Hiragino Mincho ProN\", \"Yu Mincho\", serif"
+  },
+  {
+    id: "brush",
+    label: "筆文字風",
+    family: "\"Klee\", \"Klee One\", \"Hiragino Mincho ProN\", \"Yu Mincho\", serif"
+  }
+];
 const DEFAULT_DISPLAY_COUNT = 12;
 const DEFAULT_SLOT_COUNT = 15;
 const DEFAULT_MOVE_COUNT = 1;
@@ -28,10 +61,13 @@ const TYPE_INTERVAL_MIN_RATIO = 0.2;
 const TYPE_LENGTH_SLOW_MAX = 40;
 const TYPE_INTERVAL_CURVE = 2.2;
 const LEAVE_ANIMATION_MS = 1100;
-const METEOR_SHOWER_ACTIVE_MS = 12000;
+const METEOR_SHOWER_ACTIVE_MS = 17000;
 const METEOR_SHOWER_FADE_MS = 2600;
 const EFFECT_LEAVE_START_MS = 2600;
-const EFFECT_BRIDGE_SCATTER_START_MS = 5600;
+const EFFECT_BRIDGE_START_MS = 1200;
+const EFFECT_BRIDGE_BUILD_MS = 7600;
+const EFFECT_BRIDGE_HOLD_MS = 2000;
+const EFFECT_BRIDGE_SCATTER_START_MS = EFFECT_BRIDGE_START_MS + EFFECT_BRIDGE_BUILD_MS + EFFECT_BRIDGE_HOLD_MS;
 const EFFECT_LEAVE_STAGGER_MS = 260;
 const METEOR_CYCLE_MS = 80000;
 const METEOR_DELAYS_MS = [0, 26000, 52000];
@@ -43,6 +79,7 @@ const TANZAKU_GLOW_MS = 3200;
 const DEFAULT_MILKY_WAY_PROJECTION_GAIN = 1.75;
 const LAYOUT_STORAGE_KEY = "tanabataProjectionLayout.v1";
 const LAYOUT_PRESET_STORAGE_KEY = "tanabataProjectionLayoutPreset.v1";
+const APPEARANCE_STORAGE_KEY = "tanabataProjectionAppearance.v1";
 const DEFAULT_TANZAKU_BOUNDS = { width: 9, height: 42 };
 const PLACEMENT_MIN_CANDIDATES = 12;
 const PLACEMENT_CANDIDATE_RATIO = 1.2;
@@ -73,8 +110,33 @@ let projectionSettings = {
   cloudOriginY: 12,
   cloudSeed: "tanabata-clouds",
   experimentalParallaxEnabled: false,
-  parallaxStrength: 1
+  parallaxStrength: 1,
+  parallaxMarkerEnabled: false,
+  parallaxPopoutStrength: 0,
+  viewportMargin: 0
 };
+
+function getProjectionPlaneMetricsForMargin(margin) {
+  const numericMargin = Number(margin);
+  const safeMargin = Math.max(0, Math.min(24, Number.isFinite(numericMargin) ? numericMargin : 0));
+  const marginPx = Math.min(window.innerWidth, window.innerHeight) * (safeMargin / 100);
+  return {
+    marginPx,
+    width: Math.max(1, window.innerWidth - (marginPx * 2)),
+    height: Math.max(1, window.innerHeight - (marginPx * 2))
+  };
+}
+
+function getVanishingPointLimitForMargin(margin, axis) {
+  return 1;
+}
+
+function clampVanishingPointForMargin(value, margin, axis) {
+  const limit = getVanishingPointLimitForMargin(margin, axis);
+  const safeValue = Number.isFinite(value) ? value : 0;
+  return Math.max(-limit, Math.min(limit, safeValue));
+}
+
 let nextZOrder = 1;
 let slots = Array.from({ length: getSlotCount() }, (_, index) => createSlot(index));
 
@@ -91,6 +153,9 @@ let activeDrag = null;
 let currentWishes = [];
 let latestEffectId = null;
 let specialEffectInProgress = false;
+let layoutMenuPointerToggled = false;
+let projectionEventSource = null;
+let projectionUpdateTimer = null;
 
 const effectsScene = createEffectsScene(effectsCanvas);
 const webglEffectsScene = createWebglEffectsScene(webglEffectsCanvas);
@@ -106,11 +171,127 @@ function loadSavedLayout() {
   }
 }
 
+function loadAppearanceSettings() {
+  try {
+    const raw = localStorage.getItem(APPEARANCE_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return normalizeAppearanceSettings(parsed);
+  } catch {
+    return normalizeAppearanceSettings();
+  }
+}
+
+function saveAppearanceSettings(settings) {
+  try {
+    localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify(settings));
+  } catch {
+    // Ignore storage failures in private mode / kiosk restrictions.
+  }
+}
+
+function normalizeAppearanceSettings(settings = {}) {
+  return {
+    fontId: normalizeTanzakuFontId(settings.fontId),
+    fontSize: normalizeTanzakuFontSize(settings.fontSize),
+    oracleBoatSize: normalizeOracleBoatSize(settings.oracleBoatSize)
+  };
+}
+
+function normalizeTanzakuFontId(value) {
+  const id = String(value || "mincho");
+  return tanzakuFontOptions.some((option) => option.id === id) ? id : "mincho";
+}
+
+function normalizeOracleBoatSize(value) {
+  const size = Number(value);
+  if (!Number.isFinite(size)) return 100;
+  return Math.max(70, Math.min(160, Math.round(size / 5) * 5));
+}
+
+function normalizeTanzakuFontSize(value) {
+  const size = Number(value);
+  if (!Number.isFinite(size)) return 100;
+  return Math.max(80, Math.min(140, Math.round(size / 5) * 5));
+}
+
+function getTanzakuFontOption(fontId) {
+  return tanzakuFontOptions.find((option) => option.id === fontId) || tanzakuFontOptions[0];
+}
+
+function applyAppearanceSettings(settings = loadAppearanceSettings()) {
+  const fontId = normalizeTanzakuFontId(settings.fontId);
+  const fontSize = normalizeTanzakuFontSize(settings.fontSize);
+  const oracleBoatSize = normalizeOracleBoatSize(settings.oracleBoatSize);
+  const font = getTanzakuFontOption(fontId);
+
+  document.documentElement.style.setProperty("--projection-tanzaku-font-family", font.family);
+  document.documentElement.style.setProperty("--projection-tanzaku-font-scale", (fontSize / 100).toFixed(2));
+  projectionStage.style.setProperty("--oracle-boat-size", (oracleBoatSize / 100).toFixed(2));
+
+  if (tanzakuFontSelect) {
+    tanzakuFontSelect.value = fontId;
+  }
+  if (tanzakuFontSizeInput) {
+    tanzakuFontSizeInput.value = String(fontSize);
+  }
+  if (tanzakuFontSizeValue) {
+    tanzakuFontSizeValue.textContent = `${fontSize}%`;
+  }
+  if (oracleBoatSizeInput) {
+    oracleBoatSizeInput.value = String(oracleBoatSize);
+  }
+  if (oracleBoatSizeValue) {
+    oracleBoatSizeValue.textContent = `${oracleBoatSize}%`;
+  }
+}
+
+function syncAppearanceSettingsFromControls() {
+  const nextSettings = normalizeAppearanceSettings({
+    fontId: normalizeTanzakuFontId(tanzakuFontSelect?.value),
+    fontSize: normalizeTanzakuFontSize(tanzakuFontSizeInput?.value),
+    oracleBoatSize: normalizeOracleBoatSize(oracleBoatSizeInput?.value)
+  });
+  applyAppearanceSettings(nextSettings);
+  saveAppearanceSettings(nextSettings);
+}
+
+function setupAppearanceControls() {
+  if (tanzakuFontSelect && !tanzakuFontSelect.options.length) {
+    for (const option of tanzakuFontOptions) {
+      const element = document.createElement("option");
+      element.value = option.id;
+      element.textContent = option.label;
+      tanzakuFontSelect.append(element);
+    }
+    tanzakuFontSelect.addEventListener("change", syncAppearanceSettingsFromControls);
+  }
+
+  if (oracleBoatSizeInput) {
+    oracleBoatSizeInput.addEventListener("input", syncAppearanceSettingsFromControls);
+    oracleBoatSizeInput.addEventListener("change", syncAppearanceSettingsFromControls);
+  }
+
+  if (tanzakuFontSizeInput) {
+    tanzakuFontSizeInput.addEventListener("input", syncAppearanceSettingsFromControls);
+    tanzakuFontSizeInput.addEventListener("change", syncAppearanceSettingsFromControls);
+  }
+
+  applyAppearanceSettings();
+}
+
 function getCurrentLayout() {
   return slots.map((slot) => ({
     x: Number(slot.meta.x),
     y: Number(slot.meta.y)
   }));
+}
+
+function getCurrentAppearanceSettings() {
+  return normalizeAppearanceSettings({
+    fontId: tanzakuFontSelect?.value,
+    fontSize: tanzakuFontSizeInput?.value,
+    oracleBoatSize: oracleBoatSizeInput?.value
+  });
 }
 
 function saveLayout() {
@@ -132,7 +313,10 @@ function loadLayoutPreset() {
     if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.layout)) {
       return null;
     }
-    return parsed;
+    return {
+      ...parsed,
+      appearance: parsed.appearance ? normalizeAppearanceSettings(parsed.appearance) : null
+    };
   } catch {
     return null;
   }
@@ -163,7 +347,7 @@ function updateLayoutMenuState(message = "") {
   }
 
   layoutMenuState.textContent = preset
-    ? `保存済み ${formatLayoutPresetDate(preset.savedAt)} / ${preset.layout.length}スロット`
+    ? `保存済み ${formatLayoutPresetDate(preset.savedAt)} / ${preset.layout.length}スロット / ${preset.appearance ? "表示設定あり" : "配置のみ"}`
     : "保存なし";
 }
 
@@ -172,10 +356,11 @@ function saveLayoutPreset() {
     const preset = {
       savedAt: new Date().toISOString(),
       slotCount: getSlotCount(),
-      layout: getCurrentLayout()
+      layout: getCurrentLayout(),
+      appearance: getCurrentAppearanceSettings()
     };
     localStorage.setItem(LAYOUT_PRESET_STORAGE_KEY, JSON.stringify(preset));
-    updateLayoutMenuState("現在配置を保存しました");
+    updateLayoutMenuState("配置と表示設定を保存しました");
   } catch {
     updateLayoutMenuState("保存できませんでした");
   }
@@ -195,17 +380,32 @@ function applyLayoutPreset() {
     updateSlotPosition(slot, entry.x, entry.y, { persist: false });
     appliedCount += 1;
   });
+  if (preset.appearance) {
+    applyAppearanceSettings(preset.appearance);
+    saveAppearanceSettings(preset.appearance);
+  }
   saveLayout();
-  updateLayoutMenuState(`${appliedCount}スロットの配置を呼び出しました`);
+  updateLayoutMenuState(`${appliedCount}スロットの配置と表示設定を呼び出しました`);
 }
 
 function setLayoutMenuOpen(open) {
   if (!layoutMenu || !layoutMenuTrigger) return;
-  layoutMenu.hidden = !open;
+  layoutMenu.classList.toggle("is-open", open);
+  layoutMenu.setAttribute("aria-hidden", open ? "false" : "true");
   layoutMenuTrigger.setAttribute("aria-expanded", open ? "true" : "false");
   if (open) {
     updateLayoutMenuState();
   }
+}
+
+function isLayoutMenuOpen() {
+  return Boolean(layoutMenu?.classList.contains("is-open"));
+}
+
+function scheduleLayoutMenuToggle() {
+  if (!layoutMenu) return;
+  const nextOpen = !isLayoutMenuOpen();
+  window.setTimeout(() => setLayoutMenuOpen(nextOpen), 0);
 }
 
 function getSlotCount() {
@@ -239,13 +439,22 @@ function normalizeProjectionSettings(settings = {}) {
   const nextParallaxStrength = Number.isFinite(parallaxStrength)
     ? Math.max(0, Math.min(3, parallaxStrength))
     : 1;
+  const viewportMargin = Number(settings.projectionViewportMargin);
+  const nextViewportMargin = Number.isFinite(viewportMargin)
+    ? Math.max(0, Math.min(24, viewportMargin))
+    : 0;
   const parallaxVanishingPointX = Number(settings.projectionParallaxVanishingPointX);
   const nextParallaxVanishingPointX = Number.isFinite(parallaxVanishingPointX)
-    ? Math.max(-1, Math.min(1, parallaxVanishingPointX))
+    ? clampVanishingPointForMargin(parallaxVanishingPointX, nextViewportMargin, "x")
     : 0;
   const parallaxVanishingPointY = Number(settings.projectionParallaxVanishingPointY);
   const nextParallaxVanishingPointY = Number.isFinite(parallaxVanishingPointY)
-    ? Math.max(-1, Math.min(1, parallaxVanishingPointY))
+    ? clampVanishingPointForMargin(parallaxVanishingPointY, nextViewportMargin, "y")
+    : 0;
+  const parallaxMarkerEnabled = settings.projectionParallaxMarkerEnabled === true;
+  const parallaxPopoutStrength = Number(settings.projectionParallaxPopoutStrength);
+  const nextParallaxPopoutStrength = Number.isFinite(parallaxPopoutStrength)
+    ? Math.max(0, Math.min(3, parallaxPopoutStrength))
     : 0;
 
   return {
@@ -262,7 +471,10 @@ function normalizeProjectionSettings(settings = {}) {
     experimentalParallaxEnabled,
     parallaxStrength: nextParallaxStrength,
     parallaxVanishingPointX: nextParallaxVanishingPointX,
-    parallaxVanishingPointY: nextParallaxVanishingPointY
+    parallaxVanishingPointY: nextParallaxVanishingPointY,
+    parallaxMarkerEnabled,
+    parallaxPopoutStrength: nextParallaxPopoutStrength,
+    viewportMargin: nextViewportMargin
   };
 }
 
@@ -357,7 +569,10 @@ function createParallaxScene() {
     viewerZ: 0,
     strength: 1,
     vanishingPointX: 0,
-    vanishingPointY: 0
+    vanishingPointY: 0,
+    popoutStrength: 0,
+    viewportMargin: 0,
+    markerEnabled: false
   };
 
   function smooth(value) {
@@ -366,10 +581,17 @@ function createParallaxScene() {
 
   function sample(now) {
     const totalSegments = path.length - 1;
-    const elapsed = (now - scene.startedAt) % (totalSegments * PARALLAX_VIEWER_STEP_MS);
-    const segment = Math.min(totalSegments - 1, Math.floor(elapsed / PARALLAX_VIEWER_STEP_MS));
+    const elapsed = Number.isFinite(now - scene.startedAt)
+      ? (now - scene.startedAt) % (totalSegments * PARALLAX_VIEWER_STEP_MS)
+      : 0;
+    const segment = Math.min(totalSegments - 1, Math.max(0, Math.floor(elapsed / PARALLAX_VIEWER_STEP_MS)));
     const from = path[segment];
     const to = path[segment + 1];
+    if (!from || !to) {
+      scene.viewerX = 0;
+      scene.viewerZ = 0;
+      return;
+    }
     const progress = smooth((elapsed - (segment * PARALLAX_VIEWER_STEP_MS)) / PARALLAX_VIEWER_STEP_MS);
     scene.viewerX = from.x + ((to.x - from.x) * progress);
     scene.viewerZ = from.z + ((to.z - from.z) * progress);
@@ -379,21 +601,68 @@ function createParallaxScene() {
     return PARALLAX_FAR_Z - ((PARALLAX_FAR_Z - PARALLAX_NEAR_Z) * depth);
   }
 
+  function getProjectionPlaneMetrics() {
+    return getProjectionPlaneMetricsForMargin(scene.viewportMargin);
+  }
+
+  function clampSceneVanishingPoint(value, axis) {
+    return clampVanishingPointForMargin(Number(value), scene.viewportMargin, axis);
+  }
+
+  function clampSceneVanishingPoints() {
+    scene.vanishingPointX = clampSceneVanishingPoint(scene.vanishingPointX, "x");
+    scene.vanishingPointY = clampSceneVanishingPoint(scene.vanishingPointY, "y");
+  }
+
+  function drawAreaPointToInnerPlane(value, axis, plane) {
+    const size = axis === "y" ? window.innerHeight : window.innerWidth;
+    const innerSize = axis === "y" ? plane.height : plane.width;
+    const pixel = ((value + 1) / 2) * size;
+    return (((pixel - plane.marginPx) / innerSize) * 2) - 1;
+  }
+
+  function getInnerPlaneVanishingPoint(plane) {
+    return {
+      x: drawAreaPointToInnerPlane(scene.vanishingPointX, "x", plane),
+      y: drawAreaPointToInnerPlane(scene.vanishingPointY, "y", plane)
+    };
+  }
+
   function projectLayer(baseX, baseY, depth) {
-    const layerZ = getLayerZ(depth);
+    const plane = getProjectionPlaneMetrics();
+    const vanishingPoint = getInnerPlaneVanishingPoint(plane);
+    const popoutDepth = (depth - 0.5) * scene.popoutStrength;
+    const layerZ = Math.max(0.62, getLayerZ(depth) - (popoutDepth * 0.68));
     const cameraX = scene.viewerX * PARALLAX_CAMERA_X * scene.strength;
     const cameraZ = scene.viewerZ * PARALLAX_CAMERA_Z * scene.strength;
     const safeZ = Math.max(0.72, layerZ - cameraZ);
-    const worldX = (baseX - scene.vanishingPointX) * layerZ / PARALLAX_FOCAL_LENGTH;
-    const worldY = (baseY - scene.vanishingPointY) * layerZ / PARALLAX_FOCAL_LENGTH;
-    const shiftedX = scene.vanishingPointX + ((worldX - cameraX) * PARALLAX_FOCAL_LENGTH / safeZ);
-    const shiftedY = scene.vanishingPointY + (worldY * PARALLAX_FOCAL_LENGTH / safeZ);
-    const scale = layerZ / safeZ;
+    const worldX = (baseX - vanishingPoint.x) * layerZ / PARALLAX_FOCAL_LENGTH;
+    const worldY = (baseY - vanishingPoint.y) * layerZ / PARALLAX_FOCAL_LENGTH;
+    const shiftedX = vanishingPoint.x + ((worldX - cameraX) * PARALLAX_FOCAL_LENGTH / safeZ);
+    const shiftedY = vanishingPoint.y + (worldY * PARALLAX_FOCAL_LENGTH / safeZ);
+    const popoutScale = Math.max(0.72, 1 + (popoutDepth * 0.22));
+    const radialX = (baseX - vanishingPoint.x) * plane.width * popoutDepth * 0.09;
+    const radialY = (baseY - vanishingPoint.y) * plane.height * popoutDepth * 0.09;
+    const scale = (layerZ / safeZ) * popoutScale;
     return {
-      offsetXPx: (shiftedX - baseX) * window.innerWidth * 0.5,
-      offsetYPx: (shiftedY - baseY) * window.innerHeight * 0.5,
+      offsetXPx: ((shiftedX - baseX) * plane.width * 0.5) + radialX,
+      offsetYPx: ((shiftedY - baseY) * plane.height * 0.5) + radialY,
       scale
     };
+  }
+
+  function applyViewportMargin() {
+    projectionStage.style.setProperty("--projection-margin", `${scene.viewportMargin.toFixed(2)}vmin`);
+    projectionStage.style.setProperty("--projection-frame-opacity", scene.markerEnabled && scene.viewportMargin > 0 ? "0.72" : "0");
+  }
+
+  function applyVanishingPointMarker() {
+    if (!vanishingPointMarker) return;
+    const x = ((scene.vanishingPointX + 1) / 2) * window.innerWidth;
+    const y = ((scene.vanishingPointY + 1) / 2) * window.innerHeight;
+    vanishingPointMarker.style.setProperty("--vanishing-point-marker-left", `${x.toFixed(2)}px`);
+    vanishingPointMarker.style.setProperty("--vanishing-point-marker-top", `${y.toFixed(2)}px`);
+    vanishingPointMarker.hidden = !(scene.enabled && scene.markerEnabled);
   }
 
   function applySlot(slot) {
@@ -440,6 +709,8 @@ function createParallaxScene() {
     projectionStage.style.removeProperty("--viewer-oracle-x");
     projectionStage.style.removeProperty("--viewer-oracle-near");
     projectionStage.style.removeProperty("--viewer-oracle-far");
+    applyViewportMargin();
+    applyVanishingPointMarker();
     slots.forEach((slot) => {
       if (!slot.element) return;
       slot.element.style.setProperty("--parallax-x", "0px");
@@ -453,6 +724,8 @@ function createParallaxScene() {
     if (!scene.enabled) return;
     sample(now);
     projectionStage.classList.add("projection-stage--parallax");
+    applyViewportMargin();
+    applyVanishingPointMarker();
     applyBamboo();
     applyOracle();
     slots.forEach(applySlot);
@@ -482,11 +755,29 @@ function createParallaxScene() {
       this.refresh();
     },
     setVanishingPoint(x, y) {
-      scene.vanishingPointX = Math.max(-1, Math.min(1, Number.isFinite(x) ? x : 0));
-      scene.vanishingPointY = Math.max(-1, Math.min(1, Number.isFinite(y) ? y : 0));
+      scene.vanishingPointX = clampSceneVanishingPoint(x, "x");
+      scene.vanishingPointY = clampSceneVanishingPoint(y, "y");
       this.refresh();
     },
+    setPopoutStrength(strength) {
+      scene.popoutStrength = Math.max(0, Math.min(3, Number.isFinite(strength) ? strength : 0));
+      this.refresh();
+    },
+    setViewportMargin(margin) {
+      const nextMargin = Number(margin);
+      scene.viewportMargin = Math.max(0, Math.min(24, Number.isFinite(nextMargin) ? nextMargin : 0));
+      clampSceneVanishingPoints();
+      applyViewportMargin();
+      applyVanishingPointMarker();
+      this.refresh();
+    },
+    setMarkerEnabled(enabled) {
+      scene.markerEnabled = enabled === true;
+      applyVanishingPointMarker();
+    },
     refresh() {
+      applyViewportMargin();
+      applyVanishingPointMarker();
       if (scene.enabled) {
         applyBamboo();
         slots.forEach(applySlot);
@@ -514,9 +805,9 @@ function createWebglEffectsScene(canvas) {
   });
   if (!gl) return fallback;
 
-  const BRIDGE_BUILD_MS = 4200;
-  const BRIDGE_SCATTER_MS = 7200;
-  const WARP_FADE_MS = 9000;
+  const BRIDGE_BUILD_MS = EFFECT_BRIDGE_BUILD_MS;
+  const BRIDGE_SCATTER_MS = 12000;
+  const WARP_FADE_MS = 12000;
   const END_FADE_MS = 2200;
 
   function compileShader(type, source) {
@@ -543,6 +834,8 @@ function createWebglEffectsScene(canvas) {
     attribute float aSize;
     attribute float aAlpha;
     attribute float aPhase;
+    attribute float aGatherDelay;
+    attribute float aOvershoot;
     attribute vec3 aColor;
     uniform float uTime;
     uniform float uBridgeBuild;
@@ -554,9 +847,17 @@ function createWebglEffectsScene(canvas) {
 
     void main() {
       float pulse = 0.74 + 0.26 * sin(uTime * 2.4 + aPhase);
-      float gather = smoothstep(aPhase * 0.03, 0.58 + aPhase * 0.03, uBridgeBuild);
+      float delayedBuild = clamp((uBridgeBuild - aGatherDelay) / max(0.22, 1.0 - aGatherDelay), 0.0, 1.0);
+      float easedBuild = delayedBuild * delayedBuild * delayedBuild * (delayedBuild * (delayedBuild * 6.0 - 15.0) + 10.0);
+      float brakeBuild = 1.0 - pow(1.0 - easedBuild, 1.35);
+      float settle = smoothstep(0.72, 1.0, easedBuild);
+      float gather = mix(brakeBuild * 0.9, 1.0, settle);
       float scatter = smoothstep(0.0, 1.0, uBridgeScatter);
-      vec2 bridgePosition = mix(aSource, aBridge, gather);
+      vec2 travel = aBridge - aSource;
+      vec2 travelDirection = normalize(travel + vec2(0.0001, 0.0001));
+      float overshootPulse = sin(smoothstep(0.58, 1.0, easedBuild) * 3.14159265);
+      vec2 bridgeTarget = aBridge + travelDirection * aOvershoot * overshootPulse * (1.0 - scatter);
+      vec2 bridgePosition = mix(aSource, bridgeTarget, gather);
       bridgePosition = mix(bridgePosition, aScatter, scatter);
       bridgePosition += vec2(
         sin(uTime * 1.2 + aPhase) * 0.012,
@@ -608,7 +909,7 @@ function createWebglEffectsScene(canvas) {
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return fallback;
 
   const particleCount = 900;
-  const floatsPerParticle = 14;
+  const floatsPerParticle = 16;
   const data = new Float32Array(particleCount * floatsPerParticle);
   const vega = { x: -0.46, y: 0.66 };
   const altair = { x: 0.46, y: -0.14 };
@@ -616,12 +917,14 @@ function createWebglEffectsScene(canvas) {
     const t = index / (particleCount - 1);
     const wave = Math.sin(t * Math.PI);
     const side = seededNoise(index * 17 + 5) - 0.5;
-    const jitter = (seededNoise(index * 19 + 7) - 0.5) * 0.05 * wave;
-    const bridgeX = vega.x + (altair.x - vega.x) * t + side * 0.026 * wave;
-    const bridgeY = vega.y + (altair.y - vega.y) * t + Math.sin(t * Math.PI * 2.6) * 0.04 * wave + jitter;
+    const jitter = (seededNoise(index * 19 + 7) - 0.5) * 0.085 * wave;
+    const bridgeX = vega.x + (altair.x - vega.x) * t + side * 0.052 * wave;
+    const bridgeY = vega.y + (altair.y - vega.y) * t + Math.sin(t * Math.PI * 2.6) * 0.058 * wave + jitter;
     const sourceT = seededNoise(index * 43 + 3);
-    const sourceX = -1.05 + sourceT * 2.1;
-    const sourceY = 0.12 - sourceX * 0.22 + (seededNoise(index * 47 + 9) - 0.5) * 0.36;
+    const sourceSide = seededNoise(index * 67 + 31) > 0.5 ? 1 : -1;
+    const sourceSpread = 1.16 + Math.pow(seededNoise(index * 71 + 33), 0.58) * 0.52;
+    const sourceX = sourceSide * sourceSpread + (sourceT - 0.5) * 0.36;
+    const sourceY = 0.12 - sourceX * 0.16 + (seededNoise(index * 47 + 9) - 0.5) * 0.72;
     const scatterAngle = seededNoise(index * 53 + 15) * Math.PI * 2;
     const scatterRadius = 0.18 + Math.pow(seededNoise(index * 57 + 21), 0.64) * 0.42;
     const scatterX = bridgeX + Math.cos(scatterAngle) * scatterRadius;
@@ -630,6 +933,9 @@ function createWebglEffectsScene(canvas) {
     const warpRadius = 0.08 + Math.pow(seededNoise(index * 29 + 13), 0.55) * 0.64;
     const brightness = seededNoise(index * 31 + 17);
     const warm = seededNoise(index * 37 + 19) > 0.58;
+    const gatherDelay = Math.pow(seededNoise(index * 61 + 29), 1.15) * 0.42;
+    const overshootSeed = seededNoise(index * 73 + 35);
+    const overshoot = overshootSeed > 0.46 ? 0.06 + Math.pow(overshootSeed, 1.85) * 0.13 : 0;
     const base = index * floatsPerParticle;
     data[base] = sourceX;
     data[base + 1] = sourceY;
@@ -639,12 +945,14 @@ function createWebglEffectsScene(canvas) {
     data[base + 5] = Math.sin(warpAngle) * warpRadius;
     data[base + 6] = scatterX;
     data[base + 7] = scatterY;
-    data[base + 8] = 3.8 + Math.pow(brightness, 2.4) * 11;
+    data[base + 8] = 4.6 + Math.pow(brightness, 2.2) * 13.5;
     data[base + 9] = 0.16 + Math.pow(brightness, 1.8) * 0.5;
     data[base + 10] = seededNoise(index * 41 + 23) * Math.PI * 2;
     data[base + 11] = warm ? 1.0 : 0.72;
     data[base + 12] = warm ? 0.86 : 0.95;
     data[base + 13] = warm ? 0.42 : 1.0;
+    data[base + 14] = gatherDelay;
+    data[base + 15] = overshoot;
   }
 
   const buffer = gl.createBuffer();
@@ -659,6 +967,8 @@ function createWebglEffectsScene(canvas) {
     size: gl.getAttribLocation(program, "aSize"),
     alpha: gl.getAttribLocation(program, "aAlpha"),
     phase: gl.getAttribLocation(program, "aPhase"),
+    gatherDelay: gl.getAttribLocation(program, "aGatherDelay"),
+    overshoot: gl.getAttribLocation(program, "aOvershoot"),
     color: gl.getAttribLocation(program, "aColor"),
     time: gl.getUniformLocation(program, "uTime"),
     bridgeBuild: gl.getUniformLocation(program, "uBridgeBuild"),
@@ -733,6 +1043,8 @@ function createWebglEffectsScene(canvas) {
     enableAttribute(locations.size, 1, 8);
     enableAttribute(locations.alpha, 1, 9);
     enableAttribute(locations.phase, 1, 10);
+    enableAttribute(locations.gatherDelay, 1, 14);
+    enableAttribute(locations.overshoot, 1, 15);
     enableAttribute(locations.color, 3, 11);
     gl.uniform1f(locations.time, now / 1000);
     gl.uniform1f(locations.bridgeBuild, bridge);
@@ -1232,9 +1544,21 @@ function glowSlot(slot) {
 }
 
 function pointerToPercent(clientX, clientY) {
+  const marginPx = Math.min(window.innerWidth, window.innerHeight) * (projectionSettings.viewportMargin / 100);
+  const width = Math.max(1, window.innerWidth - (marginPx * 2));
+  const height = Math.max(1, window.innerHeight - (marginPx * 2));
   return {
-    x: Math.max(0, Math.min(100, (clientX / window.innerWidth) * 100)),
-    y: Math.max(0, Math.min(100, (clientY / window.innerHeight) * 100))
+    x: Math.max(0, Math.min(100, ((clientX - marginPx) / width) * 100)),
+    y: Math.max(0, Math.min(100, ((clientY - marginPx) / height) * 100))
+  };
+}
+
+function getCurrentProjectionPlaneMetrics() {
+  const marginPx = Math.min(window.innerWidth, window.innerHeight) * (projectionSettings.viewportMargin / 100);
+  return {
+    marginPx,
+    width: Math.max(1, window.innerWidth - (marginPx * 2)),
+    height: Math.max(1, window.innerHeight - (marginPx * 2))
   };
 }
 
@@ -1249,11 +1573,12 @@ function getSlotBounds(slot, position = slot.meta) {
   }
 
   const rect = slot.element.getBoundingClientRect();
+  const plane = getCurrentProjectionPlaneMetrics();
   return {
     x: position.x,
     y: position.y,
-    width: (rect.width / window.innerWidth) * 100 || DEFAULT_TANZAKU_BOUNDS.width,
-    height: (rect.height / window.innerHeight) * 100 || DEFAULT_TANZAKU_BOUNDS.height
+    width: (rect.width / plane.width) * 100 || DEFAULT_TANZAKU_BOUNDS.width,
+    height: (rect.height / plane.height) * 100 || DEFAULT_TANZAKU_BOUNDS.height
   };
 }
 
@@ -1458,10 +1783,13 @@ function applyProjectionSettings(settings, wishes = []) {
   effectsScene.setMilkyWayGain(projectionSettings.milkyWayGain);
   renderCloudLayer();
   parallaxScene.setStrength(projectionSettings.parallaxStrength);
+  parallaxScene.setViewportMargin(projectionSettings.viewportMargin);
   parallaxScene.setVanishingPoint(
     projectionSettings.parallaxVanishingPointX,
     projectionSettings.parallaxVanishingPointY
   );
+  parallaxScene.setPopoutStrength(projectionSettings.parallaxPopoutStrength);
+  parallaxScene.setMarkerEnabled(projectionSettings.parallaxMarkerEnabled);
   parallaxScene.setEnabled(projectionSettings.experimentalParallaxEnabled);
 
   if (slotShapeChanged) {
@@ -1765,7 +2093,7 @@ async function playMeteorShowerEffect() {
   document.body.classList.add("projection-effect-active");
   document.body.classList.add("projection-effect-meteor-shower");
   effectsScene.setMeteorShowerActive(true);
-  webglEffectsScene.startBridge();
+  const bridgeStartPromise = wait(EFFECT_BRIDGE_START_MS).then(() => webglEffectsScene.startBridge());
   const bridgeScatterPromise = wait(EFFECT_BRIDGE_SCATTER_START_MS).then(() => webglEffectsScene.startWarp());
   projectionStage.append(layer);
 
@@ -1779,7 +2107,7 @@ async function playMeteorShowerEffect() {
     return wait(index * EFFECT_LEAVE_STAGGER_MS).then(() => startLeaving(slot));
   });
 
-  await Promise.all([bridgeScatterPromise, ...leavePromises]);
+  await Promise.all([bridgeStartPromise, bridgeScatterPromise, ...leavePromises]);
   await wait(Math.max(0, METEOR_SHOWER_ACTIVE_MS - EFFECT_LEAVE_START_MS));
 
   layer.classList.add("meteor-shower-field--ending");
@@ -1808,6 +2136,41 @@ async function checkProjectionEffect() {
   if (effect.type === "meteor-shower") {
     await playMeteorShowerEffect();
   }
+}
+
+function scheduleProjectionRefresh(reason = "update") {
+  if (projectionUpdateTimer) return;
+  projectionUpdateTimer = window.setTimeout(async () => {
+    projectionUpdateTimer = null;
+    try {
+      await loadWishes();
+      if (reason === "effect" || reason === "update") {
+        await checkProjectionEffect();
+      }
+    } catch {
+      // Keep the regular polling fallback alive if the push refresh fails.
+    }
+  }, 120);
+}
+
+function connectProjectionEvents() {
+  if (!window.EventSource || projectionEventSource) return;
+  const events = new EventSource("/api/projection/events");
+  projectionEventSource = events;
+  events.addEventListener("update", (event) => {
+    let reason = "update";
+    try {
+      reason = JSON.parse(event.data)?.reason || reason;
+    } catch {
+      // Ignore malformed event payloads.
+    }
+    scheduleProjectionRefresh(reason);
+  });
+  events.addEventListener("error", () => {
+    projectionEventSource = null;
+    events.close();
+    window.setTimeout(connectProjectionEvents, 5000);
+  });
 }
 
 function onSlotPointerDown(event) {
@@ -1876,9 +2239,28 @@ function onWindowPointerEnd(event) {
 if (layoutMenuTrigger && layoutMenu) {
   layoutMenuTrigger.setAttribute("aria-haspopup", "menu");
   layoutMenuTrigger.setAttribute("aria-expanded", "false");
+
+  layoutMenuTrigger.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    layoutMenuPointerToggled = true;
+    scheduleLayoutMenuToggle();
+  });
+
   layoutMenuTrigger.addEventListener("click", (event) => {
     event.stopPropagation();
-    setLayoutMenuOpen(layoutMenu.hidden);
+    if (layoutMenuPointerToggled) {
+      layoutMenuPointerToggled = false;
+      return;
+    }
+    scheduleLayoutMenuToggle();
+  });
+
+  layoutMenuTrigger.addEventListener("keydown", (event) => {
+    if (!["Enter", " "].includes(event.key)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    scheduleLayoutMenuToggle();
   });
 
   layoutMenu.addEventListener("click", (event) => {
@@ -1894,7 +2276,15 @@ if (layoutLoadButton) {
   layoutLoadButton.addEventListener("click", applyLayoutPreset);
 }
 
-document.addEventListener("click", () => {
+setupAppearanceControls();
+
+document.addEventListener("click", (event) => {
+  if (
+    layoutMenu?.contains(event.target) ||
+    layoutMenuTrigger?.contains(event.target)
+  ) {
+    return;
+  }
   setLayoutMenuOpen(false);
 });
 
@@ -1928,6 +2318,7 @@ async function loadWishes() {
 slots.forEach((slot) => buildSlotElement(slot));
 mount();
 startWindLoop();
+connectProjectionEvents();
 
 setInterval(() => loadWishes().catch(() => {}), REFRESH_INTERVAL_MS);
 setInterval(() => checkProjectionEffect().catch(() => {}), EFFECT_POLL_INTERVAL_MS);

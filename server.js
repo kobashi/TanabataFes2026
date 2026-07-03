@@ -26,6 +26,10 @@ const MIN_PROJECTION_PARALLAX_STRENGTH = 0;
 const MAX_PROJECTION_PARALLAX_STRENGTH = 3;
 const MIN_PROJECTION_PARALLAX_VANISHING_POINT = -1;
 const MAX_PROJECTION_PARALLAX_VANISHING_POINT = 1;
+const MIN_PROJECTION_PARALLAX_POPOUT_STRENGTH = 0;
+const MAX_PROJECTION_PARALLAX_POPOUT_STRENGTH = 3;
+const MIN_PROJECTION_VIEWPORT_MARGIN = 0;
+const MAX_PROJECTION_VIEWPORT_MARGIN = 24;
 const MIN_PROJECTION_CLOUD_COUNT = 0;
 const MAX_PROJECTION_CLOUD_COUNT = 12;
 const MIN_PROJECTION_CLOUD_ORIGIN_X = -80;
@@ -55,6 +59,9 @@ const DEFAULT_SETTINGS = {
   projectionParallaxStrength: 1,
   projectionParallaxVanishingPointX: 0,
   projectionParallaxVanishingPointY: 0,
+  projectionParallaxMarkerEnabled: false,
+  projectionParallaxPopoutStrength: 0,
+  projectionViewportMargin: 0,
   projectionCloudCount: 3,
   projectionCloudOriginX: -32,
   projectionCloudOriginY: 12,
@@ -118,6 +125,7 @@ const contentTypes = {
 let writeQueue = Promise.resolve();
 let settingsWriteQueue = Promise.resolve();
 const adminClients = new Set();
+const projectionClients = new Set();
 let latestProjectionEffect = null;
 let lastProjectionEffectAt = 0;
 
@@ -310,6 +318,18 @@ async function readSettings() {
       MIN_PROJECTION_PARALLAX_VANISHING_POINT,
       MAX_PROJECTION_PARALLAX_VANISHING_POINT
     );
+    const parallaxPopoutStrength = normalizeNumber(
+      parsed.projectionParallaxPopoutStrength,
+      DEFAULT_SETTINGS.projectionParallaxPopoutStrength,
+      MIN_PROJECTION_PARALLAX_POPOUT_STRENGTH,
+      MAX_PROJECTION_PARALLAX_POPOUT_STRENGTH
+    );
+    const viewportMargin = normalizeNumber(
+      parsed.projectionViewportMargin,
+      DEFAULT_SETTINGS.projectionViewportMargin,
+      MIN_PROJECTION_VIEWPORT_MARGIN,
+      MAX_PROJECTION_VIEWPORT_MARGIN
+    );
     const cloudCount = normalizeInteger(
       parsed.projectionCloudCount,
       DEFAULT_SETTINGS.projectionCloudCount,
@@ -344,6 +364,9 @@ async function readSettings() {
       projectionParallaxStrength: parallaxStrength,
       projectionParallaxVanishingPointX: parallaxVanishingPointX,
       projectionParallaxVanishingPointY: parallaxVanishingPointY,
+      projectionParallaxMarkerEnabled: parsed.projectionParallaxMarkerEnabled === true,
+      projectionParallaxPopoutStrength: parallaxPopoutStrength,
+      projectionViewportMargin: viewportMargin,
       projectionCloudCount: cloudCount,
       projectionCloudOriginX: cloudOriginX,
       projectionCloudOriginY: cloudOriginY,
@@ -388,6 +411,9 @@ function projectionPresetFromSettings(settings) {
     projectionParallaxStrength: settings.projectionParallaxStrength,
     projectionParallaxVanishingPointX: settings.projectionParallaxVanishingPointX,
     projectionParallaxVanishingPointY: settings.projectionParallaxVanishingPointY,
+    projectionParallaxMarkerEnabled: settings.projectionParallaxMarkerEnabled === true,
+    projectionParallaxPopoutStrength: settings.projectionParallaxPopoutStrength,
+    projectionViewportMargin: settings.projectionViewportMargin,
     projectionCloudCount: settings.projectionCloudCount,
     projectionCloudOriginX: settings.projectionCloudOriginX,
     projectionCloudOriginY: settings.projectionCloudOriginY,
@@ -469,6 +495,19 @@ function normalizeProjectionPreset(rawPreset) {
         MIN_PROJECTION_PARALLAX_VANISHING_POINT,
         MAX_PROJECTION_PARALLAX_VANISHING_POINT
       ),
+      projectionParallaxMarkerEnabled: source.projectionParallaxMarkerEnabled === true,
+      projectionParallaxPopoutStrength: normalizeNumber(
+        source.projectionParallaxPopoutStrength,
+        DEFAULT_SETTINGS.projectionParallaxPopoutStrength,
+        MIN_PROJECTION_PARALLAX_POPOUT_STRENGTH,
+        MAX_PROJECTION_PARALLAX_POPOUT_STRENGTH
+      ),
+      projectionViewportMargin: normalizeNumber(
+        source.projectionViewportMargin,
+        DEFAULT_SETTINGS.projectionViewportMargin,
+        MIN_PROJECTION_VIEWPORT_MARGIN,
+        MAX_PROJECTION_VIEWPORT_MARGIN
+      ),
       projectionCloudCount: normalizeInteger(
         source.projectionCloudCount,
         DEFAULT_SETTINGS.projectionCloudCount,
@@ -523,9 +562,19 @@ function sendError(res, status, message) {
 }
 
 function broadcastAdminUpdate() {
-  const payload = `event: update\ndata: ${JSON.stringify({ at: new Date().toISOString() })}\n\n`;
   for (const client of adminClients) {
-    client.write(payload);
+    sendSse(client, "update", { at: new Date().toISOString() });
+  }
+}
+
+function sendSse(res, event, data) {
+  res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+}
+
+function broadcastProjectionUpdate(reason) {
+  const payload = { at: new Date().toISOString(), reason };
+  for (const client of projectionClients) {
+    sendSse(client, "update", payload);
   }
 }
 
@@ -626,6 +675,9 @@ function publicSettings(settings) {
     projectionParallaxStrength: settings.projectionParallaxStrength,
     projectionParallaxVanishingPointX: settings.projectionParallaxVanishingPointX,
     projectionParallaxVanishingPointY: settings.projectionParallaxVanishingPointY,
+    projectionParallaxMarkerEnabled: settings.projectionParallaxMarkerEnabled === true,
+    projectionParallaxPopoutStrength: settings.projectionParallaxPopoutStrength,
+    projectionViewportMargin: settings.projectionViewportMargin,
     projectionCloudCount: settings.projectionCloudCount,
     projectionCloudOriginX: settings.projectionCloudOriginX,
     projectionCloudOriginY: settings.projectionCloudOriginY,
@@ -645,6 +697,10 @@ function publicSettings(settings) {
     projectionParallaxStrengthMax: MAX_PROJECTION_PARALLAX_STRENGTH,
     projectionParallaxVanishingPointMin: MIN_PROJECTION_PARALLAX_VANISHING_POINT,
     projectionParallaxVanishingPointMax: MAX_PROJECTION_PARALLAX_VANISHING_POINT,
+    projectionParallaxPopoutStrengthMin: MIN_PROJECTION_PARALLAX_POPOUT_STRENGTH,
+    projectionParallaxPopoutStrengthMax: MAX_PROJECTION_PARALLAX_POPOUT_STRENGTH,
+    projectionViewportMarginMin: MIN_PROJECTION_VIEWPORT_MARGIN,
+    projectionViewportMarginMax: MAX_PROJECTION_VIEWPORT_MARGIN,
     projectionCloudCountMin: MIN_PROJECTION_CLOUD_COUNT,
     projectionCloudCountMax: MAX_PROJECTION_CLOUD_COUNT,
     projectionCloudOriginXMin: MIN_PROJECTION_CLOUD_ORIGIN_X,
@@ -1001,6 +1057,36 @@ async function handleApi(req, res, url) {
       nextSettings.projectionParallaxVanishingPointY = vanishingPointY;
     }
 
+    if (Object.prototype.hasOwnProperty.call(body, "projectionParallaxMarkerEnabled")) {
+      nextSettings.projectionParallaxMarkerEnabled = body.projectionParallaxMarkerEnabled === true;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionParallaxPopoutStrength")) {
+      const popoutStrength = Number(body.projectionParallaxPopoutStrength);
+      if (
+        !Number.isFinite(popoutStrength) ||
+        popoutStrength < MIN_PROJECTION_PARALLAX_POPOUT_STRENGTH ||
+        popoutStrength > MAX_PROJECTION_PARALLAX_POPOUT_STRENGTH
+      ) {
+        sendError(res, 400, `飛び出し量は${MIN_PROJECTION_PARALLAX_POPOUT_STRENGTH}から${MAX_PROJECTION_PARALLAX_POPOUT_STRENGTH}までです。`);
+        return;
+      }
+      nextSettings.projectionParallaxPopoutStrength = popoutStrength;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionViewportMargin")) {
+      const viewportMargin = Number(body.projectionViewportMargin);
+      if (
+        !Number.isFinite(viewportMargin) ||
+        viewportMargin < MIN_PROJECTION_VIEWPORT_MARGIN ||
+        viewportMargin > MAX_PROJECTION_VIEWPORT_MARGIN
+      ) {
+        sendError(res, 400, `投影面余白は${MIN_PROJECTION_VIEWPORT_MARGIN}から${MAX_PROJECTION_VIEWPORT_MARGIN}までです。`);
+        return;
+      }
+      nextSettings.projectionViewportMargin = viewportMargin;
+    }
+
     if (Object.prototype.hasOwnProperty.call(body, "projectionCloudCount")) {
       const cloudCount = Number(body.projectionCloudCount);
       if (
@@ -1088,6 +1174,7 @@ async function handleApi(req, res, url) {
 
     await writeSettings(nextSettings);
     broadcastAdminUpdate();
+    broadcastProjectionUpdate("settings");
     sendJson(res, 200, { settings: publicSettings(nextSettings) });
     return;
   }
@@ -1100,6 +1187,7 @@ async function handleApi(req, res, url) {
 
     latestProjectionEffect = createProjectionEffect("meteor-shower");
     broadcastAdminUpdate();
+    broadcastProjectionUpdate("effect");
     sendJson(res, 200, { effect: latestProjectionEffect });
     return;
   }
@@ -1139,6 +1227,7 @@ async function handleApi(req, res, url) {
     const beforeRestore = await createWishBackup("before-restore");
     await writeWishes(backup.wishes);
     broadcastAdminUpdate();
+    broadcastProjectionUpdate("wishes");
     sendJson(res, 200, {
       ok: true,
       restored: {
@@ -1150,6 +1239,49 @@ async function handleApi(req, res, url) {
       beforeRestore,
       backups: await listWishBackups()
     });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/admin/wishes/bulk-status") {
+    if (!isAdmin(req, url)) {
+      sendError(res, 401, "管理キーが必要です。");
+      return;
+    }
+
+    const body = await parseJsonBody(req);
+    const fromStatus = String(body.fromStatus || "");
+    const nextStatus = String(body.status || "");
+    if (!["pending", "approved", "rejected"].includes(fromStatus)) {
+      sendError(res, 400, "fromStatus は pending / approved / rejected のいずれかです。");
+      return;
+    }
+    if (!["pending", "approved", "rejected"].includes(nextStatus)) {
+      sendError(res, 400, "status は pending / approved / rejected のいずれかです。");
+      return;
+    }
+    if (fromStatus === nextStatus) {
+      sendError(res, 400, "変更前と変更後の status が同じです。");
+      return;
+    }
+
+    const wishes = await readWishes();
+    const now = new Date().toISOString();
+    let updatedCount = 0;
+    for (const wish of wishes) {
+      if (wish.status !== fromStatus) continue;
+      wish.status = nextStatus;
+      wish.approvedAt = nextStatus === "approved" ? now : null;
+      wish.rejectedAt = nextStatus === "rejected" ? now : null;
+      wish.moderation = buildModerationInfo("manual", nextStatus, "管理者による一括変更");
+      updatedCount += 1;
+    }
+
+    if (updatedCount > 0) {
+      await writeWishes(wishes);
+      broadcastAdminUpdate();
+      broadcastProjectionUpdate("wishes");
+    }
+    sendJson(res, 200, { ok: true, updatedCount, byStatus: countByStatus(wishes) });
     return;
   }
 
@@ -1175,6 +1307,28 @@ async function handleApi(req, res, url) {
     req.on("close", () => {
       clearInterval(keepAlive);
       adminClients.delete(res);
+    });
+
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/projection/events") {
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no"
+    });
+    sendSse(res, "ready", { ok: true });
+    projectionClients.add(res);
+
+    const keepAlive = setInterval(() => {
+      sendSse(res, "ping", { at: Date.now() });
+    }, 25000);
+
+    req.on("close", () => {
+      clearInterval(keepAlive);
+      projectionClients.delete(res);
     });
 
     return;
@@ -1214,6 +1368,7 @@ async function handleApi(req, res, url) {
     wishes.unshift(wish);
     await writeWishes(wishes);
     broadcastAdminUpdate();
+    broadcastProjectionUpdate("wishes");
     sendJson(res, 201, { wish: publicWish(wish) });
     return;
   }
@@ -1262,6 +1417,7 @@ async function handleApi(req, res, url) {
     if (req.method === "DELETE") {
       await writeWishes(wishes.filter((item) => item.id !== id));
       broadcastAdminUpdate();
+      broadcastProjectionUpdate("wishes");
       sendJson(res, 200, { ok: true });
       return;
     }
@@ -1279,6 +1435,7 @@ async function handleApi(req, res, url) {
     wish.moderation = buildModerationInfo("manual", nextStatus, "管理者による変更");
     await writeWishes(wishes);
     broadcastAdminUpdate();
+    broadcastProjectionUpdate("wishes");
     sendJson(res, 200, { wish: publicWish(wish) });
     return;
   }

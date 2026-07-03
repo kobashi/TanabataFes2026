@@ -10,7 +10,6 @@
   <body class="admin-page">
     <header class="admin-header">
       <div>
-        <p class="eyebrow">Moderation</p>
         <h1>願い事管理</h1>
         <p id="live-state" class="admin-live-state" aria-live="polite">未接続</p>
       </div>
@@ -25,7 +24,6 @@
       <section class="admin-tab-panel is-active" data-admin-panel="connection" aria-labelledby="connection-title">
         <section class="admin-controls" aria-labelledby="connection-title">
           <div>
-            <p class="eyebrow">Connection</p>
             <h2 id="connection-title">接続</h2>
             <p class="admin-live-state">管理キーを入力して接続します</p>
           </div>
@@ -40,7 +38,6 @@
       <section class="admin-tab-panel" data-admin-panel="wishes" aria-labelledby="moderation-mode-title">
         <section class="admin-controls" aria-labelledby="moderation-mode-title">
           <div>
-            <p class="eyebrow">Automation</p>
             <h2 id="moderation-mode-title">承認モード</h2>
             <p id="moderation-state" class="admin-live-state" aria-live="polite">設定未取得</p>
           </div>
@@ -66,6 +63,19 @@
             </form>
           </div>
         </section>
+        <section class="field-panel" aria-labelledby="field-panel-title">
+          <div class="field-panel-head">
+            <div>
+              <h2 id="field-panel-title">現場確認</h2>
+              <p id="field-overview-state" class="admin-live-state" aria-live="polite">未取得</p>
+            </div>
+            <div class="field-actions">
+              <button id="bulk-approve-pending-button" type="button">承認待ちを投影</button>
+              <button id="bulk-reject-pending-button" type="button">承認待ちを非表示</button>
+            </div>
+          </div>
+          <div id="field-stats" class="field-stats" aria-label="現場確認サマリー"></div>
+        </section>
         <section class="admin-layout">
           <section class="admin-column" aria-labelledby="pending-title">
             <h2 id="pending-title">承認待ち</h2>
@@ -86,9 +96,17 @@
       </section>
 
       <section class="admin-tab-panel" data-admin-panel="projection" aria-labelledby="projection-settings-title">
+        <section class="admin-controls" aria-labelledby="projection-effects-title">
+          <div>
+            <h2 id="projection-effects-title">演出</h2>
+            <p id="projection-effects-state" class="admin-live-state" aria-live="polite">待機中</p>
+          </div>
+          <form id="projection-effects-form" class="projection-effects-form">
+            <button id="meteor-shower-button" type="submit">流星群</button>
+          </form>
+        </section>
         <section class="admin-controls projection-settings-panel" aria-labelledby="projection-settings-title">
           <div class="projection-settings-head">
-            <p class="eyebrow">Projection</p>
             <h2 id="projection-settings-title">投影設定</h2>
             <p id="projection-settings-state" class="admin-live-state" aria-live="polite">設定未取得</p>
           </div>
@@ -188,9 +206,21 @@
                 <input id="projection-experimental-parallax-enabled" type="checkbox" role="switch" aria-label="視差による立体感">
                 <span>視差立体感</span>
               </label>
+              <label class="detail-toggle" for="projection-parallax-marker-enabled">
+                <input id="projection-parallax-marker-enabled" type="checkbox" role="switch" aria-label="消失点マーカーを表示">
+                <span>消失点マーカー</span>
+              </label>
               <label class="range-option">
                 <span>視差強度 <output id="projection-parallax-strength-value" for="projection-parallax-strength">1</output></span>
                 <input id="projection-parallax-strength" type="range" min="0" max="3" step="0.05">
+              </label>
+              <label class="range-option">
+                <span>飛び出し量 <output id="projection-parallax-popout-strength-value" for="projection-parallax-popout-strength">0</output></span>
+                <input id="projection-parallax-popout-strength" type="range" min="0" max="3" step="0.05">
+              </label>
+              <label class="range-option">
+                <span>投影面余白 <output id="projection-viewport-margin-value" for="projection-viewport-margin">0</output></span>
+                <input id="projection-viewport-margin" type="range" min="0" max="24" step="0.5">
               </label>
               <label class="range-option">
                 <span>消失点X <output id="projection-parallax-vanishing-point-x-value" for="projection-parallax-vanishing-point-x">0</output></span>
@@ -206,22 +236,11 @@
             </div>
           </form>
         </section>
-        <section class="admin-controls" aria-labelledby="projection-effects-title">
-          <div>
-            <p class="eyebrow">Direction</p>
-            <h2 id="projection-effects-title">演出</h2>
-            <p id="projection-effects-state" class="admin-live-state" aria-live="polite">待機中</p>
-          </div>
-          <form id="projection-effects-form" class="projection-effects-form">
-            <button id="meteor-shower-button" type="submit">流星群</button>
-          </form>
-        </section>
       </section>
 
       <section class="admin-tab-panel" data-admin-panel="backup" aria-labelledby="backup-title">
         <section class="admin-controls" aria-labelledby="backup-title">
           <div>
-            <p class="eyebrow">Continuity</p>
             <h2 id="backup-title">バックアップ</h2>
             <p id="backup-state" class="admin-live-state" aria-live="polite">未取得</p>
           </div>

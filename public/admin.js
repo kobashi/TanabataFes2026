@@ -29,10 +29,15 @@ const projectionCloudOriginXInput = document.querySelector("#projection-cloud-or
 const projectionCloudOriginYInput = document.querySelector("#projection-cloud-origin-y");
 const projectionCloudSeedInput = document.querySelector("#projection-cloud-seed");
 const projectionExperimentalParallaxInput = document.querySelector("#projection-experimental-parallax-enabled");
+const projectionParallaxMarkerInput = document.querySelector("#projection-parallax-marker-enabled");
 const projectionParallaxStrengthInput = document.querySelector("#projection-parallax-strength");
+const projectionParallaxPopoutStrengthInput = document.querySelector("#projection-parallax-popout-strength");
+const projectionViewportMarginInput = document.querySelector("#projection-viewport-margin");
 const projectionParallaxVanishingPointXInput = document.querySelector("#projection-parallax-vanishing-point-x");
 const projectionParallaxVanishingPointYInput = document.querySelector("#projection-parallax-vanishing-point-y");
 const projectionParallaxStrengthValue = document.querySelector("#projection-parallax-strength-value");
+const projectionParallaxPopoutStrengthValue = document.querySelector("#projection-parallax-popout-strength-value");
+const projectionViewportMarginValue = document.querySelector("#projection-viewport-margin-value");
 const projectionParallaxVanishingPointXValue = document.querySelector("#projection-parallax-vanishing-point-x-value");
 const projectionParallaxVanishingPointYValue = document.querySelector("#projection-parallax-vanishing-point-y-value");
 const projectionEffectsForm = document.querySelector("#projection-effects-form");
@@ -44,12 +49,18 @@ const backupState = document.querySelector("#backup-state");
 const backupList = document.querySelector("#backup-list");
 const backupCreateButton = document.querySelector("#backup-create-button");
 const backupRefreshButton = document.querySelector("#backup-refresh-button");
+const fieldOverviewState = document.querySelector("#field-overview-state");
+const fieldStats = document.querySelector("#field-stats");
+const bulkApprovePendingButton = document.querySelector("#bulk-approve-pending-button");
+const bulkRejectPendingButton = document.querySelector("#bulk-reject-pending-button");
 const PAGE_SIZE = 8;
 
 let adminKey = localStorage.getItem("tanabataAdminKey") || "";
 let eventSource = null;
 let wishDetailsVisible = localStorage.getItem("tanabataAdminWishDetails") === "true";
 let projectionSettingsDirty = false;
+let projectionParallaxPreviewTimer = null;
+let projectionParallaxPreviewRequestId = 0;
 let activeAdminTab = localStorage.getItem("tanabataAdminTab") || "connection";
 const pages = {
   pending: 1,
@@ -104,9 +115,45 @@ function formatSliderValue(value) {
   return Number.isFinite(number) ? number.toFixed(2).replace(/\.?0+$/, "") : "0";
 }
 
+function clampNumber(value, min, max, fallback = min) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.max(min, Math.min(max, number)) : fallback;
+}
+
+function syncProjectionVanishingPointRanges() {
+  if (
+    !projectionParallaxVanishingPointXInput ||
+    !projectionParallaxVanishingPointYInput
+  ) return;
+
+  const serverMin = Number(projectionParallaxVanishingPointXInput.dataset.serverMin ?? -3);
+  const serverMax = Number(projectionParallaxVanishingPointXInput.dataset.serverMax ?? 3);
+  const serverLimit = Math.max(
+    Number.isFinite(serverMin) ? Math.abs(serverMin) : 3,
+    Number.isFinite(serverMax) ? Math.abs(serverMax) : 3,
+    1
+  );
+  const limit = Math.min(serverLimit, 1);
+  const min = -limit;
+  const max = limit;
+
+  [projectionParallaxVanishingPointXInput, projectionParallaxVanishingPointYInput].forEach((input) => {
+    input.min = min.toFixed(2);
+    input.max = max.toFixed(2);
+    input.value = String(clampNumber(input.value, min, max, 0));
+  });
+}
+
 function syncProjectionSliderOutputs() {
+  syncProjectionVanishingPointRanges();
   if (projectionParallaxStrengthValue && projectionParallaxStrengthInput) {
     projectionParallaxStrengthValue.textContent = formatSliderValue(projectionParallaxStrengthInput.value);
+  }
+  if (projectionParallaxPopoutStrengthValue && projectionParallaxPopoutStrengthInput) {
+    projectionParallaxPopoutStrengthValue.textContent = formatSliderValue(projectionParallaxPopoutStrengthInput.value);
+  }
+  if (projectionViewportMarginValue && projectionViewportMarginInput) {
+    projectionViewportMarginValue.textContent = formatSliderValue(projectionViewportMarginInput.value);
   }
   if (projectionParallaxVanishingPointXValue && projectionParallaxVanishingPointXInput) {
     projectionParallaxVanishingPointXValue.textContent = formatSliderValue(projectionParallaxVanishingPointXInput.value);
@@ -125,7 +172,7 @@ function setProjectionEffectsState(text) {
 function presetSummary(preset) {
   if (!preset?.settings) return "";
   const settings = preset.settings;
-  return `スロット ${settings.projectionSlotCount} / 表示 ${settings.projectionDisplayCount} / 移動 ${settings.projectionMoveCount} / 文字 ${settings.projectionTypingIntervalMs}ms / 間隔 ${settings.projectionRotateIntervalMs}ms / 天の川 ${settings.projectionMilkyWayGain} / 雲 ${settings.projectionCloudCount} / 視差 ${settings.projectionExperimentalParallaxEnabled ? "ON" : "OFF"} / 強度 ${settings.projectionParallaxStrength} / 消失点 ${settings.projectionParallaxVanishingPointX},${settings.projectionParallaxVanishingPointY}`;
+  return `スロット ${settings.projectionSlotCount} / 表示 ${settings.projectionDisplayCount} / 移動 ${settings.projectionMoveCount} / 文字 ${settings.projectionTypingIntervalMs}ms / 間隔 ${settings.projectionRotateIntervalMs}ms / 天の川 ${settings.projectionMilkyWayGain} / 雲 ${settings.projectionCloudCount} / 視差 ${settings.projectionExperimentalParallaxEnabled ? "ON" : "OFF"} / 強度 ${settings.projectionParallaxStrength} / 飛び出し ${settings.projectionParallaxPopoutStrength ?? 0} / 余白 ${settings.projectionViewportMargin ?? 0} / 消失点 ${settings.projectionParallaxVanishingPointX},${settings.projectionParallaxVanishingPointY}`;
 }
 
 function renderProjectionPresets(presets = []) {
@@ -150,6 +197,12 @@ function renderProjectionPresets(presets = []) {
 function setBackupState(text) {
   if (backupState) {
     backupState.textContent = text;
+  }
+}
+
+function setFieldOverviewState(text) {
+  if (fieldOverviewState) {
+    fieldOverviewState.textContent = text;
   }
 }
 
@@ -277,6 +330,83 @@ function statusSummary(byStatus = {}) {
   return `承認待ち ${pending} / 投影中 ${approved} / 非表示 ${rejected}`;
 }
 
+function countWishesByStatus(wishes = []) {
+  return wishes.reduce((counts, wish) => {
+    counts[wish.status] = (counts[wish.status] || 0) + 1;
+    return counts;
+  }, {});
+}
+
+function minutesSince(value) {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return null;
+  return Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
+}
+
+function formatElapsedMinutes(minutes) {
+  if (minutes === null) return "なし";
+  if (minutes < 1) return "たった今";
+  if (minutes < 60) return `${minutes}分前`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest ? `${hours}時間${rest}分前` : `${hours}時間前`;
+}
+
+function makeFieldStat(label, value, tone = "") {
+  const item = document.createElement("article");
+  item.className = "field-stat";
+  if (tone) item.dataset.tone = tone;
+
+  const title = document.createElement("span");
+  title.className = "field-stat-label";
+  title.textContent = label;
+
+  const number = document.createElement("strong");
+  number.className = "field-stat-value";
+  number.textContent = value;
+
+  item.append(title, number);
+  return item;
+}
+
+function renderFieldOverview(wishes = [], settings = {}) {
+  if (!fieldStats) return;
+
+  const counts = countWishesByStatus(wishes);
+  const pending = counts.pending || 0;
+  const approved = counts.approved || 0;
+  const rejected = counts.rejected || 0;
+  const cautionPending = wishes.filter((wish) => {
+    return wish.status === "pending" && wish.moderation?.reason && wish.moderation.reason !== "手動確認待ち";
+  }).length;
+  const latestWish = [...wishes].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))[0];
+  const oldestPending = wishes
+    .filter((wish) => wish.status === "pending")
+    .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)))[0];
+  const latestMinutes = minutesSince(latestWish?.createdAt);
+  const waitingMinutes = minutesSince(oldestPending?.createdAt);
+
+  fieldStats.textContent = "";
+  fieldStats.append(
+    makeFieldStat("承認待ち", `${pending}件`, pending ? "warn" : "ok"),
+    makeFieldStat("投影中", `${approved}件`, approved ? "ok" : ""),
+    makeFieldStat("非表示", `${rejected}件`),
+    makeFieldStat("注意つき", `${cautionPending}件`, cautionPending ? "danger" : "ok"),
+    makeFieldStat("最終投稿", formatElapsedMinutes(latestMinutes)),
+    makeFieldStat("最長待ち", formatElapsedMinutes(waitingMinutes), waitingMinutes >= 10 ? "warn" : "")
+  );
+
+  if (bulkApprovePendingButton) {
+    bulkApprovePendingButton.disabled = pending === 0;
+  }
+  if (bulkRejectPendingButton) {
+    bulkRejectPendingButton.disabled = pending === 0;
+  }
+
+  const mode = modeLabel(settings.moderationMode);
+  setFieldOverviewState(`${mode} / 合計 ${wishes.length}件 / 承認待ち ${pending}件`);
+}
+
 function renderBackups(backups = []) {
   if (!backupList) return;
 
@@ -329,6 +459,7 @@ async function refresh() {
     api("/api/admin/settings")
   ]);
   renderModerationSettings(settings);
+  renderFieldOverview(wishes, settings);
   renderProjectionSettings(settings, { force: false });
   renderList("pending", wishes.filter((wish) => wish.status === "pending"));
   renderList("approved", wishes.filter((wish) => wish.status === "approved"));
@@ -366,7 +497,10 @@ function renderProjectionSettings(settings, { force = false } = {}) {
     !projectionCloudOriginYInput ||
     !projectionCloudSeedInput ||
     !projectionExperimentalParallaxInput ||
+    !projectionParallaxMarkerInput ||
     !projectionParallaxStrengthInput ||
+    !projectionParallaxPopoutStrengthInput ||
+    !projectionViewportMarginInput ||
     !projectionParallaxVanishingPointXInput ||
     !projectionParallaxVanishingPointYInput ||
     !settings
@@ -390,7 +524,10 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   const cloudOriginY = Number(settings.projectionCloudOriginY ?? 12);
   const cloudSeed = String(settings.projectionCloudSeed || "tanabata-clouds");
   const experimentalParallaxEnabled = settings.projectionExperimentalParallaxEnabled === true;
+  const parallaxMarkerEnabled = settings.projectionParallaxMarkerEnabled === true;
   const parallaxStrength = Number(settings.projectionParallaxStrength ?? 1);
+  const parallaxPopoutStrength = Number(settings.projectionParallaxPopoutStrength ?? 0);
+  const viewportMargin = Number(settings.projectionViewportMargin ?? 0);
   const parallaxVanishingPointX = Number(settings.projectionParallaxVanishingPointX ?? 0);
   const parallaxVanishingPointY = Number(settings.projectionParallaxVanishingPointY ?? 0);
   const displayMax = settings.projectionDisplayCountMax || 30;
@@ -411,6 +548,10 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   const cloudOriginYMax = settings.projectionCloudOriginYMax ?? 100;
   const parallaxStrengthMin = settings.projectionParallaxStrengthMin ?? 0;
   const parallaxStrengthMax = settings.projectionParallaxStrengthMax ?? 3;
+  const parallaxPopoutStrengthMin = settings.projectionParallaxPopoutStrengthMin ?? 0;
+  const parallaxPopoutStrengthMax = settings.projectionParallaxPopoutStrengthMax ?? 3;
+  const viewportMarginMin = settings.projectionViewportMarginMin ?? 0;
+  const viewportMarginMax = settings.projectionViewportMarginMax ?? 24;
   const parallaxVanishingPointMin = settings.projectionParallaxVanishingPointMin ?? -1;
   const parallaxVanishingPointMax = settings.projectionParallaxVanishingPointMax ?? 1;
   renderProjectionPresets(settings.projectionPresets || []);
@@ -439,15 +580,33 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   projectionCloudOriginYInput.max = String(cloudOriginYMax);
   projectionCloudSeedInput.value = cloudSeed;
   projectionExperimentalParallaxInput.checked = experimentalParallaxEnabled;
+  projectionParallaxMarkerInput.checked = parallaxMarkerEnabled;
   projectionParallaxStrengthInput.value = String(parallaxStrength);
   projectionParallaxStrengthInput.min = String(parallaxStrengthMin);
   projectionParallaxStrengthInput.max = String(parallaxStrengthMax);
-  projectionParallaxVanishingPointXInput.value = String(parallaxVanishingPointX);
-  projectionParallaxVanishingPointXInput.min = String(parallaxVanishingPointMin);
-  projectionParallaxVanishingPointXInput.max = String(parallaxVanishingPointMax);
-  projectionParallaxVanishingPointYInput.value = String(parallaxVanishingPointY);
-  projectionParallaxVanishingPointYInput.min = String(parallaxVanishingPointMin);
-  projectionParallaxVanishingPointYInput.max = String(parallaxVanishingPointMax);
+  projectionParallaxPopoutStrengthInput.value = String(parallaxPopoutStrength);
+  projectionParallaxPopoutStrengthInput.min = String(parallaxPopoutStrengthMin);
+  projectionParallaxPopoutStrengthInput.max = String(parallaxPopoutStrengthMax);
+  projectionViewportMarginInput.value = String(viewportMargin);
+  projectionViewportMarginInput.min = String(viewportMarginMin);
+  projectionViewportMarginInput.max = String(viewportMarginMax);
+  projectionParallaxVanishingPointXInput.dataset.serverMin = String(parallaxVanishingPointMin);
+  projectionParallaxVanishingPointXInput.dataset.serverMax = String(parallaxVanishingPointMax);
+  projectionParallaxVanishingPointYInput.dataset.serverMin = String(parallaxVanishingPointMin);
+  projectionParallaxVanishingPointYInput.dataset.serverMax = String(parallaxVanishingPointMax);
+  syncProjectionVanishingPointRanges();
+  projectionParallaxVanishingPointXInput.value = String(clampNumber(
+    parallaxVanishingPointX,
+    Number(projectionParallaxVanishingPointXInput.min),
+    Number(projectionParallaxVanishingPointXInput.max),
+    0
+  ));
+  projectionParallaxVanishingPointYInput.value = String(clampNumber(
+    parallaxVanishingPointY,
+    Number(projectionParallaxVanishingPointYInput.min),
+    Number(projectionParallaxVanishingPointYInput.max),
+    0
+  ));
   syncProjectionSliderOutputs();
   projectionSlotCountInput.value = String(slotCount);
   projectionSlotCountInput.min = "1";
@@ -457,7 +616,7 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   projectionDisplayCountInput.max = String(Math.min(displayMax, slotCount));
   projectionMoveCountInput.value = String(moveCount);
   projectionMoveCountInput.max = String(displayCount);
-  setProjectionSettingsState(`文字 ${typingIntervalMs}ms / 間隔 ${rotateIntervalMs}ms / 自動 ${effectAutoEnabled ? "ON" : "OFF"} / イベント ${effectIntervalMs}ms / 天の川 ${milkyWayGain} / 雲 ${cloudCount} @ ${cloudOriginX},${cloudOriginY} / 視差 ${experimentalParallaxEnabled ? "ON" : "OFF"} / 強度 ${parallaxStrength} / 消失点 ${parallaxVanishingPointX},${parallaxVanishingPointY} / スロット ${slotCount} / 表示 ${displayCount} / 移動 ${moveCount}`);
+  setProjectionSettingsState(`文字 ${typingIntervalMs}ms / 間隔 ${rotateIntervalMs}ms / 自動 ${effectAutoEnabled ? "ON" : "OFF"} / イベント ${effectIntervalMs}ms / 天の川 ${milkyWayGain} / 雲 ${cloudCount} @ ${cloudOriginX},${cloudOriginY} / 視差 ${experimentalParallaxEnabled ? "ON" : "OFF"} / マーカー ${parallaxMarkerEnabled ? "ON" : "OFF"} / 強度 ${parallaxStrength} / 飛び出し ${parallaxPopoutStrength} / 余白 ${viewportMargin} / 消失点 ${parallaxVanishingPointX},${parallaxVanishingPointY} / スロット ${slotCount} / 表示 ${displayCount} / 移動 ${moveCount}`);
 }
 
 function setLiveState(text) {
@@ -558,6 +717,60 @@ function markProjectionSettingsDirty() {
   setProjectionSettingsState("編集中");
 }
 
+function isProjectionParallaxPreviewInput(target) {
+  return [
+    projectionExperimentalParallaxInput,
+    projectionParallaxMarkerInput,
+    projectionParallaxStrengthInput,
+    projectionParallaxPopoutStrengthInput,
+    projectionViewportMarginInput,
+    projectionParallaxVanishingPointXInput,
+    projectionParallaxVanishingPointYInput
+  ].includes(target);
+}
+
+function currentProjectionParallaxPayload() {
+  return {
+    projectionExperimentalParallaxEnabled: projectionExperimentalParallaxInput.checked,
+    projectionParallaxMarkerEnabled: projectionParallaxMarkerInput.checked,
+    projectionParallaxStrength: Number(projectionParallaxStrengthInput.value),
+    projectionParallaxPopoutStrength: Number(projectionParallaxPopoutStrengthInput.value),
+    projectionViewportMargin: Number(projectionViewportMarginInput.value),
+    projectionParallaxVanishingPointX: Number(projectionParallaxVanishingPointXInput.value),
+    projectionParallaxVanishingPointY: Number(projectionParallaxVanishingPointYInput.value)
+  };
+}
+
+function scheduleProjectionParallaxPreview() {
+  syncProjectionSliderOutputs();
+  setProjectionSettingsState(projectionSettingsDirty ? "編集中 / 視差プレビュー反映待ち" : "視差プレビュー反映待ち");
+  if (projectionParallaxPreviewTimer) {
+    clearTimeout(projectionParallaxPreviewTimer);
+  }
+  projectionParallaxPreviewTimer = window.setTimeout(async () => {
+    projectionParallaxPreviewTimer = null;
+    const requestId = ++projectionParallaxPreviewRequestId;
+    setProjectionSettingsState(projectionSettingsDirty ? "編集中 / 視差プレビュー反映中" : "視差プレビュー反映中");
+    try {
+      const { settings } = await api("/api/admin/settings", {
+        method: "PATCH",
+        body: JSON.stringify(currentProjectionParallaxPayload())
+      });
+      if (requestId !== projectionParallaxPreviewRequestId) return;
+      if (projectionSettingsDirty) {
+        setProjectionSettingsState("編集中");
+      } else {
+        renderProjectionSettings(settings);
+      }
+    } catch (error) {
+      if (requestId === projectionParallaxPreviewRequestId) {
+        setProjectionSettingsState("視差プレビュー反映失敗");
+        alert(error.message);
+      }
+    }
+  }, 300);
+}
+
 function currentProjectionSettingsPayload() {
   return {
     projectionTypingIntervalMs: Number(projectionTypingIntervalInput.value),
@@ -573,7 +786,10 @@ function currentProjectionSettingsPayload() {
     projectionCloudOriginY: Number(projectionCloudOriginYInput.value),
     projectionCloudSeed: projectionCloudSeedInput.value.trim(),
     projectionExperimentalParallaxEnabled: projectionExperimentalParallaxInput.checked,
+    projectionParallaxMarkerEnabled: projectionParallaxMarkerInput.checked,
     projectionParallaxStrength: Number(projectionParallaxStrengthInput.value),
+    projectionParallaxPopoutStrength: Number(projectionParallaxPopoutStrengthInput.value),
+    projectionViewportMargin: Number(projectionViewportMarginInput.value),
     projectionParallaxVanishingPointX: Number(projectionParallaxVanishingPointXInput.value),
     projectionParallaxVanishingPointY: Number(projectionParallaxVanishingPointYInput.value)
   };
@@ -605,16 +821,36 @@ if (
   projectionCloudOriginYInput &&
   projectionCloudSeedInput &&
   projectionExperimentalParallaxInput &&
+  projectionParallaxMarkerInput &&
   projectionParallaxStrengthInput &&
+  projectionParallaxPopoutStrengthInput &&
+  projectionViewportMarginInput &&
   projectionParallaxVanishingPointXInput &&
   projectionParallaxVanishingPointYInput
 ) {
-  projectionSettingsForm.addEventListener("input", markProjectionSettingsDirty);
-  projectionSettingsForm.addEventListener("change", markProjectionSettingsDirty);
+  projectionSettingsForm.addEventListener("input", (event) => {
+    if (isProjectionParallaxPreviewInput(event.target)) {
+      scheduleProjectionParallaxPreview();
+      return;
+    }
+    markProjectionSettingsDirty();
+  });
+  projectionSettingsForm.addEventListener("change", (event) => {
+    if (isProjectionParallaxPreviewInput(event.target)) {
+      scheduleProjectionParallaxPreview();
+      return;
+    }
+    markProjectionSettingsDirty();
+  });
 
   projectionSettingsForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const button = projectionSettingsForm.querySelector("button");
+    if (projectionParallaxPreviewTimer) {
+      clearTimeout(projectionParallaxPreviewTimer);
+      projectionParallaxPreviewTimer = null;
+    }
+    projectionParallaxPreviewRequestId += 1;
     button.disabled = true;
     try {
       const { settings } = await api("/api/admin/settings", {
@@ -716,6 +952,43 @@ if (backupCreateButton) {
     } finally {
       backupCreateButton.disabled = false;
     }
+  });
+}
+
+async function bulkUpdatePending(nextStatus, button) {
+  const label = nextStatus === "approved" ? "投影" : "非表示";
+  const ok = window.confirm(`承認待ちの願い事をまとめて${label}にします。`);
+  if (!ok) return;
+
+  button.disabled = true;
+  setFieldOverviewState(`一括${label}中`);
+  try {
+    const { updatedCount } = await api("/api/admin/wishes/bulk-status", {
+      method: "POST",
+      body: JSON.stringify({ fromStatus: "pending", status: nextStatus })
+    });
+    await refresh();
+    setFieldOverviewState(`${updatedCount}件を${label}にしました`);
+  } catch (error) {
+    setFieldOverviewState(`一括${label}失敗`);
+    button.disabled = false;
+    alert(error.message);
+  } finally {
+    if (button.disabled) {
+      await refresh().catch(() => {});
+    }
+  }
+}
+
+if (bulkApprovePendingButton) {
+  bulkApprovePendingButton.addEventListener("click", () => {
+    bulkUpdatePending("approved", bulkApprovePendingButton);
+  });
+}
+
+if (bulkRejectPendingButton) {
+  bulkRejectPendingButton.addEventListener("click", () => {
+    bulkUpdatePending("rejected", bulkRejectPendingButton);
   });
 }
 

@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>七夕願い事 投影</title>
-    <link rel="stylesheet" href="/styles.css">
-    <script src="/projection.js" defer></script>
+    <link rel="stylesheet" href="/styles.css?v=projection-appearance-20260703-2">
+    <script src="/projection.js?v=projection-appearance-20260703-2" defer></script>
   </head>
   <body class="projection-page">
     <main class="projection-stage" aria-label="七夕祭り投影画面">
@@ -18,13 +18,29 @@
         <span class="meteor meteor-3"></span>
       </div>
       <div id="cloud-layer" class="cloud-layer" aria-hidden="true"></div>
-      <button id="layout-menu-trigger" class="moon" type="button" aria-label="短冊レイアウトメニュー"></button>
-      <div id="layout-menu" class="projection-layout-menu" hidden>
-        <p class="projection-layout-menu-title">短冊レイアウト</p>
+      <div id="projection-plane-frame" class="projection-plane-frame" aria-hidden="true"></div>
+      <div id="vanishing-point-marker" class="vanishing-point-marker" aria-hidden="true" hidden></div>
+      <button id="layout-menu-trigger" class="moon" type="button" aria-label="短冊の配置と表示設定メニュー"></button>
+      <div id="layout-menu" class="projection-layout-menu" aria-hidden="true">
+        <p class="projection-layout-menu-title">短冊の配置と表示</p>
         <p id="layout-menu-state" class="projection-layout-menu-state">保存なし</p>
+        <div class="projection-layout-menu-controls">
+          <label class="projection-layout-control" for="tanzaku-font-select">
+            <span>フォント</span>
+            <select id="tanzaku-font-select"></select>
+          </label>
+          <label class="projection-layout-control" for="tanzaku-font-size">
+            <span>文字サイズ <output id="tanzaku-font-size-value" for="tanzaku-font-size">100%</output></span>
+            <input id="tanzaku-font-size" type="range" min="80" max="140" step="5">
+          </label>
+          <label class="projection-layout-control" for="oracle-boat-size">
+            <span>笹舟サイズ <output id="oracle-boat-size-value" for="oracle-boat-size">100%</output></span>
+            <input id="oracle-boat-size" type="range" min="70" max="160" step="5">
+          </label>
+        </div>
         <div class="projection-layout-menu-actions">
-          <button id="layout-save-button" type="button">現在配置を保存</button>
-          <button id="layout-load-button" type="button">保存配置を呼び出し</button>
+          <button id="layout-save-button" type="button">配置と表示を保存</button>
+          <button id="layout-load-button" type="button">保存設定を呼び出し</button>
         </div>
       </div>
       <div class="bamboo bamboo-left" aria-hidden="true"></div>
