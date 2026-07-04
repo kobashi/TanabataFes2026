@@ -20,23 +20,71 @@ const projectionTypingIntervalInput = document.querySelector("#projection-typing
 const projectionRotateIntervalInput = document.querySelector("#projection-rotate-interval-ms");
 const projectionEffectAutoInput = document.querySelector("#projection-effect-auto-enabled");
 const projectionEffectIntervalInput = document.querySelector("#projection-effect-interval-ms");
+const projectionTanzakuSwayStrengthInput = document.querySelector("#projection-tanzaku-sway-strength");
+const projectionWindGustStrengthInput = document.querySelector("#projection-wind-gust-strength");
+const projectionWindGustCycleSecondsInput = document.querySelector("#projection-wind-gust-cycle-seconds");
+const projectionWindGustCycleJitterSecondsInput = document.querySelector("#projection-wind-gust-cycle-jitter-seconds");
 const projectionDisplayCountInput = document.querySelector("#projection-display-count");
 const projectionSlotCountInput = document.querySelector("#projection-slot-count");
 const projectionMoveCountInput = document.querySelector("#projection-move-count");
+const projectionTanzakuFontIdInput = document.querySelector("#projection-tanzaku-font-id");
+const projectionColorEmojiFontEnabledInput = document.querySelector("#projection-color-emoji-font-enabled");
 const projectionMilkyWayGainInput = document.querySelector("#projection-milky-way-gain");
+const projectionMilkyWayTwinkleInput = document.querySelector("#projection-milky-way-twinkle");
+const projectionMilkyWaySparkleInput = document.querySelector("#projection-milky-way-sparkle");
+const projectionMilkyWaySpeedInput = document.querySelector("#projection-milky-way-speed");
+const projectionMilkyWayParticleCountInput = document.querySelector("#projection-milky-way-particle-count");
+const projectionMilkyWaySparkleRatioInput = document.querySelector("#projection-milky-way-sparkle-ratio");
+const projectionMilkyWaySparklePeriodVarianceInput = document.querySelector("#projection-milky-way-sparkle-period-variance");
+const projectionMilkyWaySparkleIntensityVarianceInput = document.querySelector("#projection-milky-way-sparkle-intensity-variance");
+const projectionMilkyWaySparklePeriodSecondsInput = document.querySelector("#projection-milky-way-sparkle-period-seconds");
+const projectionMilkyWaySparkleDutyRatioInput = document.querySelector("#projection-milky-way-sparkle-duty-ratio");
+const projectionMilkyWaySeedInput = document.querySelector("#projection-milky-way-seed");
+const projectionTanabataStarResponseIntensityInput = document.querySelector("#projection-tanabata-star-response-intensity");
+const projectionTanabataStarResponsePhaseDegInput = document.querySelector("#projection-tanabata-star-response-phase-deg");
+const projectionTanabataStarResponsePeriodSecondsInput = document.querySelector("#projection-tanabata-star-response-period-seconds");
 const projectionCloudCountInput = document.querySelector("#projection-cloud-count");
-const projectionCloudOriginXInput = document.querySelector("#projection-cloud-origin-x");
 const projectionCloudOriginYInput = document.querySelector("#projection-cloud-origin-y");
 const projectionCloudSeedInput = document.querySelector("#projection-cloud-seed");
 const projectionExperimentalParallaxInput = document.querySelector("#projection-experimental-parallax-enabled");
 const projectionParallaxMarkerInput = document.querySelector("#projection-parallax-marker-enabled");
+const projectionParallaxMotionModeInput = document.querySelector("#projection-parallax-motion-mode");
 const projectionParallaxStrengthInput = document.querySelector("#projection-parallax-strength");
 const projectionParallaxPopoutStrengthInput = document.querySelector("#projection-parallax-popout-strength");
+const projectionParallaxDepthMultiplierInput = document.querySelector("#projection-parallax-depth-multiplier");
+const projectionParallaxDepthReferenceIndexInput = document.querySelector("#projection-parallax-depth-reference-index");
+const projectionParallaxViewerOffsetXInput = document.querySelector("#projection-parallax-viewer-offset-x");
+const projectionParallaxViewerOffsetYInput = document.querySelector("#projection-parallax-viewer-offset-y");
+const projectionParallaxViewerDistanceInput = document.querySelector("#projection-parallax-viewer-distance");
 const projectionViewportMarginInput = document.querySelector("#projection-viewport-margin");
 const projectionParallaxVanishingPointXInput = document.querySelector("#projection-parallax-vanishing-point-x");
 const projectionParallaxVanishingPointYInput = document.querySelector("#projection-parallax-vanishing-point-y");
+const projectionMilkyWayGainValue = document.querySelector("#projection-milky-way-gain-value");
+const projectionMilkyWayTwinkleValue = document.querySelector("#projection-milky-way-twinkle-value");
+const projectionMilkyWaySparkleValue = document.querySelector("#projection-milky-way-sparkle-value");
+const projectionMilkyWaySpeedValue = document.querySelector("#projection-milky-way-speed-value");
+const projectionMilkyWayParticleCountValue = document.querySelector("#projection-milky-way-particle-count-value");
+const projectionMilkyWaySparkleRatioValue = document.querySelector("#projection-milky-way-sparkle-ratio-value");
+const projectionMilkyWaySparklePeriodVarianceValue = document.querySelector("#projection-milky-way-sparkle-period-variance-value");
+const projectionMilkyWaySparkleIntensityVarianceValue = document.querySelector("#projection-milky-way-sparkle-intensity-variance-value");
+const projectionMilkyWaySparklePeriodSecondsValue = document.querySelector("#projection-milky-way-sparkle-period-seconds-value");
+const projectionMilkyWaySparkleDutyRatioValue = document.querySelector("#projection-milky-way-sparkle-duty-ratio-value");
+const projectionTanabataStarResponseIntensityValue = document.querySelector("#projection-tanabata-star-response-intensity-value");
+const projectionTanabataStarResponsePhaseDegValue = document.querySelector("#projection-tanabata-star-response-phase-deg-value");
+const projectionTanabataStarResponsePeriodSecondsValue = document.querySelector("#projection-tanabata-star-response-period-seconds-value");
+const projectionTanzakuSwayStrengthValue = document.querySelector("#projection-tanzaku-sway-strength-value");
+const projectionWindGustStrengthValue = document.querySelector("#projection-wind-gust-strength-value");
+const projectionWindGustCycleSecondsValue = document.querySelector("#projection-wind-gust-cycle-seconds-value");
+const projectionWindGustCycleJitterSecondsValue = document.querySelector("#projection-wind-gust-cycle-jitter-seconds-value");
+const projectionCloudCountValue = document.querySelector("#projection-cloud-count-value");
 const projectionParallaxStrengthValue = document.querySelector("#projection-parallax-strength-value");
 const projectionParallaxPopoutStrengthValue = document.querySelector("#projection-parallax-popout-strength-value");
+const projectionParallaxDepthMultiplierValue = document.querySelector("#projection-parallax-depth-multiplier-value");
+const projectionParallaxDepthReferenceIndexValue = document.querySelector("#projection-parallax-depth-reference-index-value");
+const projectionCloudOriginYValue = document.querySelector("#projection-cloud-origin-y-value");
+const projectionParallaxViewerOffsetXValue = document.querySelector("#projection-parallax-viewer-offset-x-value");
+const projectionParallaxViewerOffsetYValue = document.querySelector("#projection-parallax-viewer-offset-y-value");
+const projectionParallaxViewerDistanceValue = document.querySelector("#projection-parallax-viewer-distance-value");
 const projectionViewportMarginValue = document.querySelector("#projection-viewport-margin-value");
 const projectionParallaxVanishingPointXValue = document.querySelector("#projection-parallax-vanishing-point-x-value");
 const projectionParallaxVanishingPointYValue = document.querySelector("#projection-parallax-vanishing-point-y-value");
@@ -54,6 +102,13 @@ const fieldStats = document.querySelector("#field-stats");
 const bulkApprovePendingButton = document.querySelector("#bulk-approve-pending-button");
 const bulkRejectPendingButton = document.querySelector("#bulk-reject-pending-button");
 const PAGE_SIZE = 8;
+const PROJECTION_TANZAKU_FONT_LABELS = {
+  mincho: "明朝",
+  gothic: "角ゴシック",
+  maru: "丸ゴシック",
+  kyokasho: "教科書体",
+  brush: "筆文字風"
+};
 
 let adminKey = localStorage.getItem("tanabataAdminKey") || "";
 let eventSource = null;
@@ -61,6 +116,7 @@ let wishDetailsVisible = localStorage.getItem("tanabataAdminWishDetails") === "t
 let projectionSettingsDirty = false;
 let projectionParallaxPreviewTimer = null;
 let projectionParallaxPreviewRequestId = 0;
+let projectionSettingsEditingUntil = 0;
 let activeAdminTab = localStorage.getItem("tanabataAdminTab") || "connection";
 const pages = {
   pending: 1,
@@ -126,31 +182,113 @@ function syncProjectionVanishingPointRanges() {
     !projectionParallaxVanishingPointYInput
   ) return;
 
-  const serverMin = Number(projectionParallaxVanishingPointXInput.dataset.serverMin ?? -3);
-  const serverMax = Number(projectionParallaxVanishingPointXInput.dataset.serverMax ?? 3);
-  const serverLimit = Math.max(
-    Number.isFinite(serverMin) ? Math.abs(serverMin) : 3,
-    Number.isFinite(serverMax) ? Math.abs(serverMax) : 3,
-    1
-  );
-  const limit = Math.min(serverLimit, 1);
-  const min = -limit;
-  const max = limit;
+  const xMin = Number(projectionParallaxVanishingPointXInput.dataset.serverMin ?? -1);
+  const xMax = Number(projectionParallaxVanishingPointXInput.dataset.serverMax ?? 1);
+  const yMin = Number(projectionParallaxVanishingPointYInput.dataset.serverMin ?? -1);
+  const yMax = Number(projectionParallaxVanishingPointYInput.dataset.serverMax ?? 5);
+  const safeXMin = Number.isFinite(xMin) ? xMin : -1;
+  const safeXMax = Number.isFinite(xMax) ? xMax : 1;
+  const safeYMin = Number.isFinite(yMin) ? yMin : -1;
+  const safeYMax = Number.isFinite(yMax) ? yMax : 5;
 
-  [projectionParallaxVanishingPointXInput, projectionParallaxVanishingPointYInput].forEach((input) => {
-    input.min = min.toFixed(2);
-    input.max = max.toFixed(2);
-    input.value = String(clampNumber(input.value, min, max, 0));
-  });
+  projectionParallaxVanishingPointXInput.min = safeXMin.toFixed(2);
+  projectionParallaxVanishingPointXInput.max = safeXMax.toFixed(2);
+  projectionParallaxVanishingPointXInput.value = String(clampNumber(
+    projectionParallaxVanishingPointXInput.value,
+    safeXMin,
+    safeXMax,
+    0
+  ));
+  projectionParallaxVanishingPointYInput.min = safeYMin.toFixed(2);
+  projectionParallaxVanishingPointYInput.max = safeYMax.toFixed(2);
+  projectionParallaxVanishingPointYInput.value = String(clampNumber(
+    projectionParallaxVanishingPointYInput.value,
+    safeYMin,
+    safeYMax,
+    0
+  ));
 }
 
 function syncProjectionSliderOutputs() {
   syncProjectionVanishingPointRanges();
+  if (projectionMilkyWayGainValue && projectionMilkyWayGainInput) {
+    projectionMilkyWayGainValue.textContent = formatSliderValue(projectionMilkyWayGainInput.value);
+  }
+  if (projectionMilkyWayTwinkleValue && projectionMilkyWayTwinkleInput) {
+    projectionMilkyWayTwinkleValue.textContent = formatSliderValue(projectionMilkyWayTwinkleInput.value);
+  }
+  if (projectionMilkyWaySparkleValue && projectionMilkyWaySparkleInput) {
+    projectionMilkyWaySparkleValue.textContent = formatSliderValue(projectionMilkyWaySparkleInput.value);
+  }
+  if (projectionMilkyWaySpeedValue && projectionMilkyWaySpeedInput) {
+    projectionMilkyWaySpeedValue.textContent = formatSliderValue(projectionMilkyWaySpeedInput.value);
+  }
+  if (projectionMilkyWayParticleCountValue && projectionMilkyWayParticleCountInput) {
+    projectionMilkyWayParticleCountValue.textContent = formatSliderValue(projectionMilkyWayParticleCountInput.value);
+  }
+  if (projectionMilkyWaySparkleRatioValue && projectionMilkyWaySparkleRatioInput) {
+    projectionMilkyWaySparkleRatioValue.textContent = `${Math.round(Number(projectionMilkyWaySparkleRatioInput.value) * 1000) / 10}%`;
+  }
+  if (projectionMilkyWaySparklePeriodVarianceValue && projectionMilkyWaySparklePeriodVarianceInput) {
+    projectionMilkyWaySparklePeriodVarianceValue.textContent = formatSliderValue(projectionMilkyWaySparklePeriodVarianceInput.value);
+  }
+  if (projectionMilkyWaySparkleIntensityVarianceValue && projectionMilkyWaySparkleIntensityVarianceInput) {
+    projectionMilkyWaySparkleIntensityVarianceValue.textContent = formatSliderValue(projectionMilkyWaySparkleIntensityVarianceInput.value);
+  }
+  if (projectionMilkyWaySparklePeriodSecondsValue && projectionMilkyWaySparklePeriodSecondsInput) {
+    projectionMilkyWaySparklePeriodSecondsValue.textContent = `${formatSliderValue(projectionMilkyWaySparklePeriodSecondsInput.value)}秒`;
+  }
+  if (projectionMilkyWaySparkleDutyRatioValue && projectionMilkyWaySparkleDutyRatioInput) {
+    projectionMilkyWaySparkleDutyRatioValue.textContent = `${Math.round(Number(projectionMilkyWaySparkleDutyRatioInput.value) * 100)}%`;
+  }
+  if (projectionTanabataStarResponseIntensityValue && projectionTanabataStarResponseIntensityInput) {
+    projectionTanabataStarResponseIntensityValue.textContent = formatSliderValue(projectionTanabataStarResponseIntensityInput.value);
+  }
+  if (projectionTanabataStarResponsePhaseDegValue && projectionTanabataStarResponsePhaseDegInput) {
+    projectionTanabataStarResponsePhaseDegValue.textContent = `${formatSliderValue(projectionTanabataStarResponsePhaseDegInput.value)}°`;
+  }
+  if (projectionTanabataStarResponsePeriodSecondsValue && projectionTanabataStarResponsePeriodSecondsInput) {
+    projectionTanabataStarResponsePeriodSecondsValue.textContent = `${formatSliderValue(projectionTanabataStarResponsePeriodSecondsInput.value)}秒`;
+  }
+  if (projectionTanzakuSwayStrengthValue && projectionTanzakuSwayStrengthInput) {
+    projectionTanzakuSwayStrengthValue.textContent = formatSliderValue(projectionTanzakuSwayStrengthInput.value);
+  }
+  if (projectionWindGustStrengthValue && projectionWindGustStrengthInput) {
+    projectionWindGustStrengthValue.textContent = formatSliderValue(projectionWindGustStrengthInput.value);
+  }
+  if (projectionWindGustCycleSecondsValue && projectionWindGustCycleSecondsInput) {
+    projectionWindGustCycleSecondsValue.textContent = `${formatSliderValue(projectionWindGustCycleSecondsInput.value)}秒`;
+  }
+  if (projectionWindGustCycleJitterSecondsValue && projectionWindGustCycleJitterSecondsInput) {
+    projectionWindGustCycleJitterSecondsValue.textContent = `${formatSliderValue(projectionWindGustCycleJitterSecondsInput.value)}秒`;
+  }
+  if (projectionCloudCountValue && projectionCloudCountInput) {
+    projectionCloudCountValue.textContent = formatSliderValue(projectionCloudCountInput.value);
+  }
   if (projectionParallaxStrengthValue && projectionParallaxStrengthInput) {
     projectionParallaxStrengthValue.textContent = formatSliderValue(projectionParallaxStrengthInput.value);
   }
   if (projectionParallaxPopoutStrengthValue && projectionParallaxPopoutStrengthInput) {
     projectionParallaxPopoutStrengthValue.textContent = formatSliderValue(projectionParallaxPopoutStrengthInput.value);
+  }
+  if (projectionParallaxDepthMultiplierValue && projectionParallaxDepthMultiplierInput) {
+    projectionParallaxDepthMultiplierValue.textContent = formatSliderValue(projectionParallaxDepthMultiplierInput.value);
+  }
+  if (projectionParallaxDepthReferenceIndexValue && projectionParallaxDepthReferenceIndexInput) {
+    const referenceIndex = Number(projectionParallaxDepthReferenceIndexInput.value);
+    projectionParallaxDepthReferenceIndexValue.textContent = referenceIndex > 0 ? String(referenceIndex) : "中央";
+  }
+  if (projectionCloudOriginYValue && projectionCloudOriginYInput) {
+    projectionCloudOriginYValue.textContent = formatSliderValue(projectionCloudOriginYInput.value);
+  }
+  if (projectionParallaxViewerOffsetXValue && projectionParallaxViewerOffsetXInput) {
+    projectionParallaxViewerOffsetXValue.textContent = formatSliderValue(projectionParallaxViewerOffsetXInput.value);
+  }
+  if (projectionParallaxViewerOffsetYValue && projectionParallaxViewerOffsetYInput) {
+    projectionParallaxViewerOffsetYValue.textContent = formatSliderValue(projectionParallaxViewerOffsetYInput.value);
+  }
+  if (projectionParallaxViewerDistanceValue && projectionParallaxViewerDistanceInput) {
+    projectionParallaxViewerDistanceValue.textContent = formatSliderValue(projectionParallaxViewerDistanceInput.value);
   }
   if (projectionViewportMarginValue && projectionViewportMarginInput) {
     projectionViewportMarginValue.textContent = formatSliderValue(projectionViewportMarginInput.value);
@@ -172,7 +310,15 @@ function setProjectionEffectsState(text) {
 function presetSummary(preset) {
   if (!preset?.settings) return "";
   const settings = preset.settings;
-  return `スロット ${settings.projectionSlotCount} / 表示 ${settings.projectionDisplayCount} / 移動 ${settings.projectionMoveCount} / 文字 ${settings.projectionTypingIntervalMs}ms / 間隔 ${settings.projectionRotateIntervalMs}ms / 天の川 ${settings.projectionMilkyWayGain} / 雲 ${settings.projectionCloudCount} / 視差 ${settings.projectionExperimentalParallaxEnabled ? "ON" : "OFF"} / 強度 ${settings.projectionParallaxStrength} / 飛び出し ${settings.projectionParallaxPopoutStrength ?? 0} / 余白 ${settings.projectionViewportMargin ?? 0} / 消失点 ${settings.projectionParallaxVanishingPointX},${settings.projectionParallaxVanishingPointY}`;
+  const motionModeLabels = {
+    display: "ディスプレイ",
+    camera: "実カメラ",
+    "camera-display": "実カメラ 上下",
+    mapping: "壁投影"
+  };
+  const motionMode = motionModeLabels[settings.projectionParallaxMotionMode] || motionModeLabels.mapping;
+  const fontLabel = PROJECTION_TANZAKU_FONT_LABELS[settings.projectionTanzakuFontId] || PROJECTION_TANZAKU_FONT_LABELS.mincho;
+  return `スロット ${settings.projectionSlotCount} / 表示 ${settings.projectionDisplayCount} / 移動 ${settings.projectionMoveCount} / フォント ${fontLabel} / 絵文字 ${settings.projectionColorEmojiFontEnabled ? "ON" : "OFF"} / 文字 ${settings.projectionTypingIntervalMs}ms / 間隔 ${settings.projectionRotateIntervalMs}ms / 天の川 ${settings.projectionMilkyWayGain} / 雲 ${settings.projectionCloudCount} / 視差 ${settings.projectionExperimentalParallaxEnabled ? "ON" : "OFF"} / 笹舟 ${motionMode} / 左右 ${settings.projectionParallaxStrength} / 前後/上下 ${settings.projectionParallaxPopoutStrength ?? 0} / 鑑賞 ${settings.projectionParallaxViewerOffsetX ?? 0},${settings.projectionParallaxViewerOffsetY ?? 0},${settings.projectionParallaxViewerDistance ?? 2.5} / 余白 ${settings.projectionViewportMargin ?? 0} / 消失点 ${settings.projectionParallaxVanishingPointX},${settings.projectionParallaxVanishingPointY}`;
 }
 
 function renderProjectionPresets(presets = []) {
@@ -491,22 +637,46 @@ function renderProjectionSettings(settings, { force = false } = {}) {
     !projectionDisplayCountInput ||
     !projectionSlotCountInput ||
     !projectionMoveCountInput ||
+    !projectionTanzakuFontIdInput ||
+    !projectionColorEmojiFontEnabledInput ||
     !projectionMilkyWayGainInput ||
+    !projectionMilkyWayTwinkleInput ||
+    !projectionMilkyWaySparkleInput ||
+    !projectionMilkyWaySpeedInput ||
+    !projectionMilkyWayParticleCountInput ||
+    !projectionMilkyWaySparkleRatioInput ||
+    !projectionMilkyWaySparklePeriodVarianceInput ||
+    !projectionMilkyWaySparkleIntensityVarianceInput ||
+    !projectionMilkyWaySparklePeriodSecondsInput ||
+    !projectionMilkyWaySparkleDutyRatioInput ||
+    !projectionMilkyWaySeedInput ||
+    !projectionTanabataStarResponseIntensityInput ||
+    !projectionTanabataStarResponsePhaseDegInput ||
+    !projectionTanabataStarResponsePeriodSecondsInput ||
+    !projectionTanzakuSwayStrengthInput ||
+    !projectionWindGustStrengthInput ||
+    !projectionWindGustCycleSecondsInput ||
+    !projectionWindGustCycleJitterSecondsInput ||
     !projectionCloudCountInput ||
-    !projectionCloudOriginXInput ||
     !projectionCloudOriginYInput ||
     !projectionCloudSeedInput ||
     !projectionExperimentalParallaxInput ||
     !projectionParallaxMarkerInput ||
+    !projectionParallaxMotionModeInput ||
     !projectionParallaxStrengthInput ||
     !projectionParallaxPopoutStrengthInput ||
+    !projectionParallaxViewerOffsetXInput ||
+    !projectionParallaxViewerOffsetYInput ||
+    !projectionParallaxViewerDistanceInput ||
     !projectionViewportMarginInput ||
     !projectionParallaxVanishingPointXInput ||
     !projectionParallaxVanishingPointYInput ||
     !settings
   ) return;
 
-  if (!force && projectionSettingsDirty) {
+  const activeElement = document.activeElement;
+  const projectionFormHasFocus = Boolean(activeElement && projectionSettingsForm.contains(activeElement));
+  if (!force && (projectionSettingsDirty || projectionFormHasFocus || Date.now() < projectionSettingsEditingUntil)) {
     setProjectionSettingsState("編集中");
     return;
   }
@@ -518,15 +688,51 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   const rotateIntervalMs = settings.projectionRotateIntervalMs || 18000;
   const effectAutoEnabled = settings.projectionEffectAutoEnabled === true;
   const effectIntervalMs = settings.projectionEffectIntervalMs || 300000;
+  const tanzakuFontId = PROJECTION_TANZAKU_FONT_LABELS[settings.projectionTanzakuFontId]
+    ? settings.projectionTanzakuFontId
+    : "mincho";
+  const tanzakuFontLabel = PROJECTION_TANZAKU_FONT_LABELS[tanzakuFontId];
+  const colorEmojiFontEnabled = settings.projectionColorEmojiFontEnabled === true;
   const milkyWayGain = Number(settings.projectionMilkyWayGain || 1.75);
+  const milkyWayTwinkle = Number(settings.projectionMilkyWayTwinkle ?? 1);
+  const milkyWaySparkle = Number(settings.projectionMilkyWaySparkle ?? 1);
+  const milkyWaySpeed = Number(settings.projectionMilkyWaySpeed ?? 1);
+  const milkyWayParticleCount = Number(settings.projectionMilkyWayParticleCount ?? 340);
+  const milkyWaySparkleRatio = Number(settings.projectionMilkyWaySparkleRatio ?? 0.045);
+  const milkyWaySparklePeriodVariance = Number(settings.projectionMilkyWaySparklePeriodVariance ?? 1);
+  const milkyWaySparkleIntensityVariance = Number(settings.projectionMilkyWaySparkleIntensityVariance ?? 1);
+  const milkyWaySparklePeriodSeconds = Number(settings.projectionMilkyWaySparklePeriodSeconds ?? 2.2);
+  const milkyWaySparkleDutyRatio = Number(settings.projectionMilkyWaySparkleDutyRatio ?? 0.16);
+  const milkyWaySeed = String(settings.projectionMilkyWaySeed || "tanabata-milky-way");
+  const tanabataStarResponseIntensity = Number(settings.projectionTanabataStarResponseIntensity ?? 1);
+  const tanabataStarResponsePhaseDeg = Number(settings.projectionTanabataStarResponsePhaseDeg ?? 166);
+  const tanabataStarResponsePeriodSeconds = Number(settings.projectionTanabataStarResponsePeriodSeconds ?? 35);
+  const tanzakuSwayStrength = Number(settings.projectionTanzakuSwayStrength ?? 1);
+  const windGustStrength = Number(settings.projectionWindGustStrength ?? 1);
+  const windGustCycleMs = Number(settings.projectionWindGustCycleMs ?? 30000);
+  const windGustCycleJitterSeconds = Number(settings.projectionWindGustCycleJitterSeconds ?? 0);
   const cloudCount = Number(settings.projectionCloudCount ?? 3);
-  const cloudOriginX = Number(settings.projectionCloudOriginX ?? -32);
-  const cloudOriginY = Number(settings.projectionCloudOriginY ?? 12);
+  const cloudOriginY = Number(settings.projectionCloudOriginY ?? 0);
   const cloudSeed = String(settings.projectionCloudSeed || "tanabata-clouds");
   const experimentalParallaxEnabled = settings.projectionExperimentalParallaxEnabled === true;
   const parallaxMarkerEnabled = settings.projectionParallaxMarkerEnabled === true;
+  const parallaxMotionMode = ["display", "mapping", "camera", "camera-display"].includes(settings.projectionParallaxMotionMode)
+    ? settings.projectionParallaxMotionMode
+    : "mapping";
+  const parallaxMotionModeLabels = {
+    display: "ディスプレイ",
+    camera: "実カメラ",
+    "camera-display": "実カメラ 上下",
+    mapping: "壁投影"
+  };
+  const parallaxMotionModeLabel = parallaxMotionModeLabels[parallaxMotionMode];
   const parallaxStrength = Number(settings.projectionParallaxStrength ?? 1);
   const parallaxPopoutStrength = Number(settings.projectionParallaxPopoutStrength ?? 0);
+  const parallaxDepthMultiplier = Number(settings.projectionParallaxDepthMultiplier ?? 1);
+  const parallaxDepthReferenceIndex = Number(settings.projectionParallaxDepthReferenceIndex ?? 0);
+  const parallaxViewerOffsetX = Number(settings.projectionParallaxViewerOffsetX ?? 0);
+  const parallaxViewerOffsetY = Number(settings.projectionParallaxViewerOffsetY ?? 0);
+  const parallaxViewerDistance = Number(settings.projectionParallaxViewerDistance ?? 2.5);
   const viewportMargin = Number(settings.projectionViewportMargin ?? 0);
   const parallaxVanishingPointX = Number(settings.projectionParallaxVanishingPointX ?? 0);
   const parallaxVanishingPointY = Number(settings.projectionParallaxVanishingPointY ?? 0);
@@ -540,20 +746,62 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   const effectMax = settings.projectionEffectIntervalMsMax || 1800000;
   const milkyWayGainMin = settings.projectionMilkyWayGainMin || 0.5;
   const milkyWayGainMax = settings.projectionMilkyWayGainMax || 4;
+  const milkyWayTwinkleMin = settings.projectionMilkyWayTwinkleMin ?? 0;
+  const milkyWayTwinkleMax = settings.projectionMilkyWayTwinkleMax ?? 2.5;
+  const milkyWaySparkleMin = settings.projectionMilkyWaySparkleMin ?? 0;
+  const milkyWaySparkleMax = settings.projectionMilkyWaySparkleMax ?? 2.5;
+  const milkyWaySpeedMin = settings.projectionMilkyWaySpeedMin ?? 0.2;
+  const milkyWaySpeedMax = settings.projectionMilkyWaySpeedMax ?? 2.5;
+  const milkyWayParticleCountMin = settings.projectionMilkyWayParticleCountMin ?? 80;
+  const milkyWayParticleCountMax = settings.projectionMilkyWayParticleCountMax ?? 720;
+  const milkyWaySparkleRatioMin = settings.projectionMilkyWaySparkleRatioMin ?? 0;
+  const milkyWaySparkleRatioMax = settings.projectionMilkyWaySparkleRatioMax ?? 0.25;
+  const milkyWaySparklePeriodVarianceMin = settings.projectionMilkyWaySparklePeriodVarianceMin ?? 0;
+  const milkyWaySparklePeriodVarianceMax = settings.projectionMilkyWaySparklePeriodVarianceMax ?? 2.5;
+  const milkyWaySparkleIntensityVarianceMin = settings.projectionMilkyWaySparkleIntensityVarianceMin ?? 0;
+  const milkyWaySparkleIntensityVarianceMax = settings.projectionMilkyWaySparkleIntensityVarianceMax ?? 2.5;
+  const milkyWaySparklePeriodSecondsMin = settings.projectionMilkyWaySparklePeriodSecondsMin ?? 0.5;
+  const milkyWaySparklePeriodSecondsMax = settings.projectionMilkyWaySparklePeriodSecondsMax ?? 8;
+  const milkyWaySparkleDutyRatioMin = settings.projectionMilkyWaySparkleDutyRatioMin ?? 0.03;
+  const milkyWaySparkleDutyRatioMax = settings.projectionMilkyWaySparkleDutyRatioMax ?? 0.8;
+  const tanabataStarResponseIntensityMin = settings.projectionTanabataStarResponseIntensityMin ?? 0;
+  const tanabataStarResponseIntensityMax = settings.projectionTanabataStarResponseIntensityMax ?? 3;
+  const tanabataStarResponsePhaseDegMin = settings.projectionTanabataStarResponsePhaseDegMin ?? 0;
+  const tanabataStarResponsePhaseDegMax = settings.projectionTanabataStarResponsePhaseDegMax ?? 360;
+  const tanabataStarResponsePeriodSecondsMin = settings.projectionTanabataStarResponsePeriodSecondsMin ?? 8;
+  const tanabataStarResponsePeriodSecondsMax = settings.projectionTanabataStarResponsePeriodSecondsMax ?? 90;
+  const tanzakuSwayStrengthMin = settings.projectionTanzakuSwayStrengthMin ?? 0;
+  const tanzakuSwayStrengthMax = settings.projectionTanzakuSwayStrengthMax ?? 3;
+  const windGustStrengthMin = settings.projectionWindGustStrengthMin ?? 0;
+  const windGustStrengthMax = settings.projectionWindGustStrengthMax ?? 3;
+  const windGustCycleSecondsMin = settings.projectionWindGustCycleSecondsMin ?? 3;
+  const windGustCycleSecondsMax = settings.projectionWindGustCycleSecondsMax ?? 60;
+  const windGustCycleJitterSecondsMin = settings.projectionWindGustCycleJitterSecondsMin ?? 0;
+  const windGustCycleJitterSecondsMax = settings.projectionWindGustCycleJitterSecondsMax ?? 60;
   const cloudCountMin = settings.projectionCloudCountMin ?? 0;
   const cloudCountMax = settings.projectionCloudCountMax ?? 12;
-  const cloudOriginXMin = settings.projectionCloudOriginXMin ?? -80;
-  const cloudOriginXMax = settings.projectionCloudOriginXMax ?? 120;
-  const cloudOriginYMin = settings.projectionCloudOriginYMin ?? -20;
-  const cloudOriginYMax = settings.projectionCloudOriginYMax ?? 100;
+  const cloudOriginYMin = settings.projectionCloudOriginYMin ?? -1;
+  const cloudOriginYMax = settings.projectionCloudOriginYMax ?? 1;
   const parallaxStrengthMin = settings.projectionParallaxStrengthMin ?? 0;
   const parallaxStrengthMax = settings.projectionParallaxStrengthMax ?? 3;
   const parallaxPopoutStrengthMin = settings.projectionParallaxPopoutStrengthMin ?? 0;
   const parallaxPopoutStrengthMax = settings.projectionParallaxPopoutStrengthMax ?? 3;
+  const parallaxDepthMultiplierMin = settings.projectionParallaxDepthMultiplierMin ?? 0;
+  const parallaxDepthMultiplierMax = settings.projectionParallaxDepthMultiplierMax ?? 3;
+  const parallaxDepthReferenceIndexMin = settings.projectionParallaxDepthReferenceIndexMin ?? 0;
+  const parallaxDepthReferenceIndexMax = settings.projectionParallaxDepthReferenceIndexMax ?? slotMax;
+  const parallaxViewerOffsetXMin = settings.projectionParallaxViewerOffsetXMin ?? -2;
+  const parallaxViewerOffsetXMax = settings.projectionParallaxViewerOffsetXMax ?? 2;
+  const parallaxViewerOffsetYMin = settings.projectionParallaxViewerOffsetYMin ?? -2;
+  const parallaxViewerOffsetYMax = settings.projectionParallaxViewerOffsetYMax ?? 2;
+  const parallaxViewerDistanceMin = settings.projectionParallaxViewerDistanceMin ?? 0.5;
+  const parallaxViewerDistanceMax = settings.projectionParallaxViewerDistanceMax ?? 8;
   const viewportMarginMin = settings.projectionViewportMarginMin ?? 0;
   const viewportMarginMax = settings.projectionViewportMarginMax ?? 24;
-  const parallaxVanishingPointMin = settings.projectionParallaxVanishingPointMin ?? -1;
-  const parallaxVanishingPointMax = settings.projectionParallaxVanishingPointMax ?? 1;
+  const parallaxVanishingPointXMin = settings.projectionParallaxVanishingPointXMin ?? settings.projectionParallaxVanishingPointMin ?? -1;
+  const parallaxVanishingPointXMax = settings.projectionParallaxVanishingPointXMax ?? settings.projectionParallaxVanishingPointMax ?? 1;
+  const parallaxVanishingPointYMin = settings.projectionParallaxVanishingPointYMin ?? settings.projectionParallaxVanishingPointMin ?? -1;
+  const parallaxVanishingPointYMax = settings.projectionParallaxVanishingPointYMax ?? 5;
   renderProjectionPresets(settings.projectionPresets || []);
 
   projectionTypingIntervalInput.value = String(typingIntervalMs);
@@ -566,34 +814,98 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   projectionEffectIntervalInput.value = String(effectIntervalMs);
   projectionEffectIntervalInput.min = String(effectMin);
   projectionEffectIntervalInput.max = String(effectMax);
+  projectionTanzakuFontIdInput.value = tanzakuFontId;
+  projectionColorEmojiFontEnabledInput.checked = colorEmojiFontEnabled;
   projectionMilkyWayGainInput.value = String(milkyWayGain);
   projectionMilkyWayGainInput.min = String(milkyWayGainMin);
   projectionMilkyWayGainInput.max = String(milkyWayGainMax);
+  projectionMilkyWayTwinkleInput.value = String(milkyWayTwinkle);
+  projectionMilkyWayTwinkleInput.min = String(milkyWayTwinkleMin);
+  projectionMilkyWayTwinkleInput.max = String(milkyWayTwinkleMax);
+  projectionMilkyWaySparkleInput.value = String(milkyWaySparkle);
+  projectionMilkyWaySparkleInput.min = String(milkyWaySparkleMin);
+  projectionMilkyWaySparkleInput.max = String(milkyWaySparkleMax);
+  projectionMilkyWaySpeedInput.value = String(milkyWaySpeed);
+  projectionMilkyWaySpeedInput.min = String(milkyWaySpeedMin);
+  projectionMilkyWaySpeedInput.max = String(milkyWaySpeedMax);
+  projectionMilkyWayParticleCountInput.value = String(milkyWayParticleCount);
+  projectionMilkyWayParticleCountInput.min = String(milkyWayParticleCountMin);
+  projectionMilkyWayParticleCountInput.max = String(milkyWayParticleCountMax);
+  projectionMilkyWaySparkleRatioInput.value = String(milkyWaySparkleRatio);
+  projectionMilkyWaySparkleRatioInput.min = String(milkyWaySparkleRatioMin);
+  projectionMilkyWaySparkleRatioInput.max = String(milkyWaySparkleRatioMax);
+  projectionMilkyWaySparklePeriodVarianceInput.value = String(milkyWaySparklePeriodVariance);
+  projectionMilkyWaySparklePeriodVarianceInput.min = String(milkyWaySparklePeriodVarianceMin);
+  projectionMilkyWaySparklePeriodVarianceInput.max = String(milkyWaySparklePeriodVarianceMax);
+  projectionMilkyWaySparkleIntensityVarianceInput.value = String(milkyWaySparkleIntensityVariance);
+  projectionMilkyWaySparkleIntensityVarianceInput.min = String(milkyWaySparkleIntensityVarianceMin);
+  projectionMilkyWaySparkleIntensityVarianceInput.max = String(milkyWaySparkleIntensityVarianceMax);
+  projectionMilkyWaySparklePeriodSecondsInput.value = String(milkyWaySparklePeriodSeconds);
+  projectionMilkyWaySparklePeriodSecondsInput.min = String(milkyWaySparklePeriodSecondsMin);
+  projectionMilkyWaySparklePeriodSecondsInput.max = String(milkyWaySparklePeriodSecondsMax);
+  projectionMilkyWaySparkleDutyRatioInput.value = String(milkyWaySparkleDutyRatio);
+  projectionMilkyWaySparkleDutyRatioInput.min = String(milkyWaySparkleDutyRatioMin);
+  projectionMilkyWaySparkleDutyRatioInput.max = String(milkyWaySparkleDutyRatioMax);
+  projectionMilkyWaySeedInput.value = milkyWaySeed;
+  projectionTanabataStarResponseIntensityInput.value = String(tanabataStarResponseIntensity);
+  projectionTanabataStarResponseIntensityInput.min = String(tanabataStarResponseIntensityMin);
+  projectionTanabataStarResponseIntensityInput.max = String(tanabataStarResponseIntensityMax);
+  projectionTanabataStarResponsePhaseDegInput.value = String(tanabataStarResponsePhaseDeg);
+  projectionTanabataStarResponsePhaseDegInput.min = String(tanabataStarResponsePhaseDegMin);
+  projectionTanabataStarResponsePhaseDegInput.max = String(tanabataStarResponsePhaseDegMax);
+  projectionTanabataStarResponsePeriodSecondsInput.value = String(tanabataStarResponsePeriodSeconds);
+  projectionTanabataStarResponsePeriodSecondsInput.min = String(tanabataStarResponsePeriodSecondsMin);
+  projectionTanabataStarResponsePeriodSecondsInput.max = String(tanabataStarResponsePeriodSecondsMax);
+  projectionTanzakuSwayStrengthInput.value = String(tanzakuSwayStrength);
+  projectionTanzakuSwayStrengthInput.min = String(tanzakuSwayStrengthMin);
+  projectionTanzakuSwayStrengthInput.max = String(tanzakuSwayStrengthMax);
+  projectionWindGustStrengthInput.value = String(windGustStrength);
+  projectionWindGustStrengthInput.min = String(windGustStrengthMin);
+  projectionWindGustStrengthInput.max = String(windGustStrengthMax);
+  projectionWindGustCycleSecondsInput.value = String(windGustCycleMs / 1000);
+  projectionWindGustCycleSecondsInput.min = String(windGustCycleSecondsMin);
+  projectionWindGustCycleSecondsInput.max = String(windGustCycleSecondsMax);
+  projectionWindGustCycleJitterSecondsInput.value = String(windGustCycleJitterSeconds);
+  projectionWindGustCycleJitterSecondsInput.min = String(windGustCycleJitterSecondsMin);
+  projectionWindGustCycleJitterSecondsInput.max = String(windGustCycleJitterSecondsMax);
   projectionCloudCountInput.value = String(cloudCount);
   projectionCloudCountInput.min = String(cloudCountMin);
   projectionCloudCountInput.max = String(cloudCountMax);
-  projectionCloudOriginXInput.value = String(cloudOriginX);
-  projectionCloudOriginXInput.min = String(cloudOriginXMin);
-  projectionCloudOriginXInput.max = String(cloudOriginXMax);
   projectionCloudOriginYInput.value = String(cloudOriginY);
   projectionCloudOriginYInput.min = String(cloudOriginYMin);
   projectionCloudOriginYInput.max = String(cloudOriginYMax);
   projectionCloudSeedInput.value = cloudSeed;
   projectionExperimentalParallaxInput.checked = experimentalParallaxEnabled;
   projectionParallaxMarkerInput.checked = parallaxMarkerEnabled;
+  projectionParallaxMotionModeInput.value = parallaxMotionMode;
   projectionParallaxStrengthInput.value = String(parallaxStrength);
   projectionParallaxStrengthInput.min = String(parallaxStrengthMin);
   projectionParallaxStrengthInput.max = String(parallaxStrengthMax);
   projectionParallaxPopoutStrengthInput.value = String(parallaxPopoutStrength);
   projectionParallaxPopoutStrengthInput.min = String(parallaxPopoutStrengthMin);
   projectionParallaxPopoutStrengthInput.max = String(parallaxPopoutStrengthMax);
+  projectionParallaxDepthMultiplierInput.value = String(parallaxDepthMultiplier);
+  projectionParallaxDepthMultiplierInput.min = String(parallaxDepthMultiplierMin);
+  projectionParallaxDepthMultiplierInput.max = String(parallaxDepthMultiplierMax);
+  projectionParallaxDepthReferenceIndexInput.value = String(Math.min(parallaxDepthReferenceIndex, slotCount));
+  projectionParallaxDepthReferenceIndexInput.min = String(parallaxDepthReferenceIndexMin);
+  projectionParallaxDepthReferenceIndexInput.max = String(Math.min(parallaxDepthReferenceIndexMax, slotCount));
+  projectionParallaxViewerOffsetXInput.value = String(parallaxViewerOffsetX);
+  projectionParallaxViewerOffsetXInput.min = String(parallaxViewerOffsetXMin);
+  projectionParallaxViewerOffsetXInput.max = String(parallaxViewerOffsetXMax);
+  projectionParallaxViewerOffsetYInput.value = String(parallaxViewerOffsetY);
+  projectionParallaxViewerOffsetYInput.min = String(parallaxViewerOffsetYMin);
+  projectionParallaxViewerOffsetYInput.max = String(parallaxViewerOffsetYMax);
+  projectionParallaxViewerDistanceInput.value = String(parallaxViewerDistance);
+  projectionParallaxViewerDistanceInput.min = String(parallaxViewerDistanceMin);
+  projectionParallaxViewerDistanceInput.max = String(parallaxViewerDistanceMax);
   projectionViewportMarginInput.value = String(viewportMargin);
   projectionViewportMarginInput.min = String(viewportMarginMin);
   projectionViewportMarginInput.max = String(viewportMarginMax);
-  projectionParallaxVanishingPointXInput.dataset.serverMin = String(parallaxVanishingPointMin);
-  projectionParallaxVanishingPointXInput.dataset.serverMax = String(parallaxVanishingPointMax);
-  projectionParallaxVanishingPointYInput.dataset.serverMin = String(parallaxVanishingPointMin);
-  projectionParallaxVanishingPointYInput.dataset.serverMax = String(parallaxVanishingPointMax);
+  projectionParallaxVanishingPointXInput.dataset.serverMin = String(parallaxVanishingPointXMin);
+  projectionParallaxVanishingPointXInput.dataset.serverMax = String(parallaxVanishingPointXMax);
+  projectionParallaxVanishingPointYInput.dataset.serverMin = String(parallaxVanishingPointYMin);
+  projectionParallaxVanishingPointYInput.dataset.serverMax = String(parallaxVanishingPointYMax);
   syncProjectionVanishingPointRanges();
   projectionParallaxVanishingPointXInput.value = String(clampNumber(
     parallaxVanishingPointX,
@@ -616,7 +928,8 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   projectionDisplayCountInput.max = String(Math.min(displayMax, slotCount));
   projectionMoveCountInput.value = String(moveCount);
   projectionMoveCountInput.max = String(displayCount);
-  setProjectionSettingsState(`文字 ${typingIntervalMs}ms / 間隔 ${rotateIntervalMs}ms / 自動 ${effectAutoEnabled ? "ON" : "OFF"} / イベント ${effectIntervalMs}ms / 天の川 ${milkyWayGain} / 雲 ${cloudCount} @ ${cloudOriginX},${cloudOriginY} / 視差 ${experimentalParallaxEnabled ? "ON" : "OFF"} / マーカー ${parallaxMarkerEnabled ? "ON" : "OFF"} / 強度 ${parallaxStrength} / 飛び出し ${parallaxPopoutStrength} / 余白 ${viewportMargin} / 消失点 ${parallaxVanishingPointX},${parallaxVanishingPointY} / スロット ${slotCount} / 表示 ${displayCount} / 移動 ${moveCount}`);
+  syncProjectionCountInputs();
+  setProjectionSettingsState(`フォント ${tanzakuFontLabel} / 絵文字 ${colorEmojiFontEnabled ? "ON" : "OFF"} / 文字 ${typingIntervalMs}ms / 間隔 ${rotateIntervalMs}ms / 自動 ${effectAutoEnabled ? "ON" : "OFF"} / イベント ${effectIntervalMs}ms / 風 ${tanzakuSwayStrength},${windGustStrength},${formatSliderValue(windGustCycleMs / 1000)}秒+${windGustCycleJitterSeconds}秒 / 天の川 ${milkyWayGain},${milkyWayTwinkle},${milkyWaySparkle},${milkyWaySpeed},${milkyWayParticleCount},${milkyWaySparkleRatio},${milkyWaySparklePeriodVariance},${milkyWaySparkleIntensityVariance},${milkyWaySparklePeriodSeconds}秒,${Math.round(milkyWaySparkleDutyRatio * 100)}% / 星呼応 ${tanabataStarResponseIntensity},${tanabataStarResponsePhaseDeg},${tanabataStarResponsePeriodSeconds} / 雲 ${cloudCount} / 高さ ${cloudOriginY} / 視差 ${experimentalParallaxEnabled ? "ON" : "OFF"} / マーカー ${parallaxMarkerEnabled ? "ON" : "OFF"} / 笹舟 ${parallaxMotionModeLabel} / 左右 ${parallaxStrength} / 前後/上下 ${parallaxPopoutStrength} / 奥行 ${parallaxDepthMultiplier},${parallaxDepthReferenceIndex || "中央"} / 鑑賞 ${parallaxViewerOffsetX},${parallaxViewerOffsetY},${parallaxViewerDistance} / 余白 ${viewportMargin} / 消失点 ${parallaxVanishingPointX},${parallaxVanishingPointY} / スロット ${slotCount} / 表示 ${displayCount} / 入替 ${moveCount}`);
 }
 
 function setLiveState(text) {
@@ -709,10 +1022,49 @@ function syncProjectionCountInputs() {
   if (Number(projectionMoveCountInput.value) > displayCount) {
     projectionMoveCountInput.value = String(displayCount);
   }
+  updateProjectionStepperButtons();
+}
+
+function updateProjectionStepperButtons() {
+  document.querySelectorAll("[data-stepper-target][data-stepper-delta]").forEach((button) => {
+    const input = document.getElementById(button.dataset.stepperTarget || "");
+    if (!input) {
+      button.disabled = true;
+      return;
+    }
+    const value = Number(input.value);
+    const min = Number(input.min);
+    const max = Number(input.max);
+    const delta = Number(button.dataset.stepperDelta);
+    if (!Number.isFinite(value) || !Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(delta)) {
+      button.disabled = true;
+      return;
+    }
+    button.disabled = delta < 0 ? value <= min : value >= max;
+  });
+}
+
+function stepProjectionCountInput(targetId, delta) {
+  const input = document.getElementById(targetId || "");
+  if (!input) return;
+
+  const step = Number(input.step) || 1;
+  const min = Number(input.min) || 1;
+  const max = Number(input.max) || min;
+  const current = Number(input.value) || min;
+  const nextValue = Math.round(clampNumber(current + (delta * step), min, max, current));
+  if (Number(input.value) === nextValue) {
+    updateProjectionStepperButtons();
+    return;
+  }
+  input.value = String(nextValue);
+  syncProjectionCountInputs();
+  markProjectionSettingsDirty();
 }
 
 function markProjectionSettingsDirty() {
   projectionSettingsDirty = true;
+  projectionSettingsEditingUntil = Date.now() + 1800;
   syncProjectionSliderOutputs();
   setProjectionSettingsState("編集中");
 }
@@ -721,8 +1073,14 @@ function isProjectionParallaxPreviewInput(target) {
   return [
     projectionExperimentalParallaxInput,
     projectionParallaxMarkerInput,
+    projectionParallaxMotionModeInput,
     projectionParallaxStrengthInput,
     projectionParallaxPopoutStrengthInput,
+    projectionParallaxDepthMultiplierInput,
+    projectionParallaxDepthReferenceIndexInput,
+    projectionParallaxViewerOffsetXInput,
+    projectionParallaxViewerOffsetYInput,
+    projectionParallaxViewerDistanceInput,
     projectionViewportMarginInput,
     projectionParallaxVanishingPointXInput,
     projectionParallaxVanishingPointYInput
@@ -733,8 +1091,14 @@ function currentProjectionParallaxPayload() {
   return {
     projectionExperimentalParallaxEnabled: projectionExperimentalParallaxInput.checked,
     projectionParallaxMarkerEnabled: projectionParallaxMarkerInput.checked,
+    projectionParallaxMotionMode: projectionParallaxMotionModeInput.value,
     projectionParallaxStrength: Number(projectionParallaxStrengthInput.value),
     projectionParallaxPopoutStrength: Number(projectionParallaxPopoutStrengthInput.value),
+    projectionParallaxDepthMultiplier: Number(projectionParallaxDepthMultiplierInput.value),
+    projectionParallaxDepthReferenceIndex: Number(projectionParallaxDepthReferenceIndexInput.value),
+    projectionParallaxViewerOffsetX: Number(projectionParallaxViewerOffsetXInput.value),
+    projectionParallaxViewerOffsetY: Number(projectionParallaxViewerOffsetYInput.value),
+    projectionParallaxViewerDistance: Number(projectionParallaxViewerDistanceInput.value),
     projectionViewportMargin: Number(projectionViewportMarginInput.value),
     projectionParallaxVanishingPointX: Number(projectionParallaxVanishingPointXInput.value),
     projectionParallaxVanishingPointY: Number(projectionParallaxVanishingPointYInput.value)
@@ -742,6 +1106,7 @@ function currentProjectionParallaxPayload() {
 }
 
 function scheduleProjectionParallaxPreview() {
+  projectionSettingsEditingUntil = Date.now() + 1800;
   syncProjectionSliderOutputs();
   setProjectionSettingsState(projectionSettingsDirty ? "編集中 / 視差プレビュー反映待ち" : "視差プレビュー反映待ち");
   if (projectionParallaxPreviewTimer) {
@@ -777,18 +1142,42 @@ function currentProjectionSettingsPayload() {
     projectionRotateIntervalMs: Number(projectionRotateIntervalInput.value),
     projectionEffectAutoEnabled: projectionEffectAutoInput.checked,
     projectionEffectIntervalMs: Number(projectionEffectIntervalInput.value),
+    projectionTanzakuFontId: projectionTanzakuFontIdInput.value,
+    projectionColorEmojiFontEnabled: projectionColorEmojiFontEnabledInput.checked,
     projectionSlotCount: Number(projectionSlotCountInput.value),
     projectionDisplayCount: Number(projectionDisplayCountInput.value),
     projectionMoveCount: Number(projectionMoveCountInput.value),
     projectionMilkyWayGain: Number(projectionMilkyWayGainInput.value),
+    projectionMilkyWayTwinkle: Number(projectionMilkyWayTwinkleInput.value),
+    projectionMilkyWaySparkle: Number(projectionMilkyWaySparkleInput.value),
+    projectionMilkyWaySpeed: Number(projectionMilkyWaySpeedInput.value),
+    projectionMilkyWayParticleCount: Number(projectionMilkyWayParticleCountInput.value),
+    projectionMilkyWaySparkleRatio: Number(projectionMilkyWaySparkleRatioInput.value),
+    projectionMilkyWaySparklePeriodVariance: Number(projectionMilkyWaySparklePeriodVarianceInput.value),
+    projectionMilkyWaySparkleIntensityVariance: Number(projectionMilkyWaySparkleIntensityVarianceInput.value),
+    projectionMilkyWaySparklePeriodSeconds: Number(projectionMilkyWaySparklePeriodSecondsInput.value),
+    projectionMilkyWaySparkleDutyRatio: Number(projectionMilkyWaySparkleDutyRatioInput.value),
+    projectionMilkyWaySeed: projectionMilkyWaySeedInput.value.trim(),
+    projectionTanabataStarResponseIntensity: Number(projectionTanabataStarResponseIntensityInput.value),
+    projectionTanabataStarResponsePhaseDeg: Number(projectionTanabataStarResponsePhaseDegInput.value),
+    projectionTanabataStarResponsePeriodSeconds: Number(projectionTanabataStarResponsePeriodSecondsInput.value),
+    projectionTanzakuSwayStrength: Number(projectionTanzakuSwayStrengthInput.value),
+    projectionWindGustStrength: Number(projectionWindGustStrengthInput.value),
+    projectionWindGustCycleMs: Math.round(Number(projectionWindGustCycleSecondsInput.value) * 1000),
+    projectionWindGustCycleJitterSeconds: Number(projectionWindGustCycleJitterSecondsInput.value),
     projectionCloudCount: Number(projectionCloudCountInput.value),
-    projectionCloudOriginX: Number(projectionCloudOriginXInput.value),
     projectionCloudOriginY: Number(projectionCloudOriginYInput.value),
     projectionCloudSeed: projectionCloudSeedInput.value.trim(),
     projectionExperimentalParallaxEnabled: projectionExperimentalParallaxInput.checked,
     projectionParallaxMarkerEnabled: projectionParallaxMarkerInput.checked,
+    projectionParallaxMotionMode: projectionParallaxMotionModeInput.value,
     projectionParallaxStrength: Number(projectionParallaxStrengthInput.value),
     projectionParallaxPopoutStrength: Number(projectionParallaxPopoutStrengthInput.value),
+    projectionParallaxDepthMultiplier: Number(projectionParallaxDepthMultiplierInput.value),
+    projectionParallaxDepthReferenceIndex: Number(projectionParallaxDepthReferenceIndexInput.value),
+    projectionParallaxViewerOffsetX: Number(projectionParallaxViewerOffsetXInput.value),
+    projectionParallaxViewerOffsetY: Number(projectionParallaxViewerOffsetYInput.value),
+    projectionParallaxViewerDistance: Number(projectionParallaxViewerDistanceInput.value),
     projectionViewportMargin: Number(projectionViewportMarginInput.value),
     projectionParallaxVanishingPointX: Number(projectionParallaxVanishingPointXInput.value),
     projectionParallaxVanishingPointY: Number(projectionParallaxVanishingPointYInput.value)
@@ -815,19 +1204,44 @@ if (
   projectionDisplayCountInput &&
   projectionSlotCountInput &&
   projectionMoveCountInput &&
+  projectionTanzakuFontIdInput &&
+  projectionColorEmojiFontEnabledInput &&
   projectionMilkyWayGainInput &&
+  projectionMilkyWayTwinkleInput &&
+  projectionMilkyWaySparkleInput &&
+  projectionMilkyWaySpeedInput &&
+  projectionMilkyWayParticleCountInput &&
+  projectionMilkyWaySparkleRatioInput &&
+  projectionMilkyWaySparklePeriodVarianceInput &&
+  projectionMilkyWaySparkleIntensityVarianceInput &&
+  projectionMilkyWaySparklePeriodSecondsInput &&
+  projectionMilkyWaySparkleDutyRatioInput &&
+  projectionMilkyWaySeedInput &&
+  projectionTanabataStarResponseIntensityInput &&
+  projectionTanabataStarResponsePhaseDegInput &&
+  projectionTanabataStarResponsePeriodSecondsInput &&
   projectionCloudCountInput &&
-  projectionCloudOriginXInput &&
   projectionCloudOriginYInput &&
   projectionCloudSeedInput &&
   projectionExperimentalParallaxInput &&
   projectionParallaxMarkerInput &&
+  projectionParallaxMotionModeInput &&
   projectionParallaxStrengthInput &&
   projectionParallaxPopoutStrengthInput &&
+  projectionParallaxDepthMultiplierInput &&
+  projectionParallaxDepthReferenceIndexInput &&
+  projectionParallaxViewerOffsetXInput &&
+  projectionParallaxViewerOffsetYInput &&
+  projectionParallaxViewerDistanceInput &&
   projectionViewportMarginInput &&
   projectionParallaxVanishingPointXInput &&
   projectionParallaxVanishingPointYInput
 ) {
+  projectionSettingsForm.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-stepper-target][data-stepper-delta]");
+    if (!button || !projectionSettingsForm.contains(button)) return;
+    stepProjectionCountInput(button.dataset.stepperTarget, Number(button.dataset.stepperDelta));
+  });
   projectionSettingsForm.addEventListener("input", (event) => {
     if (isProjectionParallaxPreviewInput(event.target)) {
       scheduleProjectionParallaxPreview();
@@ -841,6 +1255,14 @@ if (
       return;
     }
     markProjectionSettingsDirty();
+  });
+  projectionSettingsForm.addEventListener("pointerdown", (event) => {
+    if (!event.target.closest("input, select, textarea")) return;
+    projectionSettingsEditingUntil = Date.now() + 1800;
+  });
+  projectionSettingsForm.addEventListener("focusin", (event) => {
+    if (!event.target.closest("input, select, textarea")) return;
+    projectionSettingsEditingUntil = Date.now() + 1800;
   });
 
   projectionSettingsForm.addEventListener("submit", async (event) => {

@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>七夕願い事 投影</title>
-    <link rel="stylesheet" href="/styles.css?v=projection-appearance-20260703-2">
-    <script src="/projection.js?v=projection-appearance-20260703-2" defer></script>
+    <link rel="stylesheet" href="/styles.css?v=projection-admin-fonts-20260704-45">
+    <script src="/projection.js?v=projection-admin-fonts-20260704-45" defer></script>
   </head>
   <body class="projection-page">
     <main class="projection-stage" aria-label="七夕祭り投影画面">
@@ -17,6 +17,7 @@
         <span class="meteor meteor-2"></span>
         <span class="meteor meteor-3"></span>
       </div>
+      <div class="moon-visual" aria-hidden="true"></div>
       <div id="cloud-layer" class="cloud-layer" aria-hidden="true"></div>
       <div id="projection-plane-frame" class="projection-plane-frame" aria-hidden="true"></div>
       <div id="vanishing-point-marker" class="vanishing-point-marker" aria-hidden="true" hidden></div>
@@ -37,6 +38,10 @@
             <span>笹舟サイズ <output id="oracle-boat-size-value" for="oracle-boat-size">100%</output></span>
             <input id="oracle-boat-size" type="range" min="70" max="160" step="5">
           </label>
+          <label class="projection-layout-control" for="oracle-boat-offset">
+            <span>笹舟下端余白 <output id="oracle-boat-offset-value" for="oracle-boat-offset">0px</output></span>
+            <input id="oracle-boat-offset" type="range" min="-60" max="180" step="5">
+          </label>
         </div>
         <div class="projection-layout-menu-actions">
           <button id="layout-save-button" type="button">配置と表示を保存</button>
@@ -45,10 +50,16 @@
       </div>
       <div class="bamboo bamboo-left" aria-hidden="true"></div>
       <div class="bamboo bamboo-right" aria-hidden="true"></div>
+      <svg id="parallax-perspective-box" class="parallax-perspective-box" aria-hidden="true" hidden></svg>
       <div class="parallax-viewer-oracle" aria-hidden="true">
         <span class="parallax-oracle-star parallax-oracle-star--vega"></span>
-        <span class="parallax-oracle-boat">
-          <span class="parallax-oracle-boat-glow"></span>
+        <span class="parallax-oracle-zero"></span>
+        <span class="parallax-oracle-camera">
+          <svg class="parallax-oracle-boat" viewBox="0 0 72 28" focusable="false" aria-hidden="true">
+            <path class="parallax-oracle-boat-hull" d="M4 8 L68 8 L56 23 L16 23 Z"></path>
+            <path class="parallax-oracle-boat-fold" d="M36 8 L30 23 M36 8 L44 23"></path>
+            <path class="parallax-oracle-boat-shine" d="M48 12 L61 12"></path>
+          </svg>
         </span>
         <span class="parallax-oracle-star parallax-oracle-star--altair"></span>
       </div>

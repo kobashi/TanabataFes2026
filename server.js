@@ -22,21 +22,65 @@ const MIN_PROJECTION_EFFECT_INTERVAL_MS = 60000;
 const MAX_PROJECTION_EFFECT_INTERVAL_MS = 1800000;
 const MIN_PROJECTION_MILKY_WAY_GAIN = 0.5;
 const MAX_PROJECTION_MILKY_WAY_GAIN = 4;
+const MIN_PROJECTION_MILKY_WAY_TWINKLE = 0;
+const MAX_PROJECTION_MILKY_WAY_TWINKLE = 2.5;
+const MIN_PROJECTION_MILKY_WAY_SPARKLE = 0;
+const MAX_PROJECTION_MILKY_WAY_SPARKLE = 2.5;
+const MIN_PROJECTION_MILKY_WAY_SPEED = 0.2;
+const MAX_PROJECTION_MILKY_WAY_SPEED = 2.5;
+const MIN_PROJECTION_MILKY_WAY_PARTICLE_COUNT = 80;
+const MAX_PROJECTION_MILKY_WAY_PARTICLE_COUNT = 720;
+const MIN_PROJECTION_MILKY_WAY_SPARKLE_RATIO = 0;
+const MAX_PROJECTION_MILKY_WAY_SPARKLE_RATIO = 0.25;
+const MIN_PROJECTION_MILKY_WAY_SPARKLE_PERIOD_VARIANCE = 0;
+const MAX_PROJECTION_MILKY_WAY_SPARKLE_PERIOD_VARIANCE = 2.5;
+const MIN_PROJECTION_MILKY_WAY_SPARKLE_INTENSITY_VARIANCE = 0;
+const MAX_PROJECTION_MILKY_WAY_SPARKLE_INTENSITY_VARIANCE = 2.5;
+const MIN_PROJECTION_MILKY_WAY_SPARKLE_PERIOD_SECONDS = 0.5;
+const MAX_PROJECTION_MILKY_WAY_SPARKLE_PERIOD_SECONDS = 8;
+const MIN_PROJECTION_MILKY_WAY_SPARKLE_DUTY_RATIO = 0.03;
+const MAX_PROJECTION_MILKY_WAY_SPARKLE_DUTY_RATIO = 0.8;
+const MIN_PROJECTION_TANABATA_STAR_RESPONSE_INTENSITY = 0;
+const MAX_PROJECTION_TANABATA_STAR_RESPONSE_INTENSITY = 3;
+const MIN_PROJECTION_TANABATA_STAR_RESPONSE_PHASE_DEG = 0;
+const MAX_PROJECTION_TANABATA_STAR_RESPONSE_PHASE_DEG = 360;
+const MIN_PROJECTION_TANABATA_STAR_RESPONSE_PERIOD_SECONDS = 8;
+const MAX_PROJECTION_TANABATA_STAR_RESPONSE_PERIOD_SECONDS = 90;
+const MIN_PROJECTION_TANZAKU_SWAY_STRENGTH = 0;
+const MAX_PROJECTION_TANZAKU_SWAY_STRENGTH = 3;
+const MIN_PROJECTION_WIND_GUST_STRENGTH = 0;
+const MAX_PROJECTION_WIND_GUST_STRENGTH = 3;
+const MIN_PROJECTION_WIND_GUST_CYCLE_SECONDS = 3;
+const MAX_PROJECTION_WIND_GUST_CYCLE_SECONDS = 60;
+const MIN_PROJECTION_WIND_GUST_CYCLE_JITTER_SECONDS = 0;
+const MAX_PROJECTION_WIND_GUST_CYCLE_JITTER_SECONDS = 60;
 const MIN_PROJECTION_PARALLAX_STRENGTH = 0;
 const MAX_PROJECTION_PARALLAX_STRENGTH = 3;
-const MIN_PROJECTION_PARALLAX_VANISHING_POINT = -1;
-const MAX_PROJECTION_PARALLAX_VANISHING_POINT = 1;
+const MIN_PROJECTION_PARALLAX_VANISHING_POINT_X = -1;
+const MAX_PROJECTION_PARALLAX_VANISHING_POINT_X = 1;
+const MIN_PROJECTION_PARALLAX_VANISHING_POINT_Y = -1;
+const MAX_PROJECTION_PARALLAX_VANISHING_POINT_Y = 5;
 const MIN_PROJECTION_PARALLAX_POPOUT_STRENGTH = 0;
 const MAX_PROJECTION_PARALLAX_POPOUT_STRENGTH = 3;
+const MIN_PROJECTION_PARALLAX_DEPTH_MULTIPLIER = 0;
+const MAX_PROJECTION_PARALLAX_DEPTH_MULTIPLIER = 3;
+const MIN_PROJECTION_PARALLAX_DEPTH_REFERENCE_INDEX = 0;
+const MAX_PROJECTION_PARALLAX_DEPTH_REFERENCE_INDEX = 60;
+const MIN_PROJECTION_PARALLAX_VIEWER_OFFSET_X = -2;
+const MAX_PROJECTION_PARALLAX_VIEWER_OFFSET_X = 2;
+const MIN_PROJECTION_PARALLAX_VIEWER_OFFSET_Y = -2;
+const MAX_PROJECTION_PARALLAX_VIEWER_OFFSET_Y = 2;
+const MIN_PROJECTION_PARALLAX_VIEWER_DISTANCE = 0.5;
+const MAX_PROJECTION_PARALLAX_VIEWER_DISTANCE = 8;
 const MIN_PROJECTION_VIEWPORT_MARGIN = 0;
 const MAX_PROJECTION_VIEWPORT_MARGIN = 24;
+const PROJECTION_PARALLAX_MOTION_MODES = new Set(["display", "mapping", "camera", "camera-display"]);
 const MIN_PROJECTION_CLOUD_COUNT = 0;
 const MAX_PROJECTION_CLOUD_COUNT = 12;
-const MIN_PROJECTION_CLOUD_ORIGIN_X = -80;
-const MAX_PROJECTION_CLOUD_ORIGIN_X = 120;
-const MIN_PROJECTION_CLOUD_ORIGIN_Y = -20;
-const MAX_PROJECTION_CLOUD_ORIGIN_Y = 100;
+const MIN_PROJECTION_CLOUD_ORIGIN_Y = -1;
+const MAX_PROJECTION_CLOUD_ORIGIN_Y = 1;
 const PROJECTION_PRESET_COUNT = 3;
+const PROJECTION_TANZAKU_FONT_IDS = new Set(["mincho", "gothic", "maru", "kyokasho", "brush"]);
 
 const rootDir = __dirname;
 const publicDir = path.join(rootDir, "public");
@@ -54,17 +98,41 @@ const DEFAULT_SETTINGS = {
   projectionRotateIntervalMs: 18000,
   projectionEffectAutoEnabled: false,
   projectionEffectIntervalMs: 300000,
+  projectionTanzakuFontId: "mincho",
+  projectionColorEmojiFontEnabled: false,
   projectionMilkyWayGain: 1.75,
+  projectionMilkyWayTwinkle: 1,
+  projectionMilkyWaySparkle: 1,
+  projectionMilkyWaySpeed: 1,
+  projectionMilkyWayParticleCount: 340,
+  projectionMilkyWaySparkleRatio: 0.045,
+  projectionMilkyWaySparklePeriodVariance: 1,
+  projectionMilkyWaySparkleIntensityVariance: 1,
+  projectionMilkyWaySparklePeriodSeconds: 2.2,
+  projectionMilkyWaySparkleDutyRatio: 0.16,
+  projectionMilkyWaySeed: "tanabata-milky-way",
+  projectionTanabataStarResponseIntensity: 1,
+  projectionTanabataStarResponsePhaseDeg: 166,
+  projectionTanabataStarResponsePeriodSeconds: 35,
+  projectionTanzakuSwayStrength: 1,
+  projectionWindGustStrength: 1,
+  projectionWindGustCycleMs: 30000,
+  projectionWindGustCycleJitterSeconds: 0,
   projectionExperimentalParallaxEnabled: false,
   projectionParallaxStrength: 1,
   projectionParallaxVanishingPointX: 0,
   projectionParallaxVanishingPointY: 0,
   projectionParallaxMarkerEnabled: false,
   projectionParallaxPopoutStrength: 0,
+  projectionParallaxDepthMultiplier: 1,
+  projectionParallaxDepthReferenceIndex: 0,
+  projectionParallaxMotionMode: "mapping",
+  projectionParallaxViewerOffsetX: 0,
+  projectionParallaxViewerOffsetY: 0,
+  projectionParallaxViewerDistance: 2.5,
   projectionViewportMargin: 0,
   projectionCloudCount: 3,
-  projectionCloudOriginX: -32,
-  projectionCloudOriginY: 12,
+  projectionCloudOriginY: 0,
   projectionCloudSeed: "tanabata-clouds",
   projectionPresets: Array.from({ length: PROJECTION_PRESET_COUNT }, () => null)
 };
@@ -119,7 +187,9 @@ const contentTypes = {
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
-  ".webp": "image/webp"
+  ".webp": "image/webp",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2"
 };
 
 let writeQueue = Promise.resolve();
@@ -300,6 +370,102 @@ async function readSettings() {
       MIN_PROJECTION_MILKY_WAY_GAIN,
       MAX_PROJECTION_MILKY_WAY_GAIN
     );
+    const milkyWayTwinkle = normalizeNumber(
+      parsed.projectionMilkyWayTwinkle,
+      DEFAULT_SETTINGS.projectionMilkyWayTwinkle,
+      MIN_PROJECTION_MILKY_WAY_TWINKLE,
+      MAX_PROJECTION_MILKY_WAY_TWINKLE
+    );
+    const milkyWaySparkle = normalizeNumber(
+      parsed.projectionMilkyWaySparkle,
+      DEFAULT_SETTINGS.projectionMilkyWaySparkle,
+      MIN_PROJECTION_MILKY_WAY_SPARKLE,
+      MAX_PROJECTION_MILKY_WAY_SPARKLE
+    );
+    const milkyWaySpeed = normalizeNumber(
+      parsed.projectionMilkyWaySpeed,
+      DEFAULT_SETTINGS.projectionMilkyWaySpeed,
+      MIN_PROJECTION_MILKY_WAY_SPEED,
+      MAX_PROJECTION_MILKY_WAY_SPEED
+    );
+    const milkyWayParticleCount = normalizeInteger(
+      parsed.projectionMilkyWayParticleCount,
+      DEFAULT_SETTINGS.projectionMilkyWayParticleCount,
+      MIN_PROJECTION_MILKY_WAY_PARTICLE_COUNT,
+      MAX_PROJECTION_MILKY_WAY_PARTICLE_COUNT
+    );
+    const milkyWaySparkleRatio = normalizeNumber(
+      parsed.projectionMilkyWaySparkleRatio,
+      DEFAULT_SETTINGS.projectionMilkyWaySparkleRatio,
+      MIN_PROJECTION_MILKY_WAY_SPARKLE_RATIO,
+      MAX_PROJECTION_MILKY_WAY_SPARKLE_RATIO
+    );
+    const milkyWaySparklePeriodVariance = normalizeNumber(
+      parsed.projectionMilkyWaySparklePeriodVariance,
+      DEFAULT_SETTINGS.projectionMilkyWaySparklePeriodVariance,
+      MIN_PROJECTION_MILKY_WAY_SPARKLE_PERIOD_VARIANCE,
+      MAX_PROJECTION_MILKY_WAY_SPARKLE_PERIOD_VARIANCE
+    );
+    const milkyWaySparkleIntensityVariance = normalizeNumber(
+      parsed.projectionMilkyWaySparkleIntensityVariance,
+      DEFAULT_SETTINGS.projectionMilkyWaySparkleIntensityVariance,
+      MIN_PROJECTION_MILKY_WAY_SPARKLE_INTENSITY_VARIANCE,
+      MAX_PROJECTION_MILKY_WAY_SPARKLE_INTENSITY_VARIANCE
+    );
+    const milkyWaySparklePeriodSeconds = normalizeNumber(
+      parsed.projectionMilkyWaySparklePeriodSeconds,
+      DEFAULT_SETTINGS.projectionMilkyWaySparklePeriodSeconds,
+      MIN_PROJECTION_MILKY_WAY_SPARKLE_PERIOD_SECONDS,
+      MAX_PROJECTION_MILKY_WAY_SPARKLE_PERIOD_SECONDS
+    );
+    const milkyWaySparkleDutyRatio = normalizeNumber(
+      parsed.projectionMilkyWaySparkleDutyRatio,
+      DEFAULT_SETTINGS.projectionMilkyWaySparkleDutyRatio,
+      MIN_PROJECTION_MILKY_WAY_SPARKLE_DUTY_RATIO,
+      MAX_PROJECTION_MILKY_WAY_SPARKLE_DUTY_RATIO
+    );
+    const tanabataStarResponseIntensity = normalizeNumber(
+      parsed.projectionTanabataStarResponseIntensity,
+      DEFAULT_SETTINGS.projectionTanabataStarResponseIntensity,
+      MIN_PROJECTION_TANABATA_STAR_RESPONSE_INTENSITY,
+      MAX_PROJECTION_TANABATA_STAR_RESPONSE_INTENSITY
+    );
+    const tanabataStarResponsePhaseDeg = normalizeNumber(
+      parsed.projectionTanabataStarResponsePhaseDeg,
+      DEFAULT_SETTINGS.projectionTanabataStarResponsePhaseDeg,
+      MIN_PROJECTION_TANABATA_STAR_RESPONSE_PHASE_DEG,
+      MAX_PROJECTION_TANABATA_STAR_RESPONSE_PHASE_DEG
+    );
+    const tanabataStarResponsePeriodSeconds = normalizeNumber(
+      parsed.projectionTanabataStarResponsePeriodSeconds,
+      DEFAULT_SETTINGS.projectionTanabataStarResponsePeriodSeconds,
+      MIN_PROJECTION_TANABATA_STAR_RESPONSE_PERIOD_SECONDS,
+      MAX_PROJECTION_TANABATA_STAR_RESPONSE_PERIOD_SECONDS
+    );
+    const tanzakuSwayStrength = normalizeNumber(
+      parsed.projectionTanzakuSwayStrength,
+      DEFAULT_SETTINGS.projectionTanzakuSwayStrength,
+      MIN_PROJECTION_TANZAKU_SWAY_STRENGTH,
+      MAX_PROJECTION_TANZAKU_SWAY_STRENGTH
+    );
+    const windGustStrength = normalizeNumber(
+      parsed.projectionWindGustStrength,
+      DEFAULT_SETTINGS.projectionWindGustStrength,
+      MIN_PROJECTION_WIND_GUST_STRENGTH,
+      MAX_PROJECTION_WIND_GUST_STRENGTH
+    );
+    const windGustCycleMs = normalizeInteger(
+      parsed.projectionWindGustCycleMs,
+      DEFAULT_SETTINGS.projectionWindGustCycleMs,
+      MIN_PROJECTION_WIND_GUST_CYCLE_SECONDS * 1000,
+      MAX_PROJECTION_WIND_GUST_CYCLE_SECONDS * 1000
+    );
+    const windGustCycleJitterSeconds = normalizeInteger(
+      parsed.projectionWindGustCycleJitterSeconds,
+      DEFAULT_SETTINGS.projectionWindGustCycleJitterSeconds,
+      MIN_PROJECTION_WIND_GUST_CYCLE_JITTER_SECONDS,
+      MAX_PROJECTION_WIND_GUST_CYCLE_JITTER_SECONDS
+    );
     const parallaxStrength = normalizeNumber(
       parsed.projectionParallaxStrength,
       DEFAULT_SETTINGS.projectionParallaxStrength,
@@ -309,14 +475,14 @@ async function readSettings() {
     const parallaxVanishingPointX = normalizeNumber(
       parsed.projectionParallaxVanishingPointX,
       DEFAULT_SETTINGS.projectionParallaxVanishingPointX,
-      MIN_PROJECTION_PARALLAX_VANISHING_POINT,
-      MAX_PROJECTION_PARALLAX_VANISHING_POINT
+      MIN_PROJECTION_PARALLAX_VANISHING_POINT_X,
+      MAX_PROJECTION_PARALLAX_VANISHING_POINT_X
     );
     const parallaxVanishingPointY = normalizeNumber(
       parsed.projectionParallaxVanishingPointY,
       DEFAULT_SETTINGS.projectionParallaxVanishingPointY,
-      MIN_PROJECTION_PARALLAX_VANISHING_POINT,
-      MAX_PROJECTION_PARALLAX_VANISHING_POINT
+      MIN_PROJECTION_PARALLAX_VANISHING_POINT_Y,
+      MAX_PROJECTION_PARALLAX_VANISHING_POINT_Y
     );
     const parallaxPopoutStrength = normalizeNumber(
       parsed.projectionParallaxPopoutStrength,
@@ -324,25 +490,55 @@ async function readSettings() {
       MIN_PROJECTION_PARALLAX_POPOUT_STRENGTH,
       MAX_PROJECTION_PARALLAX_POPOUT_STRENGTH
     );
+    const parallaxDepthMultiplier = normalizeNumber(
+      parsed.projectionParallaxDepthMultiplier,
+      DEFAULT_SETTINGS.projectionParallaxDepthMultiplier,
+      MIN_PROJECTION_PARALLAX_DEPTH_MULTIPLIER,
+      MAX_PROJECTION_PARALLAX_DEPTH_MULTIPLIER
+    );
+    const parallaxDepthReferenceIndex = normalizeInteger(
+      parsed.projectionParallaxDepthReferenceIndex,
+      DEFAULT_SETTINGS.projectionParallaxDepthReferenceIndex,
+      MIN_PROJECTION_PARALLAX_DEPTH_REFERENCE_INDEX,
+      MAX_PROJECTION_PARALLAX_DEPTH_REFERENCE_INDEX
+    );
+    const parallaxViewerOffsetX = normalizeNumber(
+      parsed.projectionParallaxViewerOffsetX,
+      DEFAULT_SETTINGS.projectionParallaxViewerOffsetX,
+      MIN_PROJECTION_PARALLAX_VIEWER_OFFSET_X,
+      MAX_PROJECTION_PARALLAX_VIEWER_OFFSET_X
+    );
+    const parallaxViewerOffsetY = normalizeNumber(
+      parsed.projectionParallaxViewerOffsetY,
+      DEFAULT_SETTINGS.projectionParallaxViewerOffsetY,
+      MIN_PROJECTION_PARALLAX_VIEWER_OFFSET_Y,
+      MAX_PROJECTION_PARALLAX_VIEWER_OFFSET_Y
+    );
+    const parallaxViewerDistance = normalizeNumber(
+      parsed.projectionParallaxViewerDistance,
+      DEFAULT_SETTINGS.projectionParallaxViewerDistance,
+      MIN_PROJECTION_PARALLAX_VIEWER_DISTANCE,
+      MAX_PROJECTION_PARALLAX_VIEWER_DISTANCE
+    );
     const viewportMargin = normalizeNumber(
       parsed.projectionViewportMargin,
       DEFAULT_SETTINGS.projectionViewportMargin,
       MIN_PROJECTION_VIEWPORT_MARGIN,
       MAX_PROJECTION_VIEWPORT_MARGIN
     );
+    const parallaxMotionMode = PROJECTION_PARALLAX_MOTION_MODES.has(parsed.projectionParallaxMotionMode)
+      ? parsed.projectionParallaxMotionMode
+      : DEFAULT_SETTINGS.projectionParallaxMotionMode;
+    const tanzakuFontId = PROJECTION_TANZAKU_FONT_IDS.has(parsed.projectionTanzakuFontId)
+      ? parsed.projectionTanzakuFontId
+      : DEFAULT_SETTINGS.projectionTanzakuFontId;
     const cloudCount = normalizeInteger(
       parsed.projectionCloudCount,
       DEFAULT_SETTINGS.projectionCloudCount,
       MIN_PROJECTION_CLOUD_COUNT,
       MAX_PROJECTION_CLOUD_COUNT
     );
-    const cloudOriginX = normalizeNumber(
-      parsed.projectionCloudOriginX,
-      DEFAULT_SETTINGS.projectionCloudOriginX,
-      MIN_PROJECTION_CLOUD_ORIGIN_X,
-      MAX_PROJECTION_CLOUD_ORIGIN_X
-    );
-    const cloudOriginY = normalizeNumber(
+    const cloudOriginY = normalizeRelativeNumber(
       parsed.projectionCloudOriginY,
       DEFAULT_SETTINGS.projectionCloudOriginY,
       MIN_PROJECTION_CLOUD_ORIGIN_Y,
@@ -359,16 +555,40 @@ async function readSettings() {
       projectionRotateIntervalMs: rotateIntervalMs,
       projectionEffectAutoEnabled: parsed.projectionEffectAutoEnabled === true,
       projectionEffectIntervalMs: effectIntervalMs,
+      projectionTanzakuFontId: tanzakuFontId,
+      projectionColorEmojiFontEnabled: parsed.projectionColorEmojiFontEnabled === true,
       projectionMilkyWayGain: milkyWayGain,
+      projectionMilkyWayTwinkle: milkyWayTwinkle,
+      projectionMilkyWaySparkle: milkyWaySparkle,
+      projectionMilkyWaySpeed: milkyWaySpeed,
+      projectionMilkyWayParticleCount: milkyWayParticleCount,
+      projectionMilkyWaySparkleRatio: milkyWaySparkleRatio,
+      projectionMilkyWaySparklePeriodVariance: milkyWaySparklePeriodVariance,
+      projectionMilkyWaySparkleIntensityVariance: milkyWaySparkleIntensityVariance,
+      projectionMilkyWaySparklePeriodSeconds: milkyWaySparklePeriodSeconds,
+      projectionMilkyWaySparkleDutyRatio: milkyWaySparkleDutyRatio,
+      projectionMilkyWaySeed: String(parsed.projectionMilkyWaySeed || DEFAULT_SETTINGS.projectionMilkyWaySeed).slice(0, 80),
+      projectionTanabataStarResponseIntensity: tanabataStarResponseIntensity,
+      projectionTanabataStarResponsePhaseDeg: tanabataStarResponsePhaseDeg,
+      projectionTanabataStarResponsePeriodSeconds: tanabataStarResponsePeriodSeconds,
+      projectionTanzakuSwayStrength: tanzakuSwayStrength,
+      projectionWindGustStrength: windGustStrength,
+      projectionWindGustCycleMs: windGustCycleMs,
+      projectionWindGustCycleJitterSeconds: windGustCycleJitterSeconds,
       projectionExperimentalParallaxEnabled: parsed.projectionExperimentalParallaxEnabled === true,
       projectionParallaxStrength: parallaxStrength,
       projectionParallaxVanishingPointX: parallaxVanishingPointX,
       projectionParallaxVanishingPointY: parallaxVanishingPointY,
       projectionParallaxMarkerEnabled: parsed.projectionParallaxMarkerEnabled === true,
       projectionParallaxPopoutStrength: parallaxPopoutStrength,
+      projectionParallaxDepthMultiplier: parallaxDepthMultiplier,
+      projectionParallaxDepthReferenceIndex: parallaxDepthReferenceIndex,
+      projectionParallaxMotionMode: parallaxMotionMode,
+      projectionParallaxViewerOffsetX: parallaxViewerOffsetX,
+      projectionParallaxViewerOffsetY: parallaxViewerOffsetY,
+      projectionParallaxViewerDistance: parallaxViewerDistance,
       projectionViewportMargin: viewportMargin,
       projectionCloudCount: cloudCount,
-      projectionCloudOriginX: cloudOriginX,
       projectionCloudOriginY: cloudOriginY,
       projectionCloudSeed: String(parsed.projectionCloudSeed || DEFAULT_SETTINGS.projectionCloudSeed).slice(0, 80),
       projectionPresets: normalizeProjectionPresets(parsed.projectionPresets)
@@ -397,6 +617,14 @@ function normalizeNumber(value, fallback, min, max) {
   return Math.max(min, Math.min(max, number));
 }
 
+function normalizeRelativeNumber(value, fallback, min, max) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < min || number > max) {
+    return fallback;
+  }
+  return number;
+}
+
 function projectionPresetFromSettings(settings) {
   return {
     projectionDisplayCount: settings.projectionDisplayCount,
@@ -406,16 +634,44 @@ function projectionPresetFromSettings(settings) {
     projectionRotateIntervalMs: settings.projectionRotateIntervalMs,
     projectionEffectAutoEnabled: settings.projectionEffectAutoEnabled === true,
     projectionEffectIntervalMs: settings.projectionEffectIntervalMs,
+    projectionTanzakuFontId: PROJECTION_TANZAKU_FONT_IDS.has(settings.projectionTanzakuFontId)
+      ? settings.projectionTanzakuFontId
+      : DEFAULT_SETTINGS.projectionTanzakuFontId,
+    projectionColorEmojiFontEnabled: settings.projectionColorEmojiFontEnabled === true,
     projectionMilkyWayGain: settings.projectionMilkyWayGain,
+    projectionMilkyWayTwinkle: settings.projectionMilkyWayTwinkle,
+    projectionMilkyWaySparkle: settings.projectionMilkyWaySparkle,
+    projectionMilkyWaySpeed: settings.projectionMilkyWaySpeed,
+    projectionMilkyWayParticleCount: settings.projectionMilkyWayParticleCount,
+    projectionMilkyWaySparkleRatio: settings.projectionMilkyWaySparkleRatio,
+    projectionMilkyWaySparklePeriodVariance: settings.projectionMilkyWaySparklePeriodVariance,
+    projectionMilkyWaySparkleIntensityVariance: settings.projectionMilkyWaySparkleIntensityVariance,
+    projectionMilkyWaySparklePeriodSeconds: settings.projectionMilkyWaySparklePeriodSeconds,
+    projectionMilkyWaySparkleDutyRatio: settings.projectionMilkyWaySparkleDutyRatio,
+    projectionMilkyWaySeed: settings.projectionMilkyWaySeed,
+    projectionTanabataStarResponseIntensity: settings.projectionTanabataStarResponseIntensity,
+    projectionTanabataStarResponsePhaseDeg: settings.projectionTanabataStarResponsePhaseDeg,
+    projectionTanabataStarResponsePeriodSeconds: settings.projectionTanabataStarResponsePeriodSeconds,
+    projectionTanzakuSwayStrength: settings.projectionTanzakuSwayStrength,
+    projectionWindGustStrength: settings.projectionWindGustStrength,
+    projectionWindGustCycleMs: settings.projectionWindGustCycleMs,
+    projectionWindGustCycleJitterSeconds: settings.projectionWindGustCycleJitterSeconds,
     projectionExperimentalParallaxEnabled: settings.projectionExperimentalParallaxEnabled === true,
     projectionParallaxStrength: settings.projectionParallaxStrength,
     projectionParallaxVanishingPointX: settings.projectionParallaxVanishingPointX,
     projectionParallaxVanishingPointY: settings.projectionParallaxVanishingPointY,
     projectionParallaxMarkerEnabled: settings.projectionParallaxMarkerEnabled === true,
     projectionParallaxPopoutStrength: settings.projectionParallaxPopoutStrength,
+    projectionParallaxDepthMultiplier: settings.projectionParallaxDepthMultiplier,
+    projectionParallaxDepthReferenceIndex: settings.projectionParallaxDepthReferenceIndex,
+    projectionParallaxMotionMode: PROJECTION_PARALLAX_MOTION_MODES.has(settings.projectionParallaxMotionMode)
+      ? settings.projectionParallaxMotionMode
+      : DEFAULT_SETTINGS.projectionParallaxMotionMode,
+    projectionParallaxViewerOffsetX: settings.projectionParallaxViewerOffsetX,
+    projectionParallaxViewerOffsetY: settings.projectionParallaxViewerOffsetY,
+    projectionParallaxViewerDistance: settings.projectionParallaxViewerDistance,
     projectionViewportMargin: settings.projectionViewportMargin,
     projectionCloudCount: settings.projectionCloudCount,
-    projectionCloudOriginX: settings.projectionCloudOriginX,
     projectionCloudOriginY: settings.projectionCloudOriginY,
     projectionCloudSeed: settings.projectionCloudSeed
   };
@@ -470,11 +726,112 @@ function normalizeProjectionPreset(rawPreset) {
         MIN_PROJECTION_EFFECT_INTERVAL_MS,
         MAX_PROJECTION_EFFECT_INTERVAL_MS
       ),
+      projectionTanzakuFontId: PROJECTION_TANZAKU_FONT_IDS.has(source.projectionTanzakuFontId)
+        ? source.projectionTanzakuFontId
+        : DEFAULT_SETTINGS.projectionTanzakuFontId,
+      projectionColorEmojiFontEnabled: source.projectionColorEmojiFontEnabled === true,
       projectionMilkyWayGain: normalizeNumber(
         source.projectionMilkyWayGain,
         DEFAULT_SETTINGS.projectionMilkyWayGain,
         MIN_PROJECTION_MILKY_WAY_GAIN,
         MAX_PROJECTION_MILKY_WAY_GAIN
+      ),
+      projectionMilkyWayTwinkle: normalizeNumber(
+        source.projectionMilkyWayTwinkle,
+        DEFAULT_SETTINGS.projectionMilkyWayTwinkle,
+        MIN_PROJECTION_MILKY_WAY_TWINKLE,
+        MAX_PROJECTION_MILKY_WAY_TWINKLE
+      ),
+      projectionMilkyWaySparkle: normalizeNumber(
+        source.projectionMilkyWaySparkle,
+        DEFAULT_SETTINGS.projectionMilkyWaySparkle,
+        MIN_PROJECTION_MILKY_WAY_SPARKLE,
+        MAX_PROJECTION_MILKY_WAY_SPARKLE
+      ),
+      projectionMilkyWaySpeed: normalizeNumber(
+        source.projectionMilkyWaySpeed,
+        DEFAULT_SETTINGS.projectionMilkyWaySpeed,
+        MIN_PROJECTION_MILKY_WAY_SPEED,
+        MAX_PROJECTION_MILKY_WAY_SPEED
+      ),
+      projectionMilkyWayParticleCount: normalizeInteger(
+        source.projectionMilkyWayParticleCount,
+        DEFAULT_SETTINGS.projectionMilkyWayParticleCount,
+        MIN_PROJECTION_MILKY_WAY_PARTICLE_COUNT,
+        MAX_PROJECTION_MILKY_WAY_PARTICLE_COUNT
+      ),
+      projectionMilkyWaySparkleRatio: normalizeNumber(
+        source.projectionMilkyWaySparkleRatio,
+        DEFAULT_SETTINGS.projectionMilkyWaySparkleRatio,
+        MIN_PROJECTION_MILKY_WAY_SPARKLE_RATIO,
+        MAX_PROJECTION_MILKY_WAY_SPARKLE_RATIO
+      ),
+      projectionMilkyWaySparklePeriodVariance: normalizeNumber(
+        source.projectionMilkyWaySparklePeriodVariance,
+        DEFAULT_SETTINGS.projectionMilkyWaySparklePeriodVariance,
+        MIN_PROJECTION_MILKY_WAY_SPARKLE_PERIOD_VARIANCE,
+        MAX_PROJECTION_MILKY_WAY_SPARKLE_PERIOD_VARIANCE
+      ),
+      projectionMilkyWaySparkleIntensityVariance: normalizeNumber(
+        source.projectionMilkyWaySparkleIntensityVariance,
+        DEFAULT_SETTINGS.projectionMilkyWaySparkleIntensityVariance,
+        MIN_PROJECTION_MILKY_WAY_SPARKLE_INTENSITY_VARIANCE,
+        MAX_PROJECTION_MILKY_WAY_SPARKLE_INTENSITY_VARIANCE
+      ),
+      projectionMilkyWaySparklePeriodSeconds: normalizeNumber(
+        source.projectionMilkyWaySparklePeriodSeconds,
+        DEFAULT_SETTINGS.projectionMilkyWaySparklePeriodSeconds,
+        MIN_PROJECTION_MILKY_WAY_SPARKLE_PERIOD_SECONDS,
+        MAX_PROJECTION_MILKY_WAY_SPARKLE_PERIOD_SECONDS
+      ),
+      projectionMilkyWaySparkleDutyRatio: normalizeNumber(
+        source.projectionMilkyWaySparkleDutyRatio,
+        DEFAULT_SETTINGS.projectionMilkyWaySparkleDutyRatio,
+        MIN_PROJECTION_MILKY_WAY_SPARKLE_DUTY_RATIO,
+        MAX_PROJECTION_MILKY_WAY_SPARKLE_DUTY_RATIO
+      ),
+      projectionMilkyWaySeed: String(source.projectionMilkyWaySeed || DEFAULT_SETTINGS.projectionMilkyWaySeed).slice(0, 80),
+      projectionTanabataStarResponseIntensity: normalizeNumber(
+        source.projectionTanabataStarResponseIntensity,
+        DEFAULT_SETTINGS.projectionTanabataStarResponseIntensity,
+        MIN_PROJECTION_TANABATA_STAR_RESPONSE_INTENSITY,
+        MAX_PROJECTION_TANABATA_STAR_RESPONSE_INTENSITY
+      ),
+      projectionTanabataStarResponsePhaseDeg: normalizeNumber(
+        source.projectionTanabataStarResponsePhaseDeg,
+        DEFAULT_SETTINGS.projectionTanabataStarResponsePhaseDeg,
+        MIN_PROJECTION_TANABATA_STAR_RESPONSE_PHASE_DEG,
+        MAX_PROJECTION_TANABATA_STAR_RESPONSE_PHASE_DEG
+      ),
+      projectionTanabataStarResponsePeriodSeconds: normalizeNumber(
+        source.projectionTanabataStarResponsePeriodSeconds,
+        DEFAULT_SETTINGS.projectionTanabataStarResponsePeriodSeconds,
+        MIN_PROJECTION_TANABATA_STAR_RESPONSE_PERIOD_SECONDS,
+        MAX_PROJECTION_TANABATA_STAR_RESPONSE_PERIOD_SECONDS
+      ),
+      projectionTanzakuSwayStrength: normalizeNumber(
+        source.projectionTanzakuSwayStrength,
+        DEFAULT_SETTINGS.projectionTanzakuSwayStrength,
+        MIN_PROJECTION_TANZAKU_SWAY_STRENGTH,
+        MAX_PROJECTION_TANZAKU_SWAY_STRENGTH
+      ),
+      projectionWindGustStrength: normalizeNumber(
+        source.projectionWindGustStrength,
+        DEFAULT_SETTINGS.projectionWindGustStrength,
+        MIN_PROJECTION_WIND_GUST_STRENGTH,
+        MAX_PROJECTION_WIND_GUST_STRENGTH
+      ),
+      projectionWindGustCycleMs: normalizeInteger(
+        source.projectionWindGustCycleMs,
+        DEFAULT_SETTINGS.projectionWindGustCycleMs,
+        MIN_PROJECTION_WIND_GUST_CYCLE_SECONDS * 1000,
+        MAX_PROJECTION_WIND_GUST_CYCLE_SECONDS * 1000
+      ),
+      projectionWindGustCycleJitterSeconds: normalizeInteger(
+        source.projectionWindGustCycleJitterSeconds,
+        DEFAULT_SETTINGS.projectionWindGustCycleJitterSeconds,
+        MIN_PROJECTION_WIND_GUST_CYCLE_JITTER_SECONDS,
+        MAX_PROJECTION_WIND_GUST_CYCLE_JITTER_SECONDS
       ),
       projectionExperimentalParallaxEnabled: source.projectionExperimentalParallaxEnabled === true,
       projectionParallaxStrength: normalizeNumber(
@@ -486,14 +843,14 @@ function normalizeProjectionPreset(rawPreset) {
       projectionParallaxVanishingPointX: normalizeNumber(
         source.projectionParallaxVanishingPointX,
         DEFAULT_SETTINGS.projectionParallaxVanishingPointX,
-        MIN_PROJECTION_PARALLAX_VANISHING_POINT,
-        MAX_PROJECTION_PARALLAX_VANISHING_POINT
+        MIN_PROJECTION_PARALLAX_VANISHING_POINT_X,
+        MAX_PROJECTION_PARALLAX_VANISHING_POINT_X
       ),
       projectionParallaxVanishingPointY: normalizeNumber(
         source.projectionParallaxVanishingPointY,
         DEFAULT_SETTINGS.projectionParallaxVanishingPointY,
-        MIN_PROJECTION_PARALLAX_VANISHING_POINT,
-        MAX_PROJECTION_PARALLAX_VANISHING_POINT
+        MIN_PROJECTION_PARALLAX_VANISHING_POINT_Y,
+        MAX_PROJECTION_PARALLAX_VANISHING_POINT_Y
       ),
       projectionParallaxMarkerEnabled: source.projectionParallaxMarkerEnabled === true,
       projectionParallaxPopoutStrength: normalizeNumber(
@@ -501,6 +858,39 @@ function normalizeProjectionPreset(rawPreset) {
         DEFAULT_SETTINGS.projectionParallaxPopoutStrength,
         MIN_PROJECTION_PARALLAX_POPOUT_STRENGTH,
         MAX_PROJECTION_PARALLAX_POPOUT_STRENGTH
+      ),
+      projectionParallaxDepthMultiplier: normalizeNumber(
+        source.projectionParallaxDepthMultiplier,
+        DEFAULT_SETTINGS.projectionParallaxDepthMultiplier,
+        MIN_PROJECTION_PARALLAX_DEPTH_MULTIPLIER,
+        MAX_PROJECTION_PARALLAX_DEPTH_MULTIPLIER
+      ),
+      projectionParallaxDepthReferenceIndex: normalizeInteger(
+        source.projectionParallaxDepthReferenceIndex,
+        DEFAULT_SETTINGS.projectionParallaxDepthReferenceIndex,
+        MIN_PROJECTION_PARALLAX_DEPTH_REFERENCE_INDEX,
+        MAX_PROJECTION_PARALLAX_DEPTH_REFERENCE_INDEX
+      ),
+      projectionParallaxMotionMode: PROJECTION_PARALLAX_MOTION_MODES.has(source.projectionParallaxMotionMode)
+        ? source.projectionParallaxMotionMode
+        : DEFAULT_SETTINGS.projectionParallaxMotionMode,
+      projectionParallaxViewerOffsetX: normalizeNumber(
+        source.projectionParallaxViewerOffsetX,
+        DEFAULT_SETTINGS.projectionParallaxViewerOffsetX,
+        MIN_PROJECTION_PARALLAX_VIEWER_OFFSET_X,
+        MAX_PROJECTION_PARALLAX_VIEWER_OFFSET_X
+      ),
+      projectionParallaxViewerOffsetY: normalizeNumber(
+        source.projectionParallaxViewerOffsetY,
+        DEFAULT_SETTINGS.projectionParallaxViewerOffsetY,
+        MIN_PROJECTION_PARALLAX_VIEWER_OFFSET_Y,
+        MAX_PROJECTION_PARALLAX_VIEWER_OFFSET_Y
+      ),
+      projectionParallaxViewerDistance: normalizeNumber(
+        source.projectionParallaxViewerDistance,
+        DEFAULT_SETTINGS.projectionParallaxViewerDistance,
+        MIN_PROJECTION_PARALLAX_VIEWER_DISTANCE,
+        MAX_PROJECTION_PARALLAX_VIEWER_DISTANCE
       ),
       projectionViewportMargin: normalizeNumber(
         source.projectionViewportMargin,
@@ -514,13 +904,7 @@ function normalizeProjectionPreset(rawPreset) {
         MIN_PROJECTION_CLOUD_COUNT,
         MAX_PROJECTION_CLOUD_COUNT
       ),
-      projectionCloudOriginX: normalizeNumber(
-        source.projectionCloudOriginX,
-        DEFAULT_SETTINGS.projectionCloudOriginX,
-        MIN_PROJECTION_CLOUD_ORIGIN_X,
-        MAX_PROJECTION_CLOUD_ORIGIN_X
-      ),
-      projectionCloudOriginY: normalizeNumber(
+      projectionCloudOriginY: normalizeRelativeNumber(
         source.projectionCloudOriginY,
         DEFAULT_SETTINGS.projectionCloudOriginY,
         MIN_PROJECTION_CLOUD_ORIGIN_Y,
@@ -670,16 +1054,44 @@ function publicSettings(settings) {
     projectionRotateIntervalMs: settings.projectionRotateIntervalMs,
     projectionEffectAutoEnabled: settings.projectionEffectAutoEnabled,
     projectionEffectIntervalMs: settings.projectionEffectIntervalMs,
+    projectionTanzakuFontId: PROJECTION_TANZAKU_FONT_IDS.has(settings.projectionTanzakuFontId)
+      ? settings.projectionTanzakuFontId
+      : DEFAULT_SETTINGS.projectionTanzakuFontId,
+    projectionColorEmojiFontEnabled: settings.projectionColorEmojiFontEnabled === true,
     projectionMilkyWayGain: settings.projectionMilkyWayGain,
+    projectionMilkyWayTwinkle: settings.projectionMilkyWayTwinkle,
+    projectionMilkyWaySparkle: settings.projectionMilkyWaySparkle,
+    projectionMilkyWaySpeed: settings.projectionMilkyWaySpeed,
+    projectionMilkyWayParticleCount: settings.projectionMilkyWayParticleCount,
+    projectionMilkyWaySparkleRatio: settings.projectionMilkyWaySparkleRatio,
+    projectionMilkyWaySparklePeriodVariance: settings.projectionMilkyWaySparklePeriodVariance,
+    projectionMilkyWaySparkleIntensityVariance: settings.projectionMilkyWaySparkleIntensityVariance,
+    projectionMilkyWaySparklePeriodSeconds: settings.projectionMilkyWaySparklePeriodSeconds,
+    projectionMilkyWaySparkleDutyRatio: settings.projectionMilkyWaySparkleDutyRatio,
+    projectionMilkyWaySeed: settings.projectionMilkyWaySeed,
+    projectionTanabataStarResponseIntensity: settings.projectionTanabataStarResponseIntensity,
+    projectionTanabataStarResponsePhaseDeg: settings.projectionTanabataStarResponsePhaseDeg,
+    projectionTanabataStarResponsePeriodSeconds: settings.projectionTanabataStarResponsePeriodSeconds,
+    projectionTanzakuSwayStrength: settings.projectionTanzakuSwayStrength,
+    projectionWindGustStrength: settings.projectionWindGustStrength,
+    projectionWindGustCycleMs: settings.projectionWindGustCycleMs,
+    projectionWindGustCycleJitterSeconds: settings.projectionWindGustCycleJitterSeconds,
     projectionExperimentalParallaxEnabled: settings.projectionExperimentalParallaxEnabled,
     projectionParallaxStrength: settings.projectionParallaxStrength,
     projectionParallaxVanishingPointX: settings.projectionParallaxVanishingPointX,
     projectionParallaxVanishingPointY: settings.projectionParallaxVanishingPointY,
     projectionParallaxMarkerEnabled: settings.projectionParallaxMarkerEnabled === true,
     projectionParallaxPopoutStrength: settings.projectionParallaxPopoutStrength,
+    projectionParallaxDepthMultiplier: settings.projectionParallaxDepthMultiplier,
+    projectionParallaxDepthReferenceIndex: settings.projectionParallaxDepthReferenceIndex,
+    projectionParallaxMotionMode: PROJECTION_PARALLAX_MOTION_MODES.has(settings.projectionParallaxMotionMode)
+      ? settings.projectionParallaxMotionMode
+      : DEFAULT_SETTINGS.projectionParallaxMotionMode,
+    projectionParallaxViewerOffsetX: settings.projectionParallaxViewerOffsetX,
+    projectionParallaxViewerOffsetY: settings.projectionParallaxViewerOffsetY,
+    projectionParallaxViewerDistance: settings.projectionParallaxViewerDistance,
     projectionViewportMargin: settings.projectionViewportMargin,
     projectionCloudCount: settings.projectionCloudCount,
-    projectionCloudOriginX: settings.projectionCloudOriginX,
     projectionCloudOriginY: settings.projectionCloudOriginY,
     projectionCloudSeed: settings.projectionCloudSeed,
     projectionPresets: normalizeProjectionPresets(settings.projectionPresets),
@@ -691,20 +1103,65 @@ function publicSettings(settings) {
     projectionRotateIntervalMsMax: MAX_PROJECTION_ROTATE_INTERVAL_MS,
     projectionEffectIntervalMsMin: MIN_PROJECTION_EFFECT_INTERVAL_MS,
     projectionEffectIntervalMsMax: MAX_PROJECTION_EFFECT_INTERVAL_MS,
+    projectionTanzakuFontIds: Array.from(PROJECTION_TANZAKU_FONT_IDS),
     projectionMilkyWayGainMin: MIN_PROJECTION_MILKY_WAY_GAIN,
     projectionMilkyWayGainMax: MAX_PROJECTION_MILKY_WAY_GAIN,
+    projectionMilkyWayTwinkleMin: MIN_PROJECTION_MILKY_WAY_TWINKLE,
+    projectionMilkyWayTwinkleMax: MAX_PROJECTION_MILKY_WAY_TWINKLE,
+    projectionMilkyWaySparkleMin: MIN_PROJECTION_MILKY_WAY_SPARKLE,
+    projectionMilkyWaySparkleMax: MAX_PROJECTION_MILKY_WAY_SPARKLE,
+    projectionMilkyWaySpeedMin: MIN_PROJECTION_MILKY_WAY_SPEED,
+    projectionMilkyWaySpeedMax: MAX_PROJECTION_MILKY_WAY_SPEED,
+    projectionMilkyWayParticleCountMin: MIN_PROJECTION_MILKY_WAY_PARTICLE_COUNT,
+    projectionMilkyWayParticleCountMax: MAX_PROJECTION_MILKY_WAY_PARTICLE_COUNT,
+    projectionMilkyWaySparkleRatioMin: MIN_PROJECTION_MILKY_WAY_SPARKLE_RATIO,
+    projectionMilkyWaySparkleRatioMax: MAX_PROJECTION_MILKY_WAY_SPARKLE_RATIO,
+    projectionMilkyWaySparklePeriodVarianceMin: MIN_PROJECTION_MILKY_WAY_SPARKLE_PERIOD_VARIANCE,
+    projectionMilkyWaySparklePeriodVarianceMax: MAX_PROJECTION_MILKY_WAY_SPARKLE_PERIOD_VARIANCE,
+    projectionMilkyWaySparkleIntensityVarianceMin: MIN_PROJECTION_MILKY_WAY_SPARKLE_INTENSITY_VARIANCE,
+    projectionMilkyWaySparkleIntensityVarianceMax: MAX_PROJECTION_MILKY_WAY_SPARKLE_INTENSITY_VARIANCE,
+    projectionMilkyWaySparklePeriodSecondsMin: MIN_PROJECTION_MILKY_WAY_SPARKLE_PERIOD_SECONDS,
+    projectionMilkyWaySparklePeriodSecondsMax: MAX_PROJECTION_MILKY_WAY_SPARKLE_PERIOD_SECONDS,
+    projectionMilkyWaySparkleDutyRatioMin: MIN_PROJECTION_MILKY_WAY_SPARKLE_DUTY_RATIO,
+    projectionMilkyWaySparkleDutyRatioMax: MAX_PROJECTION_MILKY_WAY_SPARKLE_DUTY_RATIO,
+    projectionTanabataStarResponseIntensityMin: MIN_PROJECTION_TANABATA_STAR_RESPONSE_INTENSITY,
+    projectionTanabataStarResponseIntensityMax: MAX_PROJECTION_TANABATA_STAR_RESPONSE_INTENSITY,
+    projectionTanabataStarResponsePhaseDegMin: MIN_PROJECTION_TANABATA_STAR_RESPONSE_PHASE_DEG,
+    projectionTanabataStarResponsePhaseDegMax: MAX_PROJECTION_TANABATA_STAR_RESPONSE_PHASE_DEG,
+    projectionTanabataStarResponsePeriodSecondsMin: MIN_PROJECTION_TANABATA_STAR_RESPONSE_PERIOD_SECONDS,
+    projectionTanabataStarResponsePeriodSecondsMax: MAX_PROJECTION_TANABATA_STAR_RESPONSE_PERIOD_SECONDS,
+    projectionTanzakuSwayStrengthMin: MIN_PROJECTION_TANZAKU_SWAY_STRENGTH,
+    projectionTanzakuSwayStrengthMax: MAX_PROJECTION_TANZAKU_SWAY_STRENGTH,
+    projectionWindGustStrengthMin: MIN_PROJECTION_WIND_GUST_STRENGTH,
+    projectionWindGustStrengthMax: MAX_PROJECTION_WIND_GUST_STRENGTH,
+    projectionWindGustCycleSecondsMin: MIN_PROJECTION_WIND_GUST_CYCLE_SECONDS,
+    projectionWindGustCycleSecondsMax: MAX_PROJECTION_WIND_GUST_CYCLE_SECONDS,
+    projectionWindGustCycleJitterSecondsMin: MIN_PROJECTION_WIND_GUST_CYCLE_JITTER_SECONDS,
+    projectionWindGustCycleJitterSecondsMax: MAX_PROJECTION_WIND_GUST_CYCLE_JITTER_SECONDS,
     projectionParallaxStrengthMin: MIN_PROJECTION_PARALLAX_STRENGTH,
     projectionParallaxStrengthMax: MAX_PROJECTION_PARALLAX_STRENGTH,
-    projectionParallaxVanishingPointMin: MIN_PROJECTION_PARALLAX_VANISHING_POINT,
-    projectionParallaxVanishingPointMax: MAX_PROJECTION_PARALLAX_VANISHING_POINT,
+    projectionParallaxVanishingPointMin: MIN_PROJECTION_PARALLAX_VANISHING_POINT_X,
+    projectionParallaxVanishingPointMax: MAX_PROJECTION_PARALLAX_VANISHING_POINT_X,
+    projectionParallaxVanishingPointXMin: MIN_PROJECTION_PARALLAX_VANISHING_POINT_X,
+    projectionParallaxVanishingPointXMax: MAX_PROJECTION_PARALLAX_VANISHING_POINT_X,
+    projectionParallaxVanishingPointYMin: MIN_PROJECTION_PARALLAX_VANISHING_POINT_Y,
+    projectionParallaxVanishingPointYMax: MAX_PROJECTION_PARALLAX_VANISHING_POINT_Y,
     projectionParallaxPopoutStrengthMin: MIN_PROJECTION_PARALLAX_POPOUT_STRENGTH,
     projectionParallaxPopoutStrengthMax: MAX_PROJECTION_PARALLAX_POPOUT_STRENGTH,
+    projectionParallaxDepthMultiplierMin: MIN_PROJECTION_PARALLAX_DEPTH_MULTIPLIER,
+    projectionParallaxDepthMultiplierMax: MAX_PROJECTION_PARALLAX_DEPTH_MULTIPLIER,
+    projectionParallaxDepthReferenceIndexMin: MIN_PROJECTION_PARALLAX_DEPTH_REFERENCE_INDEX,
+    projectionParallaxDepthReferenceIndexMax: MAX_PROJECTION_PARALLAX_DEPTH_REFERENCE_INDEX,
+    projectionParallaxViewerOffsetXMin: MIN_PROJECTION_PARALLAX_VIEWER_OFFSET_X,
+    projectionParallaxViewerOffsetXMax: MAX_PROJECTION_PARALLAX_VIEWER_OFFSET_X,
+    projectionParallaxViewerOffsetYMin: MIN_PROJECTION_PARALLAX_VIEWER_OFFSET_Y,
+    projectionParallaxViewerOffsetYMax: MAX_PROJECTION_PARALLAX_VIEWER_OFFSET_Y,
+    projectionParallaxViewerDistanceMin: MIN_PROJECTION_PARALLAX_VIEWER_DISTANCE,
+    projectionParallaxViewerDistanceMax: MAX_PROJECTION_PARALLAX_VIEWER_DISTANCE,
     projectionViewportMarginMin: MIN_PROJECTION_VIEWPORT_MARGIN,
     projectionViewportMarginMax: MAX_PROJECTION_VIEWPORT_MARGIN,
     projectionCloudCountMin: MIN_PROJECTION_CLOUD_COUNT,
     projectionCloudCountMax: MAX_PROJECTION_CLOUD_COUNT,
-    projectionCloudOriginXMin: MIN_PROJECTION_CLOUD_ORIGIN_X,
-    projectionCloudOriginXMax: MAX_PROJECTION_CLOUD_ORIGIN_X,
     projectionCloudOriginYMin: MIN_PROJECTION_CLOUD_ORIGIN_Y,
     projectionCloudOriginYMax: MAX_PROJECTION_CLOUD_ORIGIN_Y,
     aiAvailable: Boolean(OPENAI_API_KEY)
@@ -952,7 +1409,7 @@ async function handleApi(req, res, url) {
         !Number.isInteger(moveCount) ||
         moveCount < 1
       ) {
-        sendError(res, 400, "移動量は1以上です。");
+        sendError(res, 400, "入替数は1以上です。");
         return;
       }
       nextSettings.projectionMoveCount = Math.min(moveCount, nextSettings.projectionDisplayCount);
@@ -1001,6 +1458,19 @@ async function handleApi(req, res, url) {
       nextSettings.projectionEffectIntervalMs = effectIntervalMs;
     }
 
+    if (Object.prototype.hasOwnProperty.call(body, "projectionTanzakuFontId")) {
+      const tanzakuFontId = String(body.projectionTanzakuFontId || "");
+      if (!PROJECTION_TANZAKU_FONT_IDS.has(tanzakuFontId)) {
+        sendError(res, 400, "短冊フォントの指定が不正です。");
+        return;
+      }
+      nextSettings.projectionTanzakuFontId = tanzakuFontId;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionColorEmojiFontEnabled")) {
+      nextSettings.projectionColorEmojiFontEnabled = body.projectionColorEmojiFontEnabled === true;
+    }
+
     if (Object.prototype.hasOwnProperty.call(body, "projectionMilkyWayGain")) {
       const milkyWayGain = Number(body.projectionMilkyWayGain);
       if (
@@ -1014,6 +1484,270 @@ async function handleApi(req, res, url) {
       nextSettings.projectionMilkyWayGain = milkyWayGain;
     }
 
+    if (Object.prototype.hasOwnProperty.call(body, "projectionMilkyWayTwinkle")) {
+      const milkyWayTwinkle = Number(body.projectionMilkyWayTwinkle);
+      if (
+        !Number.isFinite(milkyWayTwinkle) ||
+        milkyWayTwinkle < MIN_PROJECTION_MILKY_WAY_TWINKLE ||
+        milkyWayTwinkle > MAX_PROJECTION_MILKY_WAY_TWINKLE
+      ) {
+        sendError(res, 400, `天の川きらめきは${MIN_PROJECTION_MILKY_WAY_TWINKLE}から${MAX_PROJECTION_MILKY_WAY_TWINKLE}までです。`);
+        return;
+      }
+      nextSettings.projectionMilkyWayTwinkle = milkyWayTwinkle;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionMilkyWaySparkle")) {
+      const milkyWaySparkle = Number(body.projectionMilkyWaySparkle);
+      if (
+        !Number.isFinite(milkyWaySparkle) ||
+        milkyWaySparkle < MIN_PROJECTION_MILKY_WAY_SPARKLE ||
+        milkyWaySparkle > MAX_PROJECTION_MILKY_WAY_SPARKLE
+      ) {
+        sendError(res, 400, `強い瞬きは${MIN_PROJECTION_MILKY_WAY_SPARKLE}から${MAX_PROJECTION_MILKY_WAY_SPARKLE}までです。`);
+        return;
+      }
+      nextSettings.projectionMilkyWaySparkle = milkyWaySparkle;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionMilkyWaySpeed")) {
+      const milkyWaySpeed = Number(body.projectionMilkyWaySpeed);
+      if (
+        !Number.isFinite(milkyWaySpeed) ||
+        milkyWaySpeed < MIN_PROJECTION_MILKY_WAY_SPEED ||
+        milkyWaySpeed > MAX_PROJECTION_MILKY_WAY_SPEED
+      ) {
+        sendError(res, 400, `天の川変化速度は${MIN_PROJECTION_MILKY_WAY_SPEED}から${MAX_PROJECTION_MILKY_WAY_SPEED}までです。`);
+        return;
+      }
+      nextSettings.projectionMilkyWaySpeed = milkyWaySpeed;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionMilkyWayParticleCount")) {
+      const milkyWayParticleCount = Number(body.projectionMilkyWayParticleCount);
+      if (
+        !Number.isInteger(milkyWayParticleCount) ||
+        milkyWayParticleCount < MIN_PROJECTION_MILKY_WAY_PARTICLE_COUNT ||
+        milkyWayParticleCount > MAX_PROJECTION_MILKY_WAY_PARTICLE_COUNT
+      ) {
+        sendError(
+          res,
+          400,
+          `天の川粒子数は${MIN_PROJECTION_MILKY_WAY_PARTICLE_COUNT}から${MAX_PROJECTION_MILKY_WAY_PARTICLE_COUNT}までです。`
+        );
+        return;
+      }
+      nextSettings.projectionMilkyWayParticleCount = milkyWayParticleCount;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionMilkyWaySparkleRatio")) {
+      const milkyWaySparkleRatio = Number(body.projectionMilkyWaySparkleRatio);
+      if (
+        !Number.isFinite(milkyWaySparkleRatio) ||
+        milkyWaySparkleRatio < MIN_PROJECTION_MILKY_WAY_SPARKLE_RATIO ||
+        milkyWaySparkleRatio > MAX_PROJECTION_MILKY_WAY_SPARKLE_RATIO
+      ) {
+        sendError(
+          res,
+          400,
+          `強い瞬き割合は${MIN_PROJECTION_MILKY_WAY_SPARKLE_RATIO}から${MAX_PROJECTION_MILKY_WAY_SPARKLE_RATIO}までです。`
+        );
+        return;
+      }
+      nextSettings.projectionMilkyWaySparkleRatio = milkyWaySparkleRatio;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionMilkyWaySparklePeriodVariance")) {
+      const milkyWaySparklePeriodVariance = Number(body.projectionMilkyWaySparklePeriodVariance);
+      if (
+        !Number.isFinite(milkyWaySparklePeriodVariance) ||
+        milkyWaySparklePeriodVariance < MIN_PROJECTION_MILKY_WAY_SPARKLE_PERIOD_VARIANCE ||
+        milkyWaySparklePeriodVariance > MAX_PROJECTION_MILKY_WAY_SPARKLE_PERIOD_VARIANCE
+      ) {
+        sendError(
+          res,
+          400,
+          `瞬き周期分散は${MIN_PROJECTION_MILKY_WAY_SPARKLE_PERIOD_VARIANCE}から${MAX_PROJECTION_MILKY_WAY_SPARKLE_PERIOD_VARIANCE}までです。`
+        );
+        return;
+      }
+      nextSettings.projectionMilkyWaySparklePeriodVariance = milkyWaySparklePeriodVariance;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionMilkyWaySparkleIntensityVariance")) {
+      const milkyWaySparkleIntensityVariance = Number(body.projectionMilkyWaySparkleIntensityVariance);
+      if (
+        !Number.isFinite(milkyWaySparkleIntensityVariance) ||
+        milkyWaySparkleIntensityVariance < MIN_PROJECTION_MILKY_WAY_SPARKLE_INTENSITY_VARIANCE ||
+        milkyWaySparkleIntensityVariance > MAX_PROJECTION_MILKY_WAY_SPARKLE_INTENSITY_VARIANCE
+      ) {
+        sendError(
+          res,
+          400,
+          `瞬き強度分散は${MIN_PROJECTION_MILKY_WAY_SPARKLE_INTENSITY_VARIANCE}から${MAX_PROJECTION_MILKY_WAY_SPARKLE_INTENSITY_VARIANCE}までです。`
+        );
+        return;
+      }
+      nextSettings.projectionMilkyWaySparkleIntensityVariance = milkyWaySparkleIntensityVariance;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionMilkyWaySparklePeriodSeconds")) {
+      const milkyWaySparklePeriodSeconds = Number(body.projectionMilkyWaySparklePeriodSeconds);
+      if (
+        !Number.isFinite(milkyWaySparklePeriodSeconds) ||
+        milkyWaySparklePeriodSeconds < MIN_PROJECTION_MILKY_WAY_SPARKLE_PERIOD_SECONDS ||
+        milkyWaySparklePeriodSeconds > MAX_PROJECTION_MILKY_WAY_SPARKLE_PERIOD_SECONDS
+      ) {
+        sendError(
+          res,
+          400,
+          `強い瞬き周期は${MIN_PROJECTION_MILKY_WAY_SPARKLE_PERIOD_SECONDS}から${MAX_PROJECTION_MILKY_WAY_SPARKLE_PERIOD_SECONDS}秒までです。`
+        );
+        return;
+      }
+      nextSettings.projectionMilkyWaySparklePeriodSeconds = milkyWaySparklePeriodSeconds;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionMilkyWaySparkleDutyRatio")) {
+      const milkyWaySparkleDutyRatio = Number(body.projectionMilkyWaySparkleDutyRatio);
+      if (
+        !Number.isFinite(milkyWaySparkleDutyRatio) ||
+        milkyWaySparkleDutyRatio < MIN_PROJECTION_MILKY_WAY_SPARKLE_DUTY_RATIO ||
+        milkyWaySparkleDutyRatio > MAX_PROJECTION_MILKY_WAY_SPARKLE_DUTY_RATIO
+      ) {
+        sendError(
+          res,
+          400,
+          `強い瞬きデューティは${MIN_PROJECTION_MILKY_WAY_SPARKLE_DUTY_RATIO}から${MAX_PROJECTION_MILKY_WAY_SPARKLE_DUTY_RATIO}までです。`
+        );
+        return;
+      }
+      nextSettings.projectionMilkyWaySparkleDutyRatio = milkyWaySparkleDutyRatio;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionMilkyWaySeed")) {
+      nextSettings.projectionMilkyWaySeed = String(body.projectionMilkyWaySeed || DEFAULT_SETTINGS.projectionMilkyWaySeed).slice(0, 80);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionTanabataStarResponseIntensity")) {
+      const tanabataStarResponseIntensity = Number(body.projectionTanabataStarResponseIntensity);
+      if (
+        !Number.isFinite(tanabataStarResponseIntensity) ||
+        tanabataStarResponseIntensity < MIN_PROJECTION_TANABATA_STAR_RESPONSE_INTENSITY ||
+        tanabataStarResponseIntensity > MAX_PROJECTION_TANABATA_STAR_RESPONSE_INTENSITY
+      ) {
+        sendError(
+          res,
+          400,
+          `ベガ/アルタイル発光強度は${MIN_PROJECTION_TANABATA_STAR_RESPONSE_INTENSITY}から${MAX_PROJECTION_TANABATA_STAR_RESPONSE_INTENSITY}までです。`
+        );
+        return;
+      }
+      nextSettings.projectionTanabataStarResponseIntensity = tanabataStarResponseIntensity;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionTanabataStarResponsePhaseDeg")) {
+      const tanabataStarResponsePhaseDeg = Number(body.projectionTanabataStarResponsePhaseDeg);
+      if (
+        !Number.isFinite(tanabataStarResponsePhaseDeg) ||
+        tanabataStarResponsePhaseDeg < MIN_PROJECTION_TANABATA_STAR_RESPONSE_PHASE_DEG ||
+        tanabataStarResponsePhaseDeg > MAX_PROJECTION_TANABATA_STAR_RESPONSE_PHASE_DEG
+      ) {
+        sendError(
+          res,
+          400,
+          `ベガ/アルタイル位相差は${MIN_PROJECTION_TANABATA_STAR_RESPONSE_PHASE_DEG}から${MAX_PROJECTION_TANABATA_STAR_RESPONSE_PHASE_DEG}までです。`
+        );
+        return;
+      }
+      nextSettings.projectionTanabataStarResponsePhaseDeg = tanabataStarResponsePhaseDeg;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionTanabataStarResponsePeriodSeconds")) {
+      const tanabataStarResponsePeriodSeconds = Number(body.projectionTanabataStarResponsePeriodSeconds);
+      if (
+        !Number.isFinite(tanabataStarResponsePeriodSeconds) ||
+        tanabataStarResponsePeriodSeconds < MIN_PROJECTION_TANABATA_STAR_RESPONSE_PERIOD_SECONDS ||
+        tanabataStarResponsePeriodSeconds > MAX_PROJECTION_TANABATA_STAR_RESPONSE_PERIOD_SECONDS
+      ) {
+        sendError(
+          res,
+          400,
+          `ベガ/アルタイル周期は${MIN_PROJECTION_TANABATA_STAR_RESPONSE_PERIOD_SECONDS}から${MAX_PROJECTION_TANABATA_STAR_RESPONSE_PERIOD_SECONDS}秒までです。`
+        );
+        return;
+      }
+      nextSettings.projectionTanabataStarResponsePeriodSeconds = tanabataStarResponsePeriodSeconds;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionTanzakuSwayStrength")) {
+      const tanzakuSwayStrength = Number(body.projectionTanzakuSwayStrength);
+      if (
+        !Number.isFinite(tanzakuSwayStrength) ||
+        tanzakuSwayStrength < MIN_PROJECTION_TANZAKU_SWAY_STRENGTH ||
+        tanzakuSwayStrength > MAX_PROJECTION_TANZAKU_SWAY_STRENGTH
+      ) {
+        sendError(
+          res,
+          400,
+          `短冊揺れ強度は${MIN_PROJECTION_TANZAKU_SWAY_STRENGTH}から${MAX_PROJECTION_TANZAKU_SWAY_STRENGTH}までです。`
+        );
+        return;
+      }
+      nextSettings.projectionTanzakuSwayStrength = tanzakuSwayStrength;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionWindGustStrength")) {
+      const windGustStrength = Number(body.projectionWindGustStrength);
+      if (
+        !Number.isFinite(windGustStrength) ||
+        windGustStrength < MIN_PROJECTION_WIND_GUST_STRENGTH ||
+        windGustStrength > MAX_PROJECTION_WIND_GUST_STRENGTH
+      ) {
+        sendError(
+          res,
+          400,
+          `突風強度は${MIN_PROJECTION_WIND_GUST_STRENGTH}から${MAX_PROJECTION_WIND_GUST_STRENGTH}までです。`
+        );
+        return;
+      }
+      nextSettings.projectionWindGustStrength = windGustStrength;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionWindGustCycleMs")) {
+      const windGustCycleMs = Number(body.projectionWindGustCycleMs);
+      if (
+        !Number.isInteger(windGustCycleMs) ||
+        windGustCycleMs < MIN_PROJECTION_WIND_GUST_CYCLE_SECONDS * 1000 ||
+        windGustCycleMs > MAX_PROJECTION_WIND_GUST_CYCLE_SECONDS * 1000
+      ) {
+        sendError(
+          res,
+          400,
+          `突風周期は${MIN_PROJECTION_WIND_GUST_CYCLE_SECONDS}から${MAX_PROJECTION_WIND_GUST_CYCLE_SECONDS}秒までです。`
+        );
+        return;
+      }
+      nextSettings.projectionWindGustCycleMs = windGustCycleMs;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionWindGustCycleJitterSeconds")) {
+      const windGustCycleJitterSeconds = Number(body.projectionWindGustCycleJitterSeconds);
+      if (
+        !Number.isInteger(windGustCycleJitterSeconds) ||
+        windGustCycleJitterSeconds < MIN_PROJECTION_WIND_GUST_CYCLE_JITTER_SECONDS ||
+        windGustCycleJitterSeconds > MAX_PROJECTION_WIND_GUST_CYCLE_JITTER_SECONDS
+      ) {
+        sendError(
+          res,
+          400,
+          `突風のランダム延長は${MIN_PROJECTION_WIND_GUST_CYCLE_JITTER_SECONDS}から${MAX_PROJECTION_WIND_GUST_CYCLE_JITTER_SECONDS}秒までです。`
+        );
+        return;
+      }
+      nextSettings.projectionWindGustCycleJitterSeconds = windGustCycleJitterSeconds;
+    }
+
     if (Object.prototype.hasOwnProperty.call(body, "projectionExperimentalParallaxEnabled")) {
       nextSettings.projectionExperimentalParallaxEnabled = body.projectionExperimentalParallaxEnabled === true;
     }
@@ -1025,7 +1759,7 @@ async function handleApi(req, res, url) {
         parallaxStrength < MIN_PROJECTION_PARALLAX_STRENGTH ||
         parallaxStrength > MAX_PROJECTION_PARALLAX_STRENGTH
       ) {
-        sendError(res, 400, `視差強度は${MIN_PROJECTION_PARALLAX_STRENGTH}から${MAX_PROJECTION_PARALLAX_STRENGTH}までです。`);
+        sendError(res, 400, `左右移動倍率は${MIN_PROJECTION_PARALLAX_STRENGTH}から${MAX_PROJECTION_PARALLAX_STRENGTH}までです。`);
         return;
       }
       nextSettings.projectionParallaxStrength = parallaxStrength;
@@ -1035,10 +1769,10 @@ async function handleApi(req, res, url) {
       const vanishingPointX = Number(body.projectionParallaxVanishingPointX);
       if (
         !Number.isFinite(vanishingPointX) ||
-        vanishingPointX < MIN_PROJECTION_PARALLAX_VANISHING_POINT ||
-        vanishingPointX > MAX_PROJECTION_PARALLAX_VANISHING_POINT
+        vanishingPointX < MIN_PROJECTION_PARALLAX_VANISHING_POINT_X ||
+        vanishingPointX > MAX_PROJECTION_PARALLAX_VANISHING_POINT_X
       ) {
-        sendError(res, 400, `視差消失点Xは${MIN_PROJECTION_PARALLAX_VANISHING_POINT}から${MAX_PROJECTION_PARALLAX_VANISHING_POINT}までです。`);
+        sendError(res, 400, `視差消失点Xは${MIN_PROJECTION_PARALLAX_VANISHING_POINT_X}から${MAX_PROJECTION_PARALLAX_VANISHING_POINT_X}までです。`);
         return;
       }
       nextSettings.projectionParallaxVanishingPointX = vanishingPointX;
@@ -1048,10 +1782,10 @@ async function handleApi(req, res, url) {
       const vanishingPointY = Number(body.projectionParallaxVanishingPointY);
       if (
         !Number.isFinite(vanishingPointY) ||
-        vanishingPointY < MIN_PROJECTION_PARALLAX_VANISHING_POINT ||
-        vanishingPointY > MAX_PROJECTION_PARALLAX_VANISHING_POINT
+        vanishingPointY < MIN_PROJECTION_PARALLAX_VANISHING_POINT_Y ||
+        vanishingPointY > MAX_PROJECTION_PARALLAX_VANISHING_POINT_Y
       ) {
-        sendError(res, 400, `視差消失点Yは${MIN_PROJECTION_PARALLAX_VANISHING_POINT}から${MAX_PROJECTION_PARALLAX_VANISHING_POINT}までです。`);
+        sendError(res, 400, `視差消失点Yは${MIN_PROJECTION_PARALLAX_VANISHING_POINT_Y}から${MAX_PROJECTION_PARALLAX_VANISHING_POINT_Y}までです。`);
         return;
       }
       nextSettings.projectionParallaxVanishingPointY = vanishingPointY;
@@ -1068,10 +1802,84 @@ async function handleApi(req, res, url) {
         popoutStrength < MIN_PROJECTION_PARALLAX_POPOUT_STRENGTH ||
         popoutStrength > MAX_PROJECTION_PARALLAX_POPOUT_STRENGTH
       ) {
-        sendError(res, 400, `飛び出し量は${MIN_PROJECTION_PARALLAX_POPOUT_STRENGTH}から${MAX_PROJECTION_PARALLAX_POPOUT_STRENGTH}までです。`);
+        sendError(res, 400, `前後/上下移動倍率は${MIN_PROJECTION_PARALLAX_POPOUT_STRENGTH}から${MAX_PROJECTION_PARALLAX_POPOUT_STRENGTH}までです。`);
         return;
       }
       nextSettings.projectionParallaxPopoutStrength = popoutStrength;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionParallaxDepthMultiplier")) {
+      const depthMultiplier = Number(body.projectionParallaxDepthMultiplier);
+      if (
+        !Number.isFinite(depthMultiplier) ||
+        depthMultiplier < MIN_PROJECTION_PARALLAX_DEPTH_MULTIPLIER ||
+        depthMultiplier > MAX_PROJECTION_PARALLAX_DEPTH_MULTIPLIER
+      ) {
+        sendError(res, 400, `短冊奥行倍率は${MIN_PROJECTION_PARALLAX_DEPTH_MULTIPLIER}から${MAX_PROJECTION_PARALLAX_DEPTH_MULTIPLIER}までです。`);
+        return;
+      }
+      nextSettings.projectionParallaxDepthMultiplier = depthMultiplier;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionParallaxDepthReferenceIndex")) {
+      const depthReferenceIndex = Number(body.projectionParallaxDepthReferenceIndex);
+      if (
+        !Number.isInteger(depthReferenceIndex) ||
+        depthReferenceIndex < MIN_PROJECTION_PARALLAX_DEPTH_REFERENCE_INDEX ||
+        depthReferenceIndex > MAX_PROJECTION_PARALLAX_DEPTH_REFERENCE_INDEX
+      ) {
+        sendError(res, 400, `短冊奥行基準順は${MIN_PROJECTION_PARALLAX_DEPTH_REFERENCE_INDEX}から${MAX_PROJECTION_PARALLAX_DEPTH_REFERENCE_INDEX}までです。`);
+        return;
+      }
+      nextSettings.projectionParallaxDepthReferenceIndex = depthReferenceIndex;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionParallaxMotionMode")) {
+      const motionMode = String(body.projectionParallaxMotionMode || "");
+      if (!PROJECTION_PARALLAX_MOTION_MODES.has(motionMode)) {
+        sendError(res, 400, "笹舟移動モードは display / mapping / camera / camera-display のいずれかです。");
+        return;
+      }
+      nextSettings.projectionParallaxMotionMode = motionMode;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionParallaxViewerOffsetX")) {
+      const viewerOffsetX = Number(body.projectionParallaxViewerOffsetX);
+      if (
+        !Number.isFinite(viewerOffsetX) ||
+        viewerOffsetX < MIN_PROJECTION_PARALLAX_VIEWER_OFFSET_X ||
+        viewerOffsetX > MAX_PROJECTION_PARALLAX_VIEWER_OFFSET_X
+      ) {
+        sendError(res, 400, `鑑賞地点左右オフセットは${MIN_PROJECTION_PARALLAX_VIEWER_OFFSET_X}から${MAX_PROJECTION_PARALLAX_VIEWER_OFFSET_X}までです。`);
+        return;
+      }
+      nextSettings.projectionParallaxViewerOffsetX = viewerOffsetX;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionParallaxViewerOffsetY")) {
+      const viewerOffsetY = Number(body.projectionParallaxViewerOffsetY);
+      if (
+        !Number.isFinite(viewerOffsetY) ||
+        viewerOffsetY < MIN_PROJECTION_PARALLAX_VIEWER_OFFSET_Y ||
+        viewerOffsetY > MAX_PROJECTION_PARALLAX_VIEWER_OFFSET_Y
+      ) {
+        sendError(res, 400, `鑑賞地点上下オフセットは${MIN_PROJECTION_PARALLAX_VIEWER_OFFSET_Y}から${MAX_PROJECTION_PARALLAX_VIEWER_OFFSET_Y}までです。`);
+        return;
+      }
+      nextSettings.projectionParallaxViewerOffsetY = viewerOffsetY;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionParallaxViewerDistance")) {
+      const viewerDistance = Number(body.projectionParallaxViewerDistance);
+      if (
+        !Number.isFinite(viewerDistance) ||
+        viewerDistance < MIN_PROJECTION_PARALLAX_VIEWER_DISTANCE ||
+        viewerDistance > MAX_PROJECTION_PARALLAX_VIEWER_DISTANCE
+      ) {
+        sendError(res, 400, `壁面からの距離は${MIN_PROJECTION_PARALLAX_VIEWER_DISTANCE}から${MAX_PROJECTION_PARALLAX_VIEWER_DISTANCE}までです。`);
+        return;
+      }
+      nextSettings.projectionParallaxViewerDistance = viewerDistance;
     }
 
     if (Object.prototype.hasOwnProperty.call(body, "projectionViewportMargin")) {
@@ -1098,19 +1906,6 @@ async function handleApi(req, res, url) {
         return;
       }
       nextSettings.projectionCloudCount = cloudCount;
-    }
-
-    if (Object.prototype.hasOwnProperty.call(body, "projectionCloudOriginX")) {
-      const cloudOriginX = Number(body.projectionCloudOriginX);
-      if (
-        !Number.isFinite(cloudOriginX) ||
-        cloudOriginX < MIN_PROJECTION_CLOUD_ORIGIN_X ||
-        cloudOriginX > MAX_PROJECTION_CLOUD_ORIGIN_X
-      ) {
-        sendError(res, 400, `雲の発生Xは${MIN_PROJECTION_CLOUD_ORIGIN_X}から${MAX_PROJECTION_CLOUD_ORIGIN_X}までです。`);
-        return;
-      }
-      nextSettings.projectionCloudOriginX = cloudOriginX;
     }
 
     if (Object.prototype.hasOwnProperty.call(body, "projectionCloudOriginY")) {

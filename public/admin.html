@@ -143,16 +143,38 @@
             <fieldset class="settings-group">
               <legend>表示</legend>
               <label class="number-option">
+                <span>短冊フォント</span>
+                <select id="projection-tanzaku-font-id">
+                  <option value="mincho">明朝</option>
+                  <option value="gothic">角ゴシック</option>
+                  <option value="maru">丸ゴシック</option>
+                  <option value="kyokasho">教科書体</option>
+                  <option value="brush">筆文字風</option>
+                </select>
+              </label>
+              <label class="detail-toggle" for="projection-color-emoji-font-enabled">
+                <input id="projection-color-emoji-font-enabled" type="checkbox" role="switch" aria-label="同梱カラー絵文字フォント">
+                <span>カラー絵文字フォント（実験）</span>
+              </label>
+              <label class="number-option">
                 <span>総スロット数</span>
                 <input id="projection-slot-count" type="number" min="1" max="60" step="1" inputmode="numeric">
               </label>
-              <label class="number-option">
+              <label class="number-option stepper-option">
                 <span>表示数</span>
-                <input id="projection-display-count" type="number" min="1" max="30" step="1" inputmode="numeric">
+                <span class="stepper-control">
+                  <button type="button" class="stepper-button" data-stepper-target="projection-display-count" data-stepper-delta="-1" aria-label="表示数を減らす">−</button>
+                  <input id="projection-display-count" type="number" min="1" max="30" step="1" inputmode="numeric" readonly>
+                  <button type="button" class="stepper-button" data-stepper-target="projection-display-count" data-stepper-delta="1" aria-label="表示数を増やす">＋</button>
+                </span>
               </label>
-              <label class="number-option">
-                <span>移動量</span>
-                <input id="projection-move-count" type="number" min="1" max="12" step="1" inputmode="numeric">
+              <label class="number-option stepper-option">
+                <span>入替数</span>
+                <span class="stepper-control">
+                  <button type="button" class="stepper-button" data-stepper-target="projection-move-count" data-stepper-delta="-1" aria-label="入替数を減らす">−</button>
+                  <input id="projection-move-count" type="number" min="1" max="12" step="1" inputmode="numeric" readonly>
+                  <button type="button" class="stepper-button" data-stepper-target="projection-move-count" data-stepper-delta="1" aria-label="入替数を増やす">＋</button>
+                </span>
               </label>
             </fieldset>
             <fieldset class="settings-group">
@@ -178,22 +200,108 @@
               </label>
             </fieldset>
             <fieldset class="settings-group">
+              <legend>風</legend>
+              <label class="range-option">
+                <span class="range-option-label">短冊揺れ強度</span>
+                <input id="projection-tanzaku-sway-strength" type="range" min="0" max="3" step="0.05">
+                <output id="projection-tanzaku-sway-strength-value" for="projection-tanzaku-sway-strength">1</output>
+              </label>
+              <label class="range-option">
+                <span class="range-option-label">突風強度</span>
+                <input id="projection-wind-gust-strength" type="range" min="0" max="3" step="0.05">
+                <output id="projection-wind-gust-strength-value" for="projection-wind-gust-strength">1</output>
+              </label>
+              <label class="range-option">
+                <span class="range-option-label">突風周期</span>
+                <input id="projection-wind-gust-cycle-seconds" type="range" min="3" max="60" step="1">
+                <output id="projection-wind-gust-cycle-seconds-value" for="projection-wind-gust-cycle-seconds">30秒</output>
+              </label>
+              <label class="range-option">
+                <span class="range-option-label">ランダム延長</span>
+                <input id="projection-wind-gust-cycle-jitter-seconds" type="range" min="0" max="60" step="1">
+                <output id="projection-wind-gust-cycle-jitter-seconds-value" for="projection-wind-gust-cycle-jitter-seconds">0秒</output>
+              </label>
+            </fieldset>
+            <fieldset class="settings-group">
               <legend>背景</legend>
-              <label class="number-option">
-                <span>天の川明るさ</span>
-                <input id="projection-milky-way-gain" type="number" min="0.5" max="4" step="0.05" inputmode="decimal">
+              <label class="range-option">
+                <span class="range-option-label">天の川の明るさ</span>
+                <input id="projection-milky-way-gain" type="range" min="0.5" max="4" step="0.05">
+                <output id="projection-milky-way-gain-value" for="projection-milky-way-gain">1.75</output>
+              </label>
+              <label class="range-option">
+                <span class="range-option-label">天の川きらめき</span>
+                <input id="projection-milky-way-twinkle" type="range" min="0" max="2.5" step="0.05">
+                <output id="projection-milky-way-twinkle-value" for="projection-milky-way-twinkle">1</output>
+              </label>
+              <label class="range-option">
+                <span class="range-option-label">強い瞬き</span>
+                <input id="projection-milky-way-sparkle" type="range" min="0" max="2.5" step="0.05">
+                <output id="projection-milky-way-sparkle-value" for="projection-milky-way-sparkle">1</output>
+              </label>
+              <label class="range-option">
+                <span class="range-option-label">変化速度</span>
+                <input id="projection-milky-way-speed" type="range" min="0.2" max="2.5" step="0.05">
+                <output id="projection-milky-way-speed-value" for="projection-milky-way-speed">1</output>
+              </label>
+              <label class="range-option">
+                <span class="range-option-label">粒子数</span>
+                <input id="projection-milky-way-particle-count" type="range" min="80" max="720" step="20">
+                <output id="projection-milky-way-particle-count-value" for="projection-milky-way-particle-count">340</output>
+              </label>
+              <label class="range-option">
+                <span class="range-option-label">強い瞬き割合</span>
+                <input id="projection-milky-way-sparkle-ratio" type="range" min="0" max="0.25" step="0.005">
+                <output id="projection-milky-way-sparkle-ratio-value" for="projection-milky-way-sparkle-ratio">0.045</output>
+              </label>
+              <label class="range-option">
+                <span class="range-option-label">瞬き周期分散</span>
+                <input id="projection-milky-way-sparkle-period-variance" type="range" min="0" max="2.5" step="0.05">
+                <output id="projection-milky-way-sparkle-period-variance-value" for="projection-milky-way-sparkle-period-variance">1</output>
+              </label>
+              <label class="range-option">
+                <span class="range-option-label">瞬き強度分散</span>
+                <input id="projection-milky-way-sparkle-intensity-variance" type="range" min="0" max="2.5" step="0.05">
+                <output id="projection-milky-way-sparkle-intensity-variance-value" for="projection-milky-way-sparkle-intensity-variance">1</output>
+              </label>
+              <label class="range-option">
+                <span class="range-option-label">強い瞬き周期</span>
+                <input id="projection-milky-way-sparkle-period-seconds" type="range" min="0.5" max="8" step="0.1">
+                <output id="projection-milky-way-sparkle-period-seconds-value" for="projection-milky-way-sparkle-period-seconds">2.2秒</output>
+              </label>
+              <label class="range-option">
+                <span class="range-option-label">強い瞬きデューティ</span>
+                <input id="projection-milky-way-sparkle-duty-ratio" type="range" min="0.03" max="0.8" step="0.01">
+                <output id="projection-milky-way-sparkle-duty-ratio-value" for="projection-milky-way-sparkle-duty-ratio">16%</output>
               </label>
               <label class="number-option">
-                <span>雲の発生量</span>
-                <input id="projection-cloud-count" type="number" min="0" max="12" step="1" inputmode="numeric">
+                <span>天の川seed</span>
+                <input id="projection-milky-way-seed" type="text" maxlength="80" autocomplete="off">
               </label>
-              <label class="number-option">
-                <span>雲の発生X</span>
-                <input id="projection-cloud-origin-x" type="number" min="-80" max="120" step="1" inputmode="decimal">
+              <label class="range-option">
+                <span class="range-option-label">ベガ/アルタイル強度</span>
+                <input id="projection-tanabata-star-response-intensity" type="range" min="0" max="3" step="0.05">
+                <output id="projection-tanabata-star-response-intensity-value" for="projection-tanabata-star-response-intensity">1</output>
               </label>
-              <label class="number-option">
-                <span>雲の発生Y</span>
-                <input id="projection-cloud-origin-y" type="number" min="-20" max="100" step="1" inputmode="decimal">
+              <label class="range-option">
+                <span class="range-option-label">ベガ/アルタイル位相差</span>
+                <input id="projection-tanabata-star-response-phase-deg" type="range" min="0" max="360" step="5">
+                <output id="projection-tanabata-star-response-phase-deg-value" for="projection-tanabata-star-response-phase-deg">166</output>
+              </label>
+              <label class="range-option">
+                <span class="range-option-label">ベガ/アルタイル周期</span>
+                <input id="projection-tanabata-star-response-period-seconds" type="range" min="8" max="90" step="1">
+                <output id="projection-tanabata-star-response-period-seconds-value" for="projection-tanabata-star-response-period-seconds">35</output>
+              </label>
+              <label class="range-option">
+                <span class="range-option-label">雲の量</span>
+                <input id="projection-cloud-count" type="range" min="0" max="12" step="1">
+                <output id="projection-cloud-count-value" for="projection-cloud-count">3</output>
+              </label>
+              <label class="range-option">
+                <span class="range-option-label">雲高さ</span>
+                <input id="projection-cloud-origin-y" type="range" min="-1" max="1" step="0.05">
+                <output id="projection-cloud-origin-y-value" for="projection-cloud-origin-y">0</output>
               </label>
               <label class="number-option">
                 <span>雲シード</span>
@@ -210,26 +318,71 @@
                 <input id="projection-parallax-marker-enabled" type="checkbox" role="switch" aria-label="消失点マーカーを表示">
                 <span>消失点マーカー</span>
               </label>
+              <label class="number-option">
+                <span>笹舟移動モード</span>
+                <select id="projection-parallax-motion-mode">
+                  <option value="mapping">壁投影: 左右/前後</option>
+                  <option value="camera">実カメラ: 左右/前後</option>
+                  <option value="camera-display">実カメラ: 左右/上下</option>
+                  <option value="display">ディスプレイ: 左右/上下</option>
+                </select>
+              </label>
               <label class="range-option">
-                <span>視差強度 <output id="projection-parallax-strength-value" for="projection-parallax-strength">1</output></span>
+                <span class="range-option-label">左右</span>
                 <input id="projection-parallax-strength" type="range" min="0" max="3" step="0.05">
+                <output id="projection-parallax-strength-value" for="projection-parallax-strength">1</output>
               </label>
               <label class="range-option">
-                <span>飛び出し量 <output id="projection-parallax-popout-strength-value" for="projection-parallax-popout-strength">0</output></span>
+                <span class="range-option-label">前後/上下</span>
                 <input id="projection-parallax-popout-strength" type="range" min="0" max="3" step="0.05">
+                <output id="projection-parallax-popout-strength-value" for="projection-parallax-popout-strength">0</output>
               </label>
               <label class="range-option">
-                <span>投影面余白 <output id="projection-viewport-margin-value" for="projection-viewport-margin">0</output></span>
+                <span class="range-option-label">短冊奥行</span>
+                <input id="projection-parallax-depth-multiplier" type="range" min="0" max="3" step="0.05">
+                <output id="projection-parallax-depth-multiplier-value" for="projection-parallax-depth-multiplier">1</output>
+              </label>
+              <label class="range-option">
+                <span class="range-option-label">奥行基準順</span>
+                <input id="projection-parallax-depth-reference-index" type="range" min="0" max="60" step="1">
+                <output id="projection-parallax-depth-reference-index-value" for="projection-parallax-depth-reference-index">中央</output>
+              </label>
+              <div class="range-pair range-pair--viewer" aria-label="鑑賞地点">
+                <p class="range-pair-label">鑑賞地点</p>
+                <label class="range-option">
+                  <span class="range-option-label">X</span>
+                  <input id="projection-parallax-viewer-offset-x" type="range" min="-2" max="2" step="0.05">
+                  <output id="projection-parallax-viewer-offset-x-value" for="projection-parallax-viewer-offset-x">0</output>
+                </label>
+                <label class="range-option">
+                  <span class="range-option-label">Y</span>
+                  <input id="projection-parallax-viewer-offset-y" type="range" min="-2" max="2" step="0.05">
+                  <output id="projection-parallax-viewer-offset-y-value" for="projection-parallax-viewer-offset-y">0</output>
+                </label>
+                <label class="range-option">
+                  <span class="range-option-label">距離</span>
+                  <input id="projection-parallax-viewer-distance" type="range" min="0.5" max="8" step="0.1">
+                  <output id="projection-parallax-viewer-distance-value" for="projection-parallax-viewer-distance">2.5</output>
+                </label>
+              </div>
+              <label class="range-option">
+                <span class="range-option-label">余白</span>
                 <input id="projection-viewport-margin" type="range" min="0" max="24" step="0.5">
+                <output id="projection-viewport-margin-value" for="projection-viewport-margin">0</output>
               </label>
-              <label class="range-option">
-                <span>消失点X <output id="projection-parallax-vanishing-point-x-value" for="projection-parallax-vanishing-point-x">0</output></span>
-                <input id="projection-parallax-vanishing-point-x" type="range" min="-1" max="1" step="0.01">
-              </label>
-              <label class="range-option">
-                <span>消失点Y <output id="projection-parallax-vanishing-point-y-value" for="projection-parallax-vanishing-point-y">0</output></span>
-                <input id="projection-parallax-vanishing-point-y" type="range" min="-1" max="1" step="0.01">
-              </label>
+              <div class="range-pair" aria-label="消失点">
+                <p class="range-pair-label">消失点</p>
+                <label class="range-option">
+                  <span class="range-option-label">X</span>
+                  <input id="projection-parallax-vanishing-point-x" type="range" min="-1" max="1" step="0.01">
+                  <output id="projection-parallax-vanishing-point-x-value" for="projection-parallax-vanishing-point-x">0</output>
+                </label>
+                <label class="range-option">
+                  <span class="range-option-label">Y</span>
+                  <input id="projection-parallax-vanishing-point-y" type="range" min="-1" max="1" step="0.01">
+                  <output id="projection-parallax-vanishing-point-y-value" for="projection-parallax-vanishing-point-y">0</output>
+                </label>
+              </div>
             </fieldset>
             <div class="settings-actions">
               <button type="submit">適用</button>

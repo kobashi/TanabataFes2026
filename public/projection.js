@@ -4,6 +4,7 @@ const effectsCanvas = document.querySelector("#projection-effects-canvas");
 const webglEffectsCanvas = document.querySelector("#projection-webgl-effects-canvas");
 const cloudLayer = document.querySelector("#cloud-layer");
 const vanishingPointMarker = document.querySelector("#vanishing-point-marker");
+const parallaxPerspectiveBox = document.querySelector("#parallax-perspective-box");
 const emptyState = document.querySelector("#empty-state");
 const layoutMenuTrigger = document.querySelector("#layout-menu-trigger");
 const layoutMenu = document.querySelector("#layout-menu");
@@ -15,28 +16,30 @@ const tanzakuFontSizeInput = document.querySelector("#tanzaku-font-size");
 const tanzakuFontSizeValue = document.querySelector("#tanzaku-font-size-value");
 const oracleBoatSizeInput = document.querySelector("#oracle-boat-size");
 const oracleBoatSizeValue = document.querySelector("#oracle-boat-size-value");
+const oracleBoatOffsetInput = document.querySelector("#oracle-boat-offset");
+const oracleBoatOffsetValue = document.querySelector("#oracle-boat-offset-value");
 
 const colors = ["ivory", "crimson", "aqua", "violet", "gold", "leaf"];
 const tanzakuFontOptions = [
   {
     id: "mincho",
     label: "明朝",
-    family: "\"Hiragino Mincho ProN\", \"Yu Mincho\", \"YuMincho\", \"Noto Serif JP\", serif"
+    family: "\"BIZ UDMincho\", \"Source Han Serif JP\", \"Noto Serif CJK JP\", \"Noto Serif JP\", \"Hiragino Mincho ProN\", \"Yu Mincho\", \"YuMincho\", serif"
   },
   {
     id: "gothic",
-    label: "ゴシック",
-    family: "\"Hiragino Sans\", \"Yu Gothic\", \"YuGothic\", \"Noto Sans JP\", sans-serif"
+    label: "角ゴシック",
+    family: "\"Zen Kaku Gothic New\", \"Zen Kaku Gothic N\", \"Source Han Sans JP\", \"Noto Sans CJK JP\", \"Noto Sans JP\", \"BIZ UDGothic\", \"BIZ UDPGothic\", sans-serif"
   },
   {
     id: "maru",
     label: "丸ゴシック",
-    family: "\"Hiragino Maru Gothic ProN\", \"Yu Gothic\", \"YuGothic\", sans-serif"
+    family: "\"Zen Maru Gothic\", \"M PLUS Rounded 1c\", \"Hiragino Maru Gothic ProN\", \"Source Han Sans JP\", \"Noto Sans CJK JP\", \"Noto Sans JP\", sans-serif"
   },
   {
     id: "kyokasho",
     label: "教科書体",
-    family: "\"Yu Kyokasho\", \"Hiragino Mincho ProN\", \"Yu Mincho\", serif"
+    family: "\"BIZ UDMincho\", \"Yu Kyokasho\", \"Source Han Serif JP\", \"Noto Serif CJK JP\", \"Noto Serif JP\", \"Hiragino Mincho ProN\", \"Yu Mincho\", \"YuMincho\", serif"
   },
   {
     id: "brush",
@@ -44,6 +47,14 @@ const tanzakuFontOptions = [
     family: "\"Klee\", \"Klee One\", \"Hiragino Mincho ProN\", \"Yu Mincho\", serif"
   }
 ];
+const TANZAKU_FONT_ASSET_VERSION = "20260704-1";
+const tanzakuFontStylesheets = {
+  gothic: `/fonts/tanzaku-gothic.css?v=${TANZAKU_FONT_ASSET_VERSION}`,
+  maru: `/fonts/tanzaku-maru.css?v=${TANZAKU_FONT_ASSET_VERSION}`,
+  emoji: `/fonts/tanzaku-emoji.css?v=${TANZAKU_FONT_ASSET_VERSION}`
+};
+const loadedTanzakuFontStylesheets = new Set();
+const COLOR_EMOJI_FONT_FAMILY = "\"Noto Color Emoji\", \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", emoji";
 const DEFAULT_DISPLAY_COUNT = 12;
 const DEFAULT_SLOT_COUNT = 15;
 const DEFAULT_MOVE_COUNT = 1;
@@ -52,8 +63,13 @@ const DEFAULT_ROTATE_INTERVAL_MS = 18000;
 const REFRESH_INTERVAL_MS = 7000;
 const EFFECT_POLL_INTERVAL_MS = 2500;
 const PARALLAX_VIEWER_STEP_MS = 4200;
+const PARALLAX_OVERLAY_FRAME_MS = 1000 / 15;
+const PARALLAX_PIXEL_STEP = 0.5;
+const PARALLAX_SCALE_STEP = 0.005;
 const PARALLAX_CAMERA_X = 0.16;
+const PARALLAX_CAMERA_Y = 0.14;
 const PARALLAX_CAMERA_Z = 0.34;
+const PARALLAX_BOX_CAMERA_GAIN = 2.4;
 const PARALLAX_FOCAL_LENGTH = 1.65;
 const PARALLAX_FAR_Z = 4.8;
 const PARALLAX_NEAR_Z = 1.35;
@@ -73,22 +89,27 @@ const METEOR_CYCLE_MS = 80000;
 const METEOR_DELAYS_MS = [0, 26000, 52000];
 const WIND_LEAD_MS = 3200;
 const WIND_SWEEP_MS = 2200;
+const WIND_DEPTH_STAGGER_MS = 700;
 const WIND_GUST_MS = 2200;
 const WIND_PIVOT = "50% -18vh";
+const TANZAKU_DEPTH_REFLOW_MS = 720;
 const TANZAKU_GLOW_MS = 3200;
 const DEFAULT_MILKY_WAY_PROJECTION_GAIN = 1.75;
 const LAYOUT_STORAGE_KEY = "tanabataProjectionLayout.v1";
 const LAYOUT_PRESET_STORAGE_KEY = "tanabataProjectionLayoutPreset.v1";
 const APPEARANCE_STORAGE_KEY = "tanabataProjectionAppearance.v1";
 const DEFAULT_TANZAKU_BOUNDS = { width: 9, height: 42 };
-const PLACEMENT_MIN_CANDIDATES = 12;
-const PLACEMENT_CANDIDATE_RATIO = 1.2;
-const PLACEMENT_COLUMNS = 6;
-const PLACEMENT_ROWS = [
-  { y: 8, offset: 0 },
-  { y: 28, offset: 0.5 },
-  { y: 48, offset: 0 }
-];
+const ORACLE_BOAT_BASE_WIDTH_PX = 72;
+const ORACLE_BOAT_BASE_HEIGHT_PX = 28;
+const ORACLE_CONTAINER_BOTTOM_PX = 8;
+const ORACLE_CAMERA_BOTTOM_PX = 12;
+const ORACLE_EDGE_PADDING_PX = 8;
+const PLACEMENT_MIN_CANDIDATES = 96;
+const PLACEMENT_CANDIDATE_RATIO = 6;
+const PLACEMENT_COLUMNS = 10;
+const PLACEMENT_ROWS = 8;
+const PLACEMENT_PADDING_PERCENT = 1.4;
+const PLACEMENT_EDGE_WEIGHT = 0.16;
 
 let savedLayout = loadSavedLayout();
 const initiallyStoredLayoutIndexes = new Set(
@@ -104,15 +125,38 @@ let projectionSettings = {
   moveCount: DEFAULT_MOVE_COUNT,
   typingIntervalMs: DEFAULT_TYPING_INTERVAL_MS,
   rotateIntervalMs: DEFAULT_ROTATE_INTERVAL_MS,
+  tanzakuFontId: "mincho",
+  colorEmojiFontEnabled: false,
   milkyWayGain: DEFAULT_MILKY_WAY_PROJECTION_GAIN,
+  milkyWayTwinkle: 1,
+  milkyWaySparkle: 1,
+  milkyWaySpeed: 1,
+  milkyWayParticleCount: 340,
+  milkyWaySparkleRatio: 0.045,
+  milkyWaySparklePeriodVariance: 1,
+  milkyWaySparkleIntensityVariance: 1,
+  milkyWaySparklePeriodSeconds: 2.2,
+  milkyWaySparkleDutyRatio: 0.16,
+  milkyWaySeed: "tanabata-milky-way",
+  tanabataStarResponseIntensity: 1,
+  tanabataStarResponsePhaseDeg: 166,
+  tanabataStarResponsePeriodSeconds: 35,
+  tanzakuSwayStrength: 1,
+  windGustStrength: 1,
+  windGustCycleMs: 30000,
+  windGustCycleJitterSeconds: 0,
   cloudCount: 3,
-  cloudOriginX: -32,
-  cloudOriginY: 12,
+  cloudOriginY: 0,
   cloudSeed: "tanabata-clouds",
   experimentalParallaxEnabled: false,
   parallaxStrength: 1,
   parallaxMarkerEnabled: false,
   parallaxPopoutStrength: 0,
+  parallaxDepthMultiplier: 1,
+  parallaxDepthReferenceIndex: 0,
+  parallaxMotionMode: "mapping",
+  parallaxViewerOffsetX: 0,
+  parallaxViewerDistance: 2.5,
   viewportMargin: 0
 };
 
@@ -128,13 +172,13 @@ function getProjectionPlaneMetricsForMargin(margin) {
 }
 
 function getVanishingPointLimitForMargin(margin, axis) {
-  return 1;
+  return axis === "y" ? 5 : 1;
 }
 
 function clampVanishingPointForMargin(value, margin, axis) {
-  const limit = getVanishingPointLimitForMargin(margin, axis);
   const safeValue = Number.isFinite(value) ? value : 0;
-  return Math.max(-limit, Math.min(limit, safeValue));
+  const max = getVanishingPointLimitForMargin(margin, axis);
+  return Math.max(-1, Math.min(max, safeValue));
 }
 
 let nextZOrder = 1;
@@ -146,7 +190,9 @@ let rotationStarted = false;
 let rotationInProgress = false;
 let rotationTimer = null;
 let rotationTimerIntervalMs = null;
+let pendingSlotDomOrderSync = false;
 let windLoopStarted = false;
+let windLoopTimers = [];
 let nextRotationOrder = 1;
 let backlog = [];
 let activeDrag = null;
@@ -156,6 +202,11 @@ let specialEffectInProgress = false;
 let layoutMenuPointerToggled = false;
 let projectionEventSource = null;
 let projectionUpdateTimer = null;
+let appliedProjectionSettingsSignature = "";
+let renderedCloudSettingsSignature = "";
+let approvedWishesSignature = "";
+let currentOracleBoatScale = 1;
+let currentOracleBoatBottomOffset = 0;
 
 const effectsScene = createEffectsScene(effectsCanvas);
 const webglEffectsScene = createWebglEffectsScene(webglEffectsCanvas);
@@ -193,7 +244,8 @@ function normalizeAppearanceSettings(settings = {}) {
   return {
     fontId: normalizeTanzakuFontId(settings.fontId),
     fontSize: normalizeTanzakuFontSize(settings.fontSize),
-    oracleBoatSize: normalizeOracleBoatSize(settings.oracleBoatSize)
+    oracleBoatSize: normalizeOracleBoatSize(settings.oracleBoatSize),
+    oracleBoatOffset: normalizeOracleBoatOffset(settings.oracleBoatOffset)
   };
 }
 
@@ -208,6 +260,12 @@ function normalizeOracleBoatSize(value) {
   return Math.max(70, Math.min(160, Math.round(size / 5) * 5));
 }
 
+function normalizeOracleBoatOffset(value) {
+  const offset = Number(value);
+  if (!Number.isFinite(offset)) return 0;
+  return Math.max(-60, Math.min(180, Math.round(offset / 5) * 5));
+}
+
 function normalizeTanzakuFontSize(value) {
   const size = Number(value);
   if (!Number.isFinite(size)) return 100;
@@ -218,15 +276,48 @@ function getTanzakuFontOption(fontId) {
   return tanzakuFontOptions.find((option) => option.id === fontId) || tanzakuFontOptions[0];
 }
 
+function getTanzakuFontFamily(font, colorEmojiFontEnabled) {
+  if (!colorEmojiFontEnabled) return font.family;
+  return `${font.family}, ${COLOR_EMOJI_FONT_FAMILY}`;
+}
+
+function ensureTanzakuFontStylesheet(fontId) {
+  const href = tanzakuFontStylesheets[fontId];
+  if (!href || loadedTanzakuFontStylesheets.has(fontId)) return;
+
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = href;
+  link.dataset.tanzakuFont = fontId;
+  link.addEventListener("error", () => {
+    loadedTanzakuFontStylesheets.delete(fontId);
+  }, { once: true });
+  document.head.appendChild(link);
+  loadedTanzakuFontStylesheets.add(fontId);
+}
+
 function applyAppearanceSettings(settings = loadAppearanceSettings()) {
   const fontId = normalizeTanzakuFontId(settings.fontId);
   const fontSize = normalizeTanzakuFontSize(settings.fontSize);
   const oracleBoatSize = normalizeOracleBoatSize(settings.oracleBoatSize);
+  const oracleBoatOffset = normalizeOracleBoatOffset(settings.oracleBoatOffset);
   const font = getTanzakuFontOption(fontId);
+  const colorEmojiFontEnabled = projectionSettings.colorEmojiFontEnabled === true;
+  const fontFamily = getTanzakuFontFamily(font, colorEmojiFontEnabled);
 
-  document.documentElement.style.setProperty("--projection-tanzaku-font-family", font.family);
+  ensureTanzakuFontStylesheet(fontId);
+  if (colorEmojiFontEnabled) {
+    ensureTanzakuFontStylesheet("emoji");
+  }
+  document.documentElement.style.setProperty("--tanzaku-font-family", fontFamily);
+  document.documentElement.style.setProperty("--projection-tanzaku-font-family", fontFamily);
+  document.documentElement.style.setProperty("--projection-layout-font-family", fontFamily);
   document.documentElement.style.setProperty("--projection-tanzaku-font-scale", (fontSize / 100).toFixed(2));
+  currentOracleBoatScale = oracleBoatSize / 100;
+  currentOracleBoatBottomOffset = oracleBoatOffset;
   projectionStage.style.setProperty("--oracle-boat-size", (oracleBoatSize / 100).toFixed(2));
+  projectionStage.style.setProperty("--oracle-boat-bottom-offset", `${oracleBoatOffset}px`);
+  parallaxScene.refresh();
 
   if (tanzakuFontSelect) {
     tanzakuFontSelect.value = fontId;
@@ -243,13 +334,20 @@ function applyAppearanceSettings(settings = loadAppearanceSettings()) {
   if (oracleBoatSizeValue) {
     oracleBoatSizeValue.textContent = `${oracleBoatSize}%`;
   }
+  if (oracleBoatOffsetInput) {
+    oracleBoatOffsetInput.value = String(oracleBoatOffset);
+  }
+  if (oracleBoatOffsetValue) {
+    oracleBoatOffsetValue.textContent = `${oracleBoatOffset}px`;
+  }
 }
 
 function syncAppearanceSettingsFromControls() {
   const nextSettings = normalizeAppearanceSettings({
     fontId: normalizeTanzakuFontId(tanzakuFontSelect?.value),
     fontSize: normalizeTanzakuFontSize(tanzakuFontSizeInput?.value),
-    oracleBoatSize: normalizeOracleBoatSize(oracleBoatSizeInput?.value)
+    oracleBoatSize: normalizeOracleBoatSize(oracleBoatSizeInput?.value),
+    oracleBoatOffset: normalizeOracleBoatOffset(oracleBoatOffsetInput?.value)
   });
   applyAppearanceSettings(nextSettings);
   saveAppearanceSettings(nextSettings);
@@ -271,6 +369,11 @@ function setupAppearanceControls() {
     oracleBoatSizeInput.addEventListener("change", syncAppearanceSettingsFromControls);
   }
 
+  if (oracleBoatOffsetInput) {
+    oracleBoatOffsetInput.addEventListener("input", syncAppearanceSettingsFromControls);
+    oracleBoatOffsetInput.addEventListener("change", syncAppearanceSettingsFromControls);
+  }
+
   if (tanzakuFontSizeInput) {
     tanzakuFontSizeInput.addEventListener("input", syncAppearanceSettingsFromControls);
     tanzakuFontSizeInput.addEventListener("change", syncAppearanceSettingsFromControls);
@@ -290,7 +393,8 @@ function getCurrentAppearanceSettings() {
   return normalizeAppearanceSettings({
     fontId: tanzakuFontSelect?.value,
     fontSize: tanzakuFontSizeInput?.value,
-    oracleBoatSize: oracleBoatSizeInput?.value
+    oracleBoatSize: oracleBoatSizeInput?.value,
+    oracleBoatOffset: oracleBoatOffsetInput?.value
   });
 }
 
@@ -425,14 +529,73 @@ function normalizeProjectionSettings(settings = {}) {
   const nextTypingIntervalMs = Number.isInteger(typingIntervalMs) && typingIntervalMs > 0 ? typingIntervalMs : DEFAULT_TYPING_INTERVAL_MS;
   const rotateIntervalMs = Number(settings.projectionRotateIntervalMs);
   const nextRotateIntervalMs = Number.isInteger(rotateIntervalMs) && rotateIntervalMs > 0 ? rotateIntervalMs : DEFAULT_ROTATE_INTERVAL_MS;
+  const tanzakuFontId = normalizeTanzakuFontId(settings.projectionTanzakuFontId);
+  const colorEmojiFontEnabled = settings.projectionColorEmojiFontEnabled === true;
   const milkyWayGain = Number(settings.projectionMilkyWayGain);
   const nextMilkyWayGain = Number.isFinite(milkyWayGain) && milkyWayGain > 0 ? milkyWayGain : DEFAULT_MILKY_WAY_PROJECTION_GAIN;
+  const milkyWayTwinkle = Number(settings.projectionMilkyWayTwinkle);
+  const nextMilkyWayTwinkle = Number.isFinite(milkyWayTwinkle) ? Math.max(0, Math.min(2.5, milkyWayTwinkle)) : 1;
+  const milkyWaySparkle = Number(settings.projectionMilkyWaySparkle);
+  const nextMilkyWaySparkle = Number.isFinite(milkyWaySparkle) ? Math.max(0, Math.min(2.5, milkyWaySparkle)) : 1;
+  const milkyWaySpeed = Number(settings.projectionMilkyWaySpeed);
+  const nextMilkyWaySpeed = Number.isFinite(milkyWaySpeed) ? Math.max(0.2, Math.min(2.5, milkyWaySpeed)) : 1;
+  const milkyWayParticleCount = Number(settings.projectionMilkyWayParticleCount);
+  const nextMilkyWayParticleCount = Number.isInteger(milkyWayParticleCount)
+    ? Math.max(80, Math.min(720, milkyWayParticleCount))
+    : 340;
+  const milkyWaySparkleRatio = Number(settings.projectionMilkyWaySparkleRatio);
+  const nextMilkyWaySparkleRatio = Number.isFinite(milkyWaySparkleRatio)
+    ? Math.max(0, Math.min(0.25, milkyWaySparkleRatio))
+    : 0.045;
+  const milkyWaySparklePeriodVariance = Number(settings.projectionMilkyWaySparklePeriodVariance);
+  const nextMilkyWaySparklePeriodVariance = Number.isFinite(milkyWaySparklePeriodVariance)
+    ? Math.max(0, Math.min(2.5, milkyWaySparklePeriodVariance))
+    : 1;
+  const milkyWaySparkleIntensityVariance = Number(settings.projectionMilkyWaySparkleIntensityVariance);
+  const nextMilkyWaySparkleIntensityVariance = Number.isFinite(milkyWaySparkleIntensityVariance)
+    ? Math.max(0, Math.min(2.5, milkyWaySparkleIntensityVariance))
+    : 1;
+  const milkyWaySparklePeriodSeconds = Number(settings.projectionMilkyWaySparklePeriodSeconds);
+  const nextMilkyWaySparklePeriodSeconds = Number.isFinite(milkyWaySparklePeriodSeconds)
+    ? Math.max(0.5, Math.min(8, milkyWaySparklePeriodSeconds))
+    : 2.2;
+  const milkyWaySparkleDutyRatio = Number(settings.projectionMilkyWaySparkleDutyRatio);
+  const nextMilkyWaySparkleDutyRatio = Number.isFinite(milkyWaySparkleDutyRatio)
+    ? Math.max(0.03, Math.min(0.8, milkyWaySparkleDutyRatio))
+    : 0.16;
+  const milkyWaySeed = String(settings.projectionMilkyWaySeed || "tanabata-milky-way").slice(0, 80);
+  const tanabataStarResponseIntensity = Number(settings.projectionTanabataStarResponseIntensity);
+  const nextTanabataStarResponseIntensity = Number.isFinite(tanabataStarResponseIntensity)
+    ? Math.max(0, Math.min(3, tanabataStarResponseIntensity))
+    : 1;
+  const tanabataStarResponsePhaseDeg = Number(settings.projectionTanabataStarResponsePhaseDeg);
+  const nextTanabataStarResponsePhaseDeg = Number.isFinite(tanabataStarResponsePhaseDeg)
+    ? Math.max(0, Math.min(360, tanabataStarResponsePhaseDeg))
+    : 166;
+  const tanabataStarResponsePeriodSeconds = Number(settings.projectionTanabataStarResponsePeriodSeconds);
+  const nextTanabataStarResponsePeriodSeconds = Number.isFinite(tanabataStarResponsePeriodSeconds)
+    ? Math.max(8, Math.min(90, tanabataStarResponsePeriodSeconds))
+    : 35;
+  const tanzakuSwayStrength = Number(settings.projectionTanzakuSwayStrength);
+  const nextTanzakuSwayStrength = Number.isFinite(tanzakuSwayStrength)
+    ? Math.max(0, Math.min(3, tanzakuSwayStrength))
+    : 1;
+  const windGustStrength = Number(settings.projectionWindGustStrength);
+  const nextWindGustStrength = Number.isFinite(windGustStrength)
+    ? Math.max(0, Math.min(3, windGustStrength))
+    : 1;
+  const windGustCycleMs = Number(settings.projectionWindGustCycleMs);
+  const nextWindGustCycleMs = Number.isInteger(windGustCycleMs)
+    ? Math.max(3000, Math.min(60000, windGustCycleMs))
+    : 30000;
+  const windGustCycleJitterSeconds = Number(settings.projectionWindGustCycleJitterSeconds);
+  const nextWindGustCycleJitterSeconds = Number.isInteger(windGustCycleJitterSeconds)
+    ? Math.max(0, Math.min(60, windGustCycleJitterSeconds))
+    : 0;
   const cloudCount = Number(settings.projectionCloudCount);
   const nextCloudCount = Number.isInteger(cloudCount) ? Math.max(0, Math.min(12, cloudCount)) : 3;
-  const cloudOriginX = Number(settings.projectionCloudOriginX);
-  const nextCloudOriginX = Number.isFinite(cloudOriginX) ? Math.max(-80, Math.min(120, cloudOriginX)) : -32;
   const cloudOriginY = Number(settings.projectionCloudOriginY);
-  const nextCloudOriginY = Number.isFinite(cloudOriginY) ? Math.max(-20, Math.min(100, cloudOriginY)) : 12;
+  const nextCloudOriginY = Number.isFinite(cloudOriginY) && cloudOriginY >= -1 && cloudOriginY <= 1 ? cloudOriginY : 0;
   const cloudSeed = String(settings.projectionCloudSeed || "tanabata-clouds").slice(0, 80);
   const experimentalParallaxEnabled = settings.projectionExperimentalParallaxEnabled === true;
   const parallaxStrength = Number(settings.projectionParallaxStrength);
@@ -456,6 +619,29 @@ function normalizeProjectionSettings(settings = {}) {
   const nextParallaxPopoutStrength = Number.isFinite(parallaxPopoutStrength)
     ? Math.max(0, Math.min(3, parallaxPopoutStrength))
     : 0;
+  const parallaxMotionMode = ["display", "mapping", "camera", "camera-display"].includes(settings.projectionParallaxMotionMode)
+    ? settings.projectionParallaxMotionMode
+    : "mapping";
+  const parallaxViewerOffsetX = Number(settings.projectionParallaxViewerOffsetX);
+  const nextParallaxViewerOffsetX = Number.isFinite(parallaxViewerOffsetX)
+    ? Math.max(-2, Math.min(2, parallaxViewerOffsetX))
+    : 0;
+  const parallaxViewerOffsetY = Number(settings.projectionParallaxViewerOffsetY);
+  const nextParallaxViewerOffsetY = Number.isFinite(parallaxViewerOffsetY)
+    ? Math.max(-2, Math.min(2, parallaxViewerOffsetY))
+    : 0;
+  const parallaxViewerDistance = Number(settings.projectionParallaxViewerDistance);
+  const nextParallaxViewerDistance = Number.isFinite(parallaxViewerDistance)
+    ? Math.max(0.5, Math.min(8, parallaxViewerDistance))
+    : 2.5;
+  const parallaxDepthMultiplier = Number(settings.projectionParallaxDepthMultiplier);
+  const nextParallaxDepthMultiplier = Number.isFinite(parallaxDepthMultiplier)
+    ? Math.max(0, Math.min(3, parallaxDepthMultiplier))
+    : 1;
+  const parallaxDepthReferenceIndex = Number(settings.projectionParallaxDepthReferenceIndex);
+  const nextParallaxDepthReferenceIndex = Number.isInteger(parallaxDepthReferenceIndex)
+    ? Math.max(0, Math.min(60, parallaxDepthReferenceIndex))
+    : 0;
 
   return {
     displayCount: nextDisplayCount,
@@ -463,9 +649,27 @@ function normalizeProjectionSettings(settings = {}) {
     moveCount: Math.min(nextMoveCount, nextDisplayCount),
     typingIntervalMs: nextTypingIntervalMs,
     rotateIntervalMs: nextRotateIntervalMs,
+    tanzakuFontId,
+    colorEmojiFontEnabled,
     milkyWayGain: nextMilkyWayGain,
+    milkyWayTwinkle: nextMilkyWayTwinkle,
+    milkyWaySparkle: nextMilkyWaySparkle,
+    milkyWaySpeed: nextMilkyWaySpeed,
+    milkyWayParticleCount: nextMilkyWayParticleCount,
+    milkyWaySparkleRatio: nextMilkyWaySparkleRatio,
+    milkyWaySparklePeriodVariance: nextMilkyWaySparklePeriodVariance,
+    milkyWaySparkleIntensityVariance: nextMilkyWaySparkleIntensityVariance,
+    milkyWaySparklePeriodSeconds: nextMilkyWaySparklePeriodSeconds,
+    milkyWaySparkleDutyRatio: nextMilkyWaySparkleDutyRatio,
+    milkyWaySeed,
+    tanabataStarResponseIntensity: nextTanabataStarResponseIntensity,
+    tanabataStarResponsePhaseDeg: nextTanabataStarResponsePhaseDeg,
+    tanabataStarResponsePeriodSeconds: nextTanabataStarResponsePeriodSeconds,
+    tanzakuSwayStrength: nextTanzakuSwayStrength,
+    windGustStrength: nextWindGustStrength,
+    windGustCycleMs: nextWindGustCycleMs,
+    windGustCycleJitterSeconds: nextWindGustCycleJitterSeconds,
     cloudCount: nextCloudCount,
-    cloudOriginX: nextCloudOriginX,
     cloudOriginY: nextCloudOriginY,
     cloudSeed,
     experimentalParallaxEnabled,
@@ -474,8 +678,38 @@ function normalizeProjectionSettings(settings = {}) {
     parallaxVanishingPointY: nextParallaxVanishingPointY,
     parallaxMarkerEnabled,
     parallaxPopoutStrength: nextParallaxPopoutStrength,
+    parallaxMotionMode,
+    parallaxViewerOffsetX: nextParallaxViewerOffsetX,
+    parallaxViewerOffsetY: nextParallaxViewerOffsetY,
+    parallaxViewerDistance: nextParallaxViewerDistance,
+    parallaxDepthMultiplier: nextParallaxDepthMultiplier,
+    parallaxDepthReferenceIndex: nextParallaxDepthReferenceIndex,
     viewportMargin: nextViewportMargin
   };
+}
+
+function setStylePropertyIfChanged(element, propertyName, value) {
+  if (!element) return;
+  if (element.style.getPropertyValue(propertyName) === value) return;
+  element.style.setProperty(propertyName, value);
+}
+
+function setAttributeIfChanged(element, attributeName, value) {
+  if (!element) return;
+  if (element.getAttribute(attributeName) === value) return;
+  element.setAttribute(attributeName, value);
+}
+
+function quantizePixel(value) {
+  return Math.round(value / PARALLAX_PIXEL_STEP) * PARALLAX_PIXEL_STEP;
+}
+
+function formatPixel(value) {
+  return `${quantizePixel(value).toFixed(1)}px`;
+}
+
+function formatScale(value) {
+  return (Math.round(value / PARALLAX_SCALE_STEP) * PARALLAX_SCALE_STEP).toFixed(3);
 }
 
 function createSlot(index) {
@@ -520,6 +754,10 @@ function createSeededRandom(seedText) {
   };
 }
 
+function relativeCloudOriginYToViewport(value) {
+  return ((value + 1) / 2) * 100;
+}
+
 function renderCloudLayer() {
   if (!cloudLayer) return;
 
@@ -528,7 +766,7 @@ function renderCloudLayer() {
   for (let index = 0; index < projectionSettings.cloudCount; index += 1) {
     const cloud = document.createElement("span");
     cloud.className = "cloud";
-    const spreadX = (random() - 0.5) * 36;
+    const originY = relativeCloudOriginYToViewport(projectionSettings.cloudOriginY);
     const spreadY = (random() - 0.5) * 48;
     const width = 38 + random() * 28;
     const height = 9 + random() * 8;
@@ -536,8 +774,9 @@ function renderCloudLayer() {
     const duration = 46 + random() * 34;
     const delay = -random() * duration;
     const scale = 0.82 + random() * 0.46;
-    cloud.style.setProperty("--cloud-x", `${(projectionSettings.cloudOriginX + spreadX).toFixed(2)}vw`);
-    cloud.style.setProperty("--cloud-y", `${(projectionSettings.cloudOriginY + spreadY).toFixed(2)}vh`);
+    const startX = -(width + 18 + (random() * 34));
+    cloud.style.setProperty("--cloud-x", `${startX.toFixed(2)}vw`);
+    cloud.style.setProperty("--cloud-y", `${(originY + spreadY).toFixed(2)}vh`);
     cloud.style.setProperty("--cloud-width", `${width.toFixed(2)}vw`);
     cloud.style.setProperty("--cloud-height", `${height.toFixed(2)}vh`);
     cloud.style.setProperty("--cloud-opacity", opacity.toFixed(3));
@@ -549,30 +788,113 @@ function renderCloudLayer() {
   cloudLayer.replaceChildren(fragment);
 }
 
+function getCloudSettingsSignature(settings) {
+  return JSON.stringify({
+    cloudCount: settings.cloudCount,
+    cloudOriginY: settings.cloudOriginY,
+    cloudSeed: settings.cloudSeed
+  });
+}
+
+function getProjectionSettingsSignature(settings) {
+  return JSON.stringify({
+    displayCount: settings.displayCount,
+    slotCount: settings.slotCount,
+    moveCount: settings.moveCount,
+    typingIntervalMs: settings.typingIntervalMs,
+    rotateIntervalMs: settings.rotateIntervalMs,
+    tanzakuFontId: settings.tanzakuFontId,
+    colorEmojiFontEnabled: settings.colorEmojiFontEnabled,
+    effectAutoEnabled: settings.effectAutoEnabled,
+    effectIntervalMs: settings.effectIntervalMs,
+    milkyWayGain: settings.milkyWayGain,
+    milkyWayTwinkle: settings.milkyWayTwinkle,
+    milkyWaySparkle: settings.milkyWaySparkle,
+    milkyWaySpeed: settings.milkyWaySpeed,
+    milkyWayParticleCount: settings.milkyWayParticleCount,
+    milkyWaySparkleRatio: settings.milkyWaySparkleRatio,
+    milkyWaySparklePeriodVariance: settings.milkyWaySparklePeriodVariance,
+    milkyWaySparkleIntensityVariance: settings.milkyWaySparkleIntensityVariance,
+    milkyWaySparklePeriodSeconds: settings.milkyWaySparklePeriodSeconds,
+    milkyWaySparkleDutyRatio: settings.milkyWaySparkleDutyRatio,
+    milkyWaySeed: settings.milkyWaySeed,
+    tanabataStarResponseIntensity: settings.tanabataStarResponseIntensity,
+    tanabataStarResponsePhaseDeg: settings.tanabataStarResponsePhaseDeg,
+    tanabataStarResponsePeriodSeconds: settings.tanabataStarResponsePeriodSeconds,
+    tanzakuSwayStrength: settings.tanzakuSwayStrength,
+    windGustStrength: settings.windGustStrength,
+    windGustCycleMs: settings.windGustCycleMs,
+    windGustCycleJitterSeconds: settings.windGustCycleJitterSeconds,
+    experimentalParallaxEnabled: settings.experimentalParallaxEnabled,
+    parallaxStrength: settings.parallaxStrength,
+    parallaxVanishingPointX: settings.parallaxVanishingPointX,
+    parallaxVanishingPointY: settings.parallaxVanishingPointY,
+    parallaxMarkerEnabled: settings.parallaxMarkerEnabled,
+    parallaxPopoutStrength: settings.parallaxPopoutStrength,
+    parallaxDepthMultiplier: settings.parallaxDepthMultiplier,
+    parallaxDepthReferenceIndex: settings.parallaxDepthReferenceIndex,
+    parallaxMotionMode: settings.parallaxMotionMode,
+    parallaxViewerOffsetX: settings.parallaxViewerOffsetX,
+    parallaxViewerOffsetY: settings.parallaxViewerOffsetY,
+    parallaxViewerDistance: settings.parallaxViewerDistance,
+    viewportMargin: settings.viewportMargin,
+    cloudCount: settings.cloudCount,
+    cloudOriginY: settings.cloudOriginY,
+    cloudSeed: settings.cloudSeed
+  });
+}
+
+function getWishesSignature(wishes) {
+  return JSON.stringify((wishes || []).map((wish) => [
+    wish.id,
+    wish.text,
+    wish.updatedAt || wish.createdAt || ""
+  ]));
+}
+
 function createParallaxScene() {
-  const path = [
-    { x: 0, z: 0 },
-    { x: -1, z: 0 },
-    { x: 0, z: 0 },
-    { x: 1, z: 0 },
-    { x: 0, z: 0 },
-    { x: 0, z: 1 },
-    { x: 0, z: 0 },
-    { x: 0, z: -1 },
-    { x: 0, z: 0 }
+  const mappingPath = [
+    { x: 0, y: 0, z: 0 },
+    { x: -1, y: 0, z: 0 },
+    { x: 0, y: 0, z: 0 },
+    { x: 1, y: 0, z: 0 },
+    { x: 0, y: 0, z: 0 },
+    { x: 0, y: 0, z: 1 },
+    { x: 0, y: 0, z: 0 },
+    { x: 0, y: 0, z: -1 },
+    { x: 0, y: 0, z: 0 }
+  ];
+  const displayPath = [
+    { x: 0, y: 0, z: 0 },
+    { x: -1, y: 0, z: 0 },
+    { x: 0, y: 0, z: 0 },
+    { x: 1, y: 0, z: 0 },
+    { x: 0, y: 0, z: 0 },
+    { x: 0, y: -1, z: 0 },
+    { x: 0, y: 0, z: 0 },
+    { x: 0, y: 1, z: 0 },
+    { x: 0, y: 0, z: 0 }
   ];
   const scene = {
     enabled: false,
     startedAt: 0,
     frameRequested: false,
     viewerX: 0,
+    viewerY: 0,
     viewerZ: 0,
     strength: 1,
     vanishingPointX: 0,
     vanishingPointY: 0,
     popoutStrength: 0,
+    motionMode: "mapping",
+    viewerOffsetX: 0,
+    viewerOffsetY: 0,
+    viewerDistance: 2.5,
     viewportMargin: 0,
-    markerEnabled: false
+    markerEnabled: false,
+    lastOverlayFrameAt: 0,
+    overlayFrozenForTanzaku: false,
+    overlayFrozenForMenu: false
   };
 
   function smooth(value) {
@@ -580,6 +902,7 @@ function createParallaxScene() {
   }
 
   function sample(now) {
+    const path = usesDisplayPlaneMotion(scene.motionMode) ? displayPath : mappingPath;
     const totalSegments = path.length - 1;
     const elapsed = Number.isFinite(now - scene.startedAt)
       ? (now - scene.startedAt) % (totalSegments * PARALLAX_VIEWER_STEP_MS)
@@ -589,11 +912,13 @@ function createParallaxScene() {
     const to = path[segment + 1];
     if (!from || !to) {
       scene.viewerX = 0;
+      scene.viewerY = 0;
       scene.viewerZ = 0;
       return;
     }
     const progress = smooth((elapsed - (segment * PARALLAX_VIEWER_STEP_MS)) / PARALLAX_VIEWER_STEP_MS);
     scene.viewerX = from.x + ((to.x - from.x) * progress);
+    scene.viewerY = from.y + ((to.y - from.y) * progress);
     scene.viewerZ = from.z + ((to.z - from.z) * progress);
   }
 
@@ -628,26 +953,85 @@ function createParallaxScene() {
     };
   }
 
+  function usesDisplayPlaneMotion(mode) {
+    return mode === "display" || mode === "camera-display";
+  }
+
+  function usesCameraDepthMotion(mode) {
+    return mode === "mapping" || mode === "camera";
+  }
+
+  function usesCameraViewCompensation(mode) {
+    return mode === "camera" || mode === "camera-display";
+  }
+
+  function getCameraProjectionMotion(gain = 1) {
+    const distanceFactor = 2.5 / scene.viewerDistance;
+    const cameraX = ((scene.viewerOffsetX * PARALLAX_CAMERA_X) + (scene.viewerX * PARALLAX_CAMERA_X * scene.strength)) * distanceFactor;
+    const dynamicCameraY = usesDisplayPlaneMotion(scene.motionMode)
+      ? scene.viewerY * PARALLAX_CAMERA_Y * scene.popoutStrength
+      : 0;
+    const cameraY = ((scene.viewerOffsetY * PARALLAX_CAMERA_Y) + dynamicCameraY) * distanceFactor;
+    const cameraZ = usesCameraDepthMotion(scene.motionMode)
+      ? scene.viewerZ * PARALLAX_CAMERA_Z * scene.popoutStrength * distanceFactor
+      : 0;
+    return {
+      x: cameraX * gain,
+      y: cameraY * gain,
+      z: cameraZ * gain
+    };
+  }
+
   function projectLayer(baseX, baseY, depth) {
     const plane = getProjectionPlaneMetrics();
     const vanishingPoint = getInnerPlaneVanishingPoint(plane);
-    const popoutDepth = (depth - 0.5) * scene.popoutStrength;
-    const layerZ = Math.max(0.62, getLayerZ(depth) - (popoutDepth * 0.68));
-    const cameraX = scene.viewerX * PARALLAX_CAMERA_X * scene.strength;
-    const cameraZ = scene.viewerZ * PARALLAX_CAMERA_Z * scene.strength;
-    const safeZ = Math.max(0.72, layerZ - cameraZ);
+    const layerZ = getLayerZ(depth);
+    const camera = getCameraProjectionMotion();
+    const safeZ = Math.max(0.72, layerZ - camera.z);
+    const planeZ = PARALLAX_FAR_Z;
+    const planeSafeZ = Math.max(0.72, planeZ - camera.z);
+    const cameraViewCompensation = usesCameraViewCompensation(scene.motionMode) ? (planeSafeZ / planeZ) : 1;
     const worldX = (baseX - vanishingPoint.x) * layerZ / PARALLAX_FOCAL_LENGTH;
     const worldY = (baseY - vanishingPoint.y) * layerZ / PARALLAX_FOCAL_LENGTH;
-    const shiftedX = vanishingPoint.x + ((worldX - cameraX) * PARALLAX_FOCAL_LENGTH / safeZ);
-    const shiftedY = vanishingPoint.y + (worldY * PARALLAX_FOCAL_LENGTH / safeZ);
-    const popoutScale = Math.max(0.72, 1 + (popoutDepth * 0.22));
-    const radialX = (baseX - vanishingPoint.x) * plane.width * popoutDepth * 0.09;
-    const radialY = (baseY - vanishingPoint.y) * plane.height * popoutDepth * 0.09;
-    const scale = (layerZ / safeZ) * popoutScale;
+    const projectedX = vanishingPoint.x + ((worldX - camera.x) * PARALLAX_FOCAL_LENGTH / safeZ);
+    const projectedY = vanishingPoint.y + ((worldY - camera.y) * PARALLAX_FOCAL_LENGTH / safeZ);
+    const shiftedX = vanishingPoint.x + ((projectedX - vanishingPoint.x) * cameraViewCompensation);
+    const shiftedY = vanishingPoint.y + ((projectedY - vanishingPoint.y) * cameraViewCompensation);
+    const scale = (layerZ / safeZ) * cameraViewCompensation;
     return {
-      offsetXPx: ((shiftedX - baseX) * plane.width * 0.5) + radialX,
-      offsetYPx: ((shiftedY - baseY) * plane.height * 0.5) + radialY,
+      offsetXPx: (shiftedX - baseX) * plane.width * 0.5,
+      offsetYPx: (shiftedY - baseY) * plane.height * 0.5,
       scale
+    };
+  }
+
+  function projectPoint(baseX, baseY, depth) {
+    const plane = getProjectionPlaneMetrics();
+    const projected = projectLayer(baseX, baseY, depth);
+    return {
+      x: plane.marginPx + (((baseX + 1) / 2) * plane.width) + projected.offsetXPx,
+      y: plane.marginPx + (((baseY + 1) / 2) * plane.height) + projected.offsetYPx
+    };
+  }
+
+  function projectPerspectiveBoxPoint(baseX, baseY, depth) {
+    const plane = getProjectionPlaneMetrics();
+    const vanishingPoint = getInnerPlaneVanishingPoint(plane);
+    const layerZ = getLayerZ(depth);
+    const camera = getCameraProjectionMotion(PARALLAX_BOX_CAMERA_GAIN);
+    const safeZ = Math.max(0.56, layerZ - camera.z);
+    const planeZ = PARALLAX_FAR_Z;
+    const planeSafeZ = Math.max(0.56, planeZ - camera.z);
+    const cameraViewCompensation = usesCameraViewCompensation(scene.motionMode) ? (planeSafeZ / planeZ) : 1;
+    const worldX = (baseX - vanishingPoint.x) * layerZ / PARALLAX_FOCAL_LENGTH;
+    const worldY = (baseY - vanishingPoint.y) * layerZ / PARALLAX_FOCAL_LENGTH;
+    const projectedX = vanishingPoint.x + ((worldX - camera.x) * PARALLAX_FOCAL_LENGTH / safeZ);
+    const projectedY = vanishingPoint.y + ((worldY - camera.y) * PARALLAX_FOCAL_LENGTH / safeZ);
+    const shiftedX = vanishingPoint.x + ((projectedX - vanishingPoint.x) * cameraViewCompensation);
+    const shiftedY = vanishingPoint.y + ((projectedY - vanishingPoint.y) * cameraViewCompensation);
+    return {
+      x: plane.marginPx + (((shiftedX + 1) / 2) * plane.width),
+      y: plane.marginPx + (((shiftedY + 1) / 2) * plane.height)
     };
   }
 
@@ -660,21 +1044,98 @@ function createParallaxScene() {
     if (!vanishingPointMarker) return;
     const x = ((scene.vanishingPointX + 1) / 2) * window.innerWidth;
     const y = ((scene.vanishingPointY + 1) / 2) * window.innerHeight;
-    vanishingPointMarker.style.setProperty("--vanishing-point-marker-left", `${x.toFixed(2)}px`);
-    vanishingPointMarker.style.setProperty("--vanishing-point-marker-top", `${y.toFixed(2)}px`);
+    setStylePropertyIfChanged(vanishingPointMarker, "--vanishing-point-marker-left", `${x.toFixed(2)}px`);
+    setStylePropertyIfChanged(vanishingPointMarker, "--vanishing-point-marker-top", `${y.toFixed(2)}px`);
     vanishingPointMarker.hidden = !(scene.enabled && scene.markerEnabled);
   }
 
-  function applySlot(slot) {
+  function hasActiveTanzakuRenderActivity() {
+    return slots.some((slot) => slot.state === "typing" || slot.state === "leaving");
+  }
+
+  function drawPerspectiveBox(now = performance.now(), force = false) {
+    if (!parallaxPerspectiveBox) return;
+    const visible = scene.enabled && scene.markerEnabled;
+    if (!visible) {
+      parallaxPerspectiveBox.setAttribute("hidden", "");
+      scene.lastOverlayFrameAt = 0;
+      scene.overlayFrozenForTanzaku = false;
+      scene.overlayFrozenForMenu = false;
+      return;
+    }
+    if (isLayoutMenuOpen() && parallaxPerspectiveBox.children.length > 0) {
+      scene.overlayFrozenForMenu = true;
+      parallaxPerspectiveBox.removeAttribute("hidden");
+      return;
+    }
+    if (scene.overlayFrozenForMenu && !isLayoutMenuOpen()) {
+      force = true;
+      scene.overlayFrozenForMenu = false;
+    }
+    const tanzakuActive = hasActiveTanzakuRenderActivity();
+    if (!force && tanzakuActive && parallaxPerspectiveBox.children.length > 0) {
+      scene.overlayFrozenForTanzaku = true;
+      parallaxPerspectiveBox.removeAttribute("hidden");
+      return;
+    }
+    if (scene.overlayFrozenForTanzaku && !tanzakuActive) {
+      force = true;
+      scene.overlayFrozenForTanzaku = false;
+    }
+    if (!force && scene.lastOverlayFrameAt && now - scene.lastOverlayFrameAt < PARALLAX_OVERLAY_FRAME_MS) return;
+    scene.lastOverlayFrameAt = now;
+    parallaxPerspectiveBox.removeAttribute("hidden");
+
+    setAttributeIfChanged(parallaxPerspectiveBox, "viewBox", `0 0 ${window.innerWidth} ${window.innerHeight}`);
+    const frontDepth = 0.98;
+    const rearDepth = 0.04;
+    const front = [
+      projectPerspectiveBoxPoint(-0.78, -0.38, frontDepth),
+      projectPerspectiveBoxPoint(-0.26, -0.38, frontDepth),
+      projectPerspectiveBoxPoint(-0.26, 0.28, frontDepth),
+      projectPerspectiveBoxPoint(-0.78, 0.28, frontDepth)
+    ];
+    const rear = [
+      projectPerspectiveBoxPoint(-0.52, -0.16, rearDepth),
+      projectPerspectiveBoxPoint(-0.34, -0.16, rearDepth),
+      projectPerspectiveBoxPoint(-0.34, 0.08, rearDepth),
+      projectPerspectiveBoxPoint(-0.52, 0.08, rearDepth)
+    ];
+    const pointCommand = (point) => `${quantizePixel(point.x).toFixed(1)} ${quantizePixel(point.y).toFixed(1)}`;
+    const closedPath = (points) => `M ${points.map(pointCommand).join(" L ")} Z`;
+    const connectorPath = front.map((point, index) => `M ${pointCommand(point)} L ${pointCommand(rear[index])}`).join(" ");
+    const createPath = (className) => {
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("class", className);
+      return path;
+    };
+    const expectedChildren = 3;
+    if (parallaxPerspectiveBox.children.length !== expectedChildren) {
+      parallaxPerspectiveBox.replaceChildren(
+        createPath("parallax-box-front"),
+        createPath("parallax-box-rear"),
+        createPath("parallax-box-depth")
+      );
+    }
+
+    const paths = parallaxPerspectiveBox.querySelectorAll("path");
+    setAttributeIfChanged(paths[0], "d", closedPath(front));
+    setAttributeIfChanged(paths[1], "d", closedPath(rear));
+    setAttributeIfChanged(paths[2], "d", connectorPath);
+  }
+
+  function applySlot(slot, referenceDepth = getDepthReferenceBaseDepth(), orderedSlots = getDepthOrderedSlots()) {
     if (!slot?.element) return;
-    const depth = getSlotDepth(slot);
-    const baseX = (slot.meta.x - 50) / 50;
-    const baseY = (slot.meta.y - 50) / 50;
+    if (slot.depthReflowActive) return;
+    const depth = getSlotDepth(slot, referenceDepth, orderedSlots);
+    const visualPosition = getSlotVisualPosition(slot);
+    const baseX = (visualPosition.x - 50) / 50;
+    const baseY = (visualPosition.y - 50) / 50;
     const projected = projectLayer(baseX, baseY, depth);
     const depthScale = getSlotDepthScale(slot, depth);
-    slot.element.style.setProperty("--parallax-x", `${projected.offsetXPx.toFixed(2)}px`);
-    slot.element.style.setProperty("--parallax-y", `${projected.offsetYPx.toFixed(2)}px`);
-    slot.element.style.setProperty("--depth-scale", Math.max(0.82, depthScale * projected.scale).toFixed(3));
+    setStylePropertyIfChanged(slot.element, "--parallax-x", formatPixel(projected.offsetXPx));
+    setStylePropertyIfChanged(slot.element, "--parallax-y", formatPixel(projected.offsetYPx));
+    setStylePropertyIfChanged(slot.element, "--depth-scale", formatScale(Math.max(0.82, depthScale * projected.scale)));
   }
 
   function applyBamboo() {
@@ -682,22 +1143,50 @@ function createParallaxScene() {
     const rear = 0.62;
     const leftProjected = projectLayer(-0.9, 0.16, foreground);
     const rightProjected = projectLayer(0.86, 0.12, rear);
-    projectionStage.style.setProperty("--bamboo-left-parallax-x", `${leftProjected.offsetXPx.toFixed(2)}px`);
-    projectionStage.style.setProperty("--bamboo-left-parallax-y", `${leftProjected.offsetYPx.toFixed(2)}px`);
-    projectionStage.style.setProperty("--bamboo-right-parallax-x", `${rightProjected.offsetXPx.toFixed(2)}px`);
-    projectionStage.style.setProperty("--bamboo-right-parallax-y", `${rightProjected.offsetYPx.toFixed(2)}px`);
-    projectionStage.style.setProperty("--bamboo-left-parallax-scale", Math.max(0.9, leftProjected.scale).toFixed(3));
-    projectionStage.style.setProperty("--bamboo-right-parallax-scale", Math.max(0.9, rightProjected.scale).toFixed(3));
+    setStylePropertyIfChanged(projectionStage, "--bamboo-left-parallax-x", formatPixel(leftProjected.offsetXPx));
+    setStylePropertyIfChanged(projectionStage, "--bamboo-left-parallax-y", formatPixel(leftProjected.offsetYPx));
+    setStylePropertyIfChanged(projectionStage, "--bamboo-right-parallax-x", formatPixel(rightProjected.offsetXPx));
+    setStylePropertyIfChanged(projectionStage, "--bamboo-right-parallax-y", formatPixel(rightProjected.offsetYPx));
+    setStylePropertyIfChanged(projectionStage, "--bamboo-left-parallax-scale", formatScale(Math.max(0.9, leftProjected.scale)));
+    setStylePropertyIfChanged(projectionStage, "--bamboo-right-parallax-scale", formatScale(Math.max(0.9, rightProjected.scale)));
+  }
+
+  function getOracleMotionScale(viewerZ) {
+    return Math.max(0.76, 0.92 + (Math.max(0, viewerZ) * 0.16) - (Math.max(0, -viewerZ) * 0.08));
+  }
+
+  function clampOracleOffset(viewerX, viewerY, viewerZ) {
+    const scale = currentOracleBoatScale * getOracleMotionScale(viewerZ);
+    const halfWidth = (ORACLE_BOAT_BASE_WIDTH_PX * scale * 0.62) + ORACLE_EDGE_PADDING_PX;
+    const height = (ORACLE_BOAT_BASE_HEIGHT_PX * scale * 1.28) + ORACLE_EDGE_PADDING_PX;
+    const maxX = Math.max(0, (window.innerWidth / 2) - halfWidth);
+    const baseBottom = ORACLE_CONTAINER_BOTTOM_PX + currentOracleBoatBottomOffset + ORACLE_CAMERA_BOTTOM_PX;
+    const maxY = Math.max(0, baseBottom - ORACLE_EDGE_PADDING_PX);
+    const minY = Math.min(maxY, baseBottom + height - (window.innerHeight - ORACLE_EDGE_PADDING_PX));
+    return {
+      x: Math.max(-maxX, Math.min(maxX, viewerX)),
+      y: Math.max(minY, Math.min(maxY, viewerY))
+    };
   }
 
   function applyOracle() {
-    projectionStage.style.setProperty("--viewer-oracle-x", `${(scene.viewerX * 34).toFixed(2)}px`);
-    projectionStage.style.setProperty("--viewer-oracle-near", Math.max(0, scene.viewerZ).toFixed(3));
-    projectionStage.style.setProperty("--viewer-oracle-far", Math.max(0, -scene.viewerZ).toFixed(3));
+    const viewerX = (scene.viewerOffsetX * 18) + (scene.viewerX * 34 * scene.strength);
+    const viewerY = (scene.viewerOffsetY * 12) + (usesDisplayPlaneMotion(scene.motionMode) ? scene.viewerY * 18 * scene.popoutStrength : 0);
+    const viewerZ = usesCameraDepthMotion(scene.motionMode)
+      ? scene.viewerZ * scene.popoutStrength
+      : 0;
+    const oracleScale = getOracleMotionScale(viewerZ);
+    const clamped = clampOracleOffset(viewerX, viewerY, viewerZ);
+    setStylePropertyIfChanged(projectionStage, "--viewer-oracle-x", formatPixel(clamped.x));
+    setStylePropertyIfChanged(projectionStage, "--viewer-oracle-y", formatPixel(clamped.y));
+    setStylePropertyIfChanged(projectionStage, "--viewer-oracle-scale", formatScale(oracleScale));
+    setStylePropertyIfChanged(projectionStage, "--viewer-oracle-near", formatScale(Math.max(0, viewerZ)));
+    setStylePropertyIfChanged(projectionStage, "--viewer-oracle-far", formatScale(Math.max(0, -viewerZ)));
   }
 
   function reset() {
     scene.viewerX = 0;
+    scene.viewerY = 0;
     scene.viewerZ = 0;
     projectionStage.classList.remove("projection-stage--parallax");
     projectionStage.style.removeProperty("--bamboo-left-parallax-x");
@@ -707,15 +1196,20 @@ function createParallaxScene() {
     projectionStage.style.removeProperty("--bamboo-left-parallax-scale");
     projectionStage.style.removeProperty("--bamboo-right-parallax-scale");
     projectionStage.style.removeProperty("--viewer-oracle-x");
+    projectionStage.style.removeProperty("--viewer-oracle-y");
+    projectionStage.style.removeProperty("--viewer-oracle-scale");
     projectionStage.style.removeProperty("--viewer-oracle-near");
     projectionStage.style.removeProperty("--viewer-oracle-far");
     applyViewportMargin();
     applyVanishingPointMarker();
+    drawPerspectiveBox(performance.now(), true);
+    const depthOrderedSlots = getDepthOrderedSlots();
+    const referenceDepth = getDepthReferenceBaseDepth(depthOrderedSlots);
     slots.forEach((slot) => {
       if (!slot.element) return;
-      slot.element.style.setProperty("--parallax-x", "0px");
-      slot.element.style.setProperty("--parallax-y", "0px");
-      updateSlotDepth(slot);
+      setStylePropertyIfChanged(slot.element, "--parallax-x", "0px");
+      setStylePropertyIfChanged(slot.element, "--parallax-y", "0px");
+      updateSlotDepth(slot, referenceDepth, depthOrderedSlots);
     });
   }
 
@@ -725,10 +1219,12 @@ function createParallaxScene() {
     sample(now);
     projectionStage.classList.add("projection-stage--parallax");
     applyViewportMargin();
-    applyVanishingPointMarker();
+    drawPerspectiveBox(now);
     applyBamboo();
     applyOracle();
-    slots.forEach(applySlot);
+    const depthOrderedSlots = getDepthOrderedSlots();
+    const referenceDepth = getDepthReferenceBaseDepth(depthOrderedSlots);
+    slots.forEach((slot) => applySlot(slot, referenceDepth, depthOrderedSlots));
     ensureFrame();
   }
 
@@ -763,24 +1259,49 @@ function createParallaxScene() {
       scene.popoutStrength = Math.max(0, Math.min(3, Number.isFinite(strength) ? strength : 0));
       this.refresh();
     },
+    setViewerGeometry(offsetX, offsetY, distance) {
+      const nextOffsetX = Number(offsetX);
+      const nextOffsetY = Number(offsetY);
+      const nextDistance = Number(distance);
+      scene.viewerOffsetX = Math.max(-2, Math.min(2, Number.isFinite(nextOffsetX) ? nextOffsetX : 0));
+      scene.viewerOffsetY = Math.max(-2, Math.min(2, Number.isFinite(nextOffsetY) ? nextOffsetY : 0));
+      scene.viewerDistance = Math.max(0.5, Math.min(8, Number.isFinite(nextDistance) ? nextDistance : 2.5));
+      this.refresh();
+    },
+    setMotionMode(mode) {
+      const nextMode = ["display", "mapping", "camera", "camera-display"].includes(mode) ? mode : "mapping";
+      if (scene.motionMode === nextMode) return;
+      scene.motionMode = nextMode;
+      scene.startedAt = performance.now();
+      scene.viewerX = 0;
+      scene.viewerY = 0;
+      scene.viewerZ = 0;
+      this.refresh();
+    },
     setViewportMargin(margin) {
       const nextMargin = Number(margin);
       scene.viewportMargin = Math.max(0, Math.min(24, Number.isFinite(nextMargin) ? nextMargin : 0));
       clampSceneVanishingPoints();
       applyViewportMargin();
       applyVanishingPointMarker();
+      drawPerspectiveBox(performance.now(), true);
       this.refresh();
     },
     setMarkerEnabled(enabled) {
       scene.markerEnabled = enabled === true;
       applyVanishingPointMarker();
+      drawPerspectiveBox(performance.now(), true);
     },
     refresh() {
       applyViewportMargin();
       applyVanishingPointMarker();
+      drawPerspectiveBox(performance.now(), true);
       if (scene.enabled) {
         applyBamboo();
-        slots.forEach(applySlot);
+        applyOracle();
+        const depthOrderedSlots = getDepthOrderedSlots();
+        const referenceDepth = getDepthReferenceBaseDepth(depthOrderedSlots);
+        slots.forEach((slot) => applySlot(slot, referenceDepth, depthOrderedSlots));
       } else {
         reset();
       }
@@ -1104,6 +1625,7 @@ function createEffectsScene(canvas) {
       resize() {},
       setMeteorShowerActive() {},
       setMilkyWayGain() {},
+      setMilkyWayParams() {},
       burstAtSlot() {}
     };
   }
@@ -1114,6 +1636,7 @@ function createEffectsScene(canvas) {
       resize() {},
       setMeteorShowerActive() {},
       setMilkyWayGain() {},
+      setMilkyWayParams() {},
       burstAtSlot() {}
     };
   }
@@ -1127,12 +1650,66 @@ function createEffectsScene(canvas) {
     return seededNoise(seed) - 0.5;
   }
 
+  function createMilkyWayStars(count, seedText = "tanabata-milky-way") {
+    const safeCount = Math.max(80, Math.min(720, Number.isInteger(count) ? count : 340));
+    const random = createSeededRandom(`milky-stars:${seedText}:${safeCount}`);
+    return Array.from({ length: safeCount }, (_, index) => {
+      const brightnessSeed = random();
+      const along = random();
+      const coreBias = Math.pow(random(), 2.2);
+      const side = random() >= 0.5 ? 1 : -1;
+      const sparkleSeed = random();
+      return {
+        along,
+        offset: side * coreBias,
+        seed: index * 47 + brightnessSeed * 13,
+        radius: 0.8 + random() * 2.15,
+        alpha: 0.22 + random() * 0.5,
+        phase: random() * Math.PI * 2,
+        shimmerSpeed: 0.74 + random() * 2.45,
+        flowSpeed: 0.42 + random() * 0.74,
+        sparkleSeed,
+        sparklePhase: random(),
+        sparklePeriodSeed: random() - 0.5,
+        sparkleDutySeed: random() - 0.5,
+        sparkleIntensitySeed: random() - 0.5,
+        warm: random() > 0.72
+      };
+    });
+  }
+
+  function createMilkyWayClouds(seedText = "tanabata-milky-way") {
+    const random = createSeededRandom(`milky-clouds:${seedText}`);
+    return Array.from({ length: 15 }, (_, index) => ({
+      along: (index + random() * 0.7) / 15,
+      offset: (random() - 0.5) * 0.46,
+      width: 0.08 + random() * 0.08,
+      height: 0.28 + random() * 0.32,
+      alpha: 0.16 + random() * 0.1,
+      phase: random() * Math.PI * 2,
+      pulseSpeed: 0.28 + random() * 0.86
+    }));
+  }
+
   const scene = {
     width: 1,
     height: 1,
     dpr: 1,
     startTime: performance.now(),
     milkyWayGain: DEFAULT_MILKY_WAY_PROJECTION_GAIN,
+    milkyWayTwinkle: 1,
+    milkyWaySparkle: 1,
+    milkyWaySpeed: 1,
+    milkyWayParticleCount: 340,
+    milkyWaySparkleRatio: 0.045,
+    milkyWaySparklePeriodVariance: 1,
+    milkyWaySparkleIntensityVariance: 1,
+    milkyWaySparklePeriodSeconds: 2.2,
+    milkyWaySparkleDutyRatio: 0.16,
+    milkyWaySeed: "tanabata-milky-way",
+    tanabataStarResponseIntensity: 1,
+    tanabataStarResponsePhaseDeg: 166,
+    tanabataStarResponsePeriodSeconds: 35,
     meteorShowerActive: false,
     particles: [],
     meteors: [],
@@ -1155,7 +1732,8 @@ function createEffectsScene(canvas) {
         radius: 3.2,
         color: "228, 246, 255",
         halo: "116, 227, 255",
-        phase: 0.4
+        phase: 0.4,
+        responsePhase: 0
       },
       {
         name: "アルタイル",
@@ -1164,31 +1742,12 @@ function createEffectsScene(canvas) {
         radius: 2.8,
         color: "255, 244, 196",
         halo: "255, 218, 130",
-        phase: 2.2
+        phase: 2.2,
+        responsePhase: Math.PI * 0.92
       }
     ],
-    milkyStars: Array.from({ length: 340 }, (_, index) => {
-      const along = seededNoise(index * 19 + 3);
-      const coreBias = Math.pow(seededNoise(index * 23 + 11), 2.2);
-      const side = centeredNoise(index * 29 + 7) >= 0 ? 1 : -1;
-      return {
-        along,
-        offset: side * coreBias,
-        seed: index * 47,
-        radius: 0.8 + seededNoise(index * 31 + 5) * 2.15,
-        alpha: 0.22 + seededNoise(index * 37 + 13) * 0.5,
-        phase: seededNoise(index * 41 + 17) * Math.PI * 2,
-        warm: seededNoise(index * 43 + 23) > 0.72
-      };
-    }),
-    milkyClouds: Array.from({ length: 15 }, (_, index) => ({
-      along: (index + seededNoise(index * 17 + 5) * 0.7) / 15,
-      offset: centeredNoise(index * 31 + 9) * 0.46,
-      width: 0.08 + seededNoise(index * 37 + 13) * 0.08,
-      height: 0.28 + seededNoise(index * 41 + 3) * 0.32,
-      alpha: 0.16 + seededNoise(index * 43 + 19) * 0.1,
-      phase: seededNoise(index * 47 + 29) * Math.PI * 2
-    }))
+    milkyStars: createMilkyWayStars(340, "tanabata-milky-way"),
+    milkyClouds: createMilkyWayClouds("tanabata-milky-way")
   };
 
   function resize() {
@@ -1263,20 +1822,31 @@ function createEffectsScene(canvas) {
     const x = star.x * scene.width;
     const y = star.y * scene.height;
     const pulse = 0.86 + Math.sin(time * 0.55 + star.phase) * 0.14;
+    const responsePeriodSeconds = Math.max(8, scene.tanabataStarResponsePeriodSeconds || 35);
+    const responsePhaseOffset = star.name === "アルタイル"
+      ? (scene.tanabataStarResponsePhaseDeg * Math.PI) / 180
+      : 0;
+    const response = 0.5 + Math.sin(((Math.PI * 2) / responsePeriodSeconds) * time + responsePhaseOffset) * 0.5;
+    const responseGlow = Math.pow(response, 1.7) * scene.tanabataStarResponseIntensity;
+    const breath = pulse * (0.92 + responseGlow * 0.24);
+    const coreAlpha = Math.min(1, 0.92 * breath);
+    const haloAlpha = Math.min(0.72, 0.24 * breath);
+    const strokeAlpha = Math.min(1, 0.5 * breath + responseGlow * 0.12);
 
-    drawSoftParticle(x, y, star.radius * 7.5, star.halo, 0.24 * pulse);
-    drawSoftParticle(x, y, star.radius * 2.2, star.color, 0.92 * pulse);
+    drawSoftParticle(x, y, star.radius * (10.5 + responseGlow * 5.5), star.halo, 0.09 * responseGlow);
+    drawSoftParticle(x, y, star.radius * 7.5, star.halo, haloAlpha);
+    drawSoftParticle(x, y, star.radius * 2.2, star.color, coreAlpha);
 
     context.save();
-    context.strokeStyle = `rgba(${star.color}, ${0.58 * pulse})`;
-    context.lineWidth = 1.2;
-    context.shadowColor = `rgba(${star.halo}, ${0.7 * pulse})`;
-    context.shadowBlur = 16;
+    context.strokeStyle = `rgba(${star.color}, ${strokeAlpha})`;
+    context.lineWidth = 1.2 + responseGlow * 0.35;
+    context.shadowColor = `rgba(${star.halo}, ${0.7 * breath})`;
+    context.shadowBlur = 16 + responseGlow * 10;
     context.beginPath();
-    context.moveTo(x - star.radius * 5.6, y);
-    context.lineTo(x + star.radius * 5.6, y);
-    context.moveTo(x, y - star.radius * 5.6);
-    context.lineTo(x, y + star.radius * 5.6);
+    context.moveTo(x - star.radius * (5.6 + responseGlow * 1.1), y);
+    context.lineTo(x + star.radius * (5.6 + responseGlow * 1.1), y);
+    context.moveTo(x, y - star.radius * (5.6 + responseGlow * 1.1));
+    context.lineTo(x, y + star.radius * (5.6 + responseGlow * 1.1));
     context.stroke();
 
     context.restore();
@@ -1297,14 +1867,19 @@ function createEffectsScene(canvas) {
     context.translate(scene.width * 0.5, scene.height * 0.37);
     context.rotate(-0.18);
 
-    const streamPulse = 0.74 + Math.sin(time * 0.42) * 0.16;
+    const animatedTime = time * scene.milkyWaySpeed;
+    const twinkle = scene.milkyWayTwinkle;
+    const sparkleAmount = scene.milkyWaySparkle;
+    const slowPulse = Math.sin(animatedTime * 0.32) * 0.12 * twinkle;
+    const crossPulse = Math.sin(animatedTime * 0.57 + 1.8) * 0.07 * twinkle;
+    const streamPulse = 0.82 + slowPulse + crossPulse;
     const bandGradient = context.createLinearGradient(0, -bandThickness, 0, bandThickness);
     bandGradient.addColorStop(0, "rgba(180, 215, 255, 0)");
-    bandGradient.addColorStop(0.18, `rgba(98, 218, 232, ${0.06 * streamPulse * scene.milkyWayGain})`);
-    bandGradient.addColorStop(0.38, `rgba(190, 242, 255, ${0.17 * streamPulse * scene.milkyWayGain})`);
-    bandGradient.addColorStop(0.5, `rgba(255, 250, 222, ${0.22 * streamPulse * scene.milkyWayGain})`);
-    bandGradient.addColorStop(0.62, `rgba(235, 246, 255, ${0.15 * streamPulse * scene.milkyWayGain})`);
-    bandGradient.addColorStop(0.84, `rgba(116, 126, 255, ${0.055 * streamPulse * scene.milkyWayGain})`);
+    bandGradient.addColorStop(0.18, `rgba(98, 218, 232, ${0.07 * streamPulse * scene.milkyWayGain})`);
+    bandGradient.addColorStop(0.38, `rgba(190, 242, 255, ${0.19 * streamPulse * scene.milkyWayGain})`);
+    bandGradient.addColorStop(0.5, `rgba(255, 250, 222, ${0.25 * streamPulse * scene.milkyWayGain})`);
+    bandGradient.addColorStop(0.62, `rgba(235, 246, 255, ${0.17 * streamPulse * scene.milkyWayGain})`);
+    bandGradient.addColorStop(0.84, `rgba(116, 126, 255, ${0.065 * streamPulse * scene.milkyWayGain})`);
     bandGradient.addColorStop(1, "rgba(180, 215, 255, 0)");
     context.fillStyle = bandGradient;
     context.beginPath();
@@ -1314,7 +1889,9 @@ function createEffectsScene(canvas) {
     scene.milkyClouds.forEach((cloud) => {
       const x = (cloud.along - 0.5) * bandLength;
       const y = cloud.offset * bandThickness;
-      const pulse = 0.68 + Math.sin(time * 0.5 - cloud.along * 7 + cloud.phase) * 0.32;
+      const pulse = 0.7
+        + Math.sin(animatedTime * cloud.pulseSpeed - cloud.along * 7 + cloud.phase) * 0.2 * twinkle
+        + Math.sin(animatedTime * (cloud.pulseSpeed * 1.73) + cloud.phase * 0.7) * 0.12 * twinkle;
       const cloudGradient = context.createRadialGradient(x, y, 0, x, y, bandLength * cloud.width * 0.62);
       cloudGradient.addColorStop(0, `rgba(245, 252, 255, ${cloud.alpha * pulse * scene.milkyWayGain})`);
       cloudGradient.addColorStop(0.42, `rgba(119, 232, 255, ${cloud.alpha * 0.62 * pulse * scene.milkyWayGain})`);
@@ -1329,11 +1906,31 @@ function createEffectsScene(canvas) {
       const x = (star.along - 0.5) * bandLength;
       const softWiggle = Math.sin(star.along * Math.PI * 6 + star.phase) * 0.12;
       const y = (star.offset + softWiggle) * bandThickness;
-      const flow = 0.55 + Math.sin(time * 0.78 - star.along * 9.5 + star.phase) * 0.3;
-      const shimmer = 0.85 + Math.sin(time * 1.7 + star.phase + star.seed) * 0.15;
-      const alpha = Math.min(0.92, star.alpha * Math.max(0.18, flow) * shimmer * scene.milkyWayGain);
+      const flow = 0.58 + Math.sin(animatedTime * star.flowSpeed - star.along * 9.5 + star.phase) * 0.28 * twinkle;
+      const shimmer = 0.84
+        + Math.sin(animatedTime * star.shimmerSpeed + star.phase + star.seed) * 0.16 * twinkle
+        + Math.sin(animatedTime * (star.shimmerSpeed * 0.43) + star.phase * 1.7) * 0.08 * twinkle;
+      const baseSparklePeriod = Math.max(0.5, scene.milkyWaySparklePeriodSeconds || 2.2);
+      const periodVariance = Math.max(0, scene.milkyWaySparklePeriodVariance || 0);
+      const sparklePeriod = Math.max(0.35, baseSparklePeriod * (1 + star.sparklePeriodSeed * 0.72 * periodVariance));
+      const dutyVariance = star.sparkleDutySeed * 0.22 * periodVariance;
+      const sparkleDuty = Math.max(0.03, Math.min(0.86, scene.milkyWaySparkleDutyRatio + dutyVariance));
+      const sparkleCycle = ((animatedTime / sparklePeriod) + star.sparklePhase) % 1;
+      const sparkleWave = sparkleCycle < sparkleDuty
+        ? Math.sin((sparkleCycle / sparkleDuty) * Math.PI)
+        : 0;
+      const sparkleThreshold = 1 - scene.milkyWaySparkleRatio;
+      const sparkleIntensity = Math.max(0.25, 1 + (star.sparkleIntensitySeed * 1.1 * scene.milkyWaySparkleIntensityVariance));
+      const sparkle = star.sparkleSeed > sparkleThreshold ? Math.pow(sparkleWave, 7) * sparkleAmount * sparkleIntensity : 0;
+      const alpha = Math.min(
+        sparkle > 0 ? 1 : 0.94,
+        star.alpha * Math.max(0.2, flow) * shimmer * scene.milkyWayGain * (1 + sparkle * 1.55)
+      );
       const color = star.warm ? "255, 240, 185" : "226, 250, 255";
-      drawSoftParticle(x, y, star.radius, color, alpha);
+      drawSoftParticle(x, y, star.radius * (1 + sparkle * 0.55), color, alpha);
+      if (sparkle > 0.12) {
+        drawSoftParticle(x, y, star.radius * 2.25, "255, 250, 210", Math.min(0.42, sparkle * 0.28 * scene.milkyWayGain));
+      }
     });
 
     context.restore();
@@ -1410,6 +2007,70 @@ function createEffectsScene(canvas) {
       const gain = Number(value);
       scene.milkyWayGain = Number.isFinite(gain) && gain > 0 ? gain : DEFAULT_MILKY_WAY_PROJECTION_GAIN;
     },
+    setMilkyWayParams({
+      gain,
+      twinkle,
+      sparkle,
+      speed,
+      particleCount,
+      sparkleRatio,
+      sparklePeriodVariance,
+      sparkleIntensityVariance,
+      sparklePeriodSeconds,
+      sparkleDutyRatio,
+      seed,
+      tanabataStarResponseIntensity,
+      tanabataStarResponsePhaseDeg,
+      tanabataStarResponsePeriodSeconds
+    } = {}) {
+      const nextGain = Number(gain);
+      const nextTwinkle = Number(twinkle);
+      const nextSparkle = Number(sparkle);
+      const nextSpeed = Number(speed);
+      const nextParticleCount = Number(particleCount);
+      const nextSparkleRatio = Number(sparkleRatio);
+      const nextSparklePeriodVariance = Number(sparklePeriodVariance);
+      const nextSparkleIntensityVariance = Number(sparkleIntensityVariance);
+      const nextSparklePeriodSeconds = Number(sparklePeriodSeconds);
+      const nextSparkleDutyRatio = Number(sparkleDutyRatio);
+      const nextSeed = String(seed || "tanabata-milky-way").slice(0, 80);
+      const nextTanabataStarResponseIntensity = Number(tanabataStarResponseIntensity);
+      const nextTanabataStarResponsePhaseDeg = Number(tanabataStarResponsePhaseDeg);
+      const nextTanabataStarResponsePeriodSeconds = Number(tanabataStarResponsePeriodSeconds);
+      scene.milkyWayGain = Number.isFinite(nextGain) && nextGain > 0 ? nextGain : DEFAULT_MILKY_WAY_PROJECTION_GAIN;
+      scene.milkyWayTwinkle = Number.isFinite(nextTwinkle) ? Math.max(0, Math.min(2.5, nextTwinkle)) : 1;
+      scene.milkyWaySparkle = Number.isFinite(nextSparkle) ? Math.max(0, Math.min(2.5, nextSparkle)) : 1;
+      scene.milkyWaySpeed = Number.isFinite(nextSpeed) ? Math.max(0.2, Math.min(2.5, nextSpeed)) : 1;
+      scene.milkyWaySparkleRatio = Number.isFinite(nextSparkleRatio) ? Math.max(0, Math.min(0.25, nextSparkleRatio)) : 0.045;
+      scene.milkyWaySparklePeriodVariance = Number.isFinite(nextSparklePeriodVariance)
+        ? Math.max(0, Math.min(2.5, nextSparklePeriodVariance))
+        : 1;
+      scene.milkyWaySparkleIntensityVariance = Number.isFinite(nextSparkleIntensityVariance)
+        ? Math.max(0, Math.min(2.5, nextSparkleIntensityVariance))
+        : 1;
+      scene.milkyWaySparklePeriodSeconds = Number.isFinite(nextSparklePeriodSeconds)
+        ? Math.max(0.5, Math.min(8, nextSparklePeriodSeconds))
+        : 2.2;
+      scene.milkyWaySparkleDutyRatio = Number.isFinite(nextSparkleDutyRatio)
+        ? Math.max(0.03, Math.min(0.8, nextSparkleDutyRatio))
+        : 0.16;
+      scene.tanabataStarResponseIntensity = Number.isFinite(nextTanabataStarResponseIntensity)
+        ? Math.max(0, Math.min(3, nextTanabataStarResponseIntensity))
+        : 1;
+      scene.tanabataStarResponsePhaseDeg = Number.isFinite(nextTanabataStarResponsePhaseDeg)
+        ? Math.max(0, Math.min(360, nextTanabataStarResponsePhaseDeg))
+        : 166;
+      scene.tanabataStarResponsePeriodSeconds = Number.isFinite(nextTanabataStarResponsePeriodSeconds)
+        ? Math.max(8, Math.min(90, nextTanabataStarResponsePeriodSeconds))
+        : 35;
+      const safeParticleCount = Number.isInteger(nextParticleCount) ? Math.max(80, Math.min(720, nextParticleCount)) : 340;
+      if (safeParticleCount !== scene.milkyWayParticleCount || nextSeed !== scene.milkyWaySeed) {
+        scene.milkyWayParticleCount = safeParticleCount;
+        scene.milkyWaySeed = nextSeed;
+        scene.milkyStars = createMilkyWayStars(safeParticleCount, nextSeed);
+        scene.milkyClouds = createMilkyWayClouds(nextSeed);
+      }
+    },
     burstAtSlot
   };
 }
@@ -1465,11 +2126,11 @@ function wait(ms) {
 function buildSlotElement(slot) {
   const card = document.createElement("article");
   card.className = `tanzaku tanzaku-${colors[slot.index % colors.length]}`;
-  card.style.setProperty("--x", `${slot.meta.x}`);
-  card.style.setProperty("--y", `${slot.meta.y}`);
-  card.style.setProperty("--z", `${slot.meta.z}`);
-  card.style.setProperty("--delay", slot.meta.delay);
-  card.style.setProperty("--tilt", slot.meta.tilt);
+  setStylePropertyIfChanged(card, "--x", `${slot.meta.x}`);
+  setStylePropertyIfChanged(card, "--y", `${slot.meta.y}`);
+  setStylePropertyIfChanged(card, "--z", `${slot.meta.z}`);
+  setStylePropertyIfChanged(card, "--delay", slot.meta.delay);
+  setStylePropertyIfChanged(card, "--tilt", slot.meta.tilt);
   card.dataset.slotIndex = String(slot.index);
   card.addEventListener("pointerdown", onSlotPointerDown);
 
@@ -1490,41 +2151,184 @@ function updateSlotPosition(slot, x, y, { persist = true } = {}) {
   slot.meta.x = x;
   slot.meta.y = y;
   if (slot.element) {
-    slot.element.style.setProperty("--x", `${x}`);
-    slot.element.style.setProperty("--y", `${y}`);
+    setStylePropertyIfChanged(slot.element, "--x", `${x}`);
+    setStylePropertyIfChanged(slot.element, "--y", `${y}`);
+    syncSlotRenderPosition(slot, { force: true });
   }
   updateSlotDepth(slot);
+  syncSlotDomOrder();
   if (persist) {
     saveLayout();
   }
 }
 
+function syncSlotDomOrder() {
+  const depthOrderedSlots = getDepthOrderedSlots();
+  const referenceDepth = getDepthReferenceBaseDepth(depthOrderedSlots);
+  const orderedSlots = slots
+    .filter((slot) => slot?.element)
+    .sort((a, b) => {
+      const activeDiff = Number(isSlotDepthParticipant(a)) - Number(isSlotDepthParticipant(b));
+      if (activeDiff) return activeDiff;
+      const depthDiff = getSlotDepth(a, referenceDepth, depthOrderedSlots) - getSlotDepth(b, referenceDepth, depthOrderedSlots);
+      const zDiff = a.meta.z - b.meta.z;
+      return depthDiff || zDiff || a.index - b.index;
+    });
+  const orderedElements = orderedSlots.map((slot) => slot.element);
+  if (!orderedElements.length) return;
+  orderedSlots.forEach((slot, index) => {
+    const renderZ = index + 1;
+    setStylePropertyIfChanged(slot.element, "--z", `${renderZ}`);
+    slot.element.dataset.renderZ = String(renderZ);
+  });
+  const currentElements = Array.from(stage.children);
+  const alreadyOrdered =
+    currentElements.length === orderedElements.length &&
+    orderedElements.every((element, index) => currentElements[index] === element);
+  if (!alreadyOrdered) {
+    if (rotationInProgress) {
+      pendingSlotDomOrderSync = true;
+      return;
+    }
+    stage.replaceChildren(...orderedElements);
+    pendingSlotDomOrderSync = false;
+  }
+}
+
 function bringSlotToFront(slot) {
   slot.meta.z = nextZOrder++;
-  if (slot.element) {
-    slot.element.style.setProperty("--z", `${slot.meta.z}`);
-  }
+  syncSlotDomOrder();
   updateSlotDepth(slot);
 }
 
-function getSlotDepth(slot) {
-  const yDepth = Math.max(0, Math.min(1, slot.meta.y / 78));
-  const zDepth = Math.max(0, Math.min(1, slot.meta.z / Math.max(nextZOrder, 1)));
-  return Math.max(0, Math.min(1, (yDepth * 0.55) + (zDepth * 0.45)));
+function isSlotDepthParticipant(slot) {
+  return Boolean(
+    slot?.element &&
+    slot.wish &&
+    (slot.mode === "display" || slot.state === "leaving")
+  );
+}
+
+function getDepthOrderedSlots() {
+  return slots
+    .filter(isSlotDepthParticipant)
+    .sort((a, b) => a.meta.z - b.meta.z);
+}
+
+function getSlotBaseDepth(slot, orderedSlots = getDepthOrderedSlots()) {
+  if (!isSlotDepthParticipant(slot)) return 0.5;
+  if (orderedSlots.length <= 1) return 0.5;
+  const orderIndex = orderedSlots.indexOf(slot);
+  if (orderIndex === -1) return 0.5;
+  return orderIndex / (orderedSlots.length - 1);
+}
+
+function getDepthReferenceBaseDepth(orderedSlots = getDepthOrderedSlots()) {
+  if (!orderedSlots.length) return 0.5;
+  const referenceIndex = projectionSettings.parallaxDepthReferenceIndex;
+  const orderIndex = referenceIndex > 0
+    ? Math.min(referenceIndex - 1, orderedSlots.length - 1)
+    : Math.floor((orderedSlots.length - 1) / 2);
+  const referenceSlot = orderedSlots[orderIndex] || null;
+  return referenceSlot ? getSlotBaseDepth(referenceSlot, orderedSlots) : 0.5;
+}
+
+function getSlotDepth(slot, referenceDepth = getDepthReferenceBaseDepth(), orderedSlots = getDepthOrderedSlots()) {
+  const baseDepth = getSlotBaseDepth(slot, orderedSlots);
+  const multiplier = projectionSettings.parallaxDepthMultiplier;
+  if (multiplier === 1) return baseDepth;
+  return Math.max(0, Math.min(1, referenceDepth + ((baseDepth - referenceDepth) * multiplier)));
 }
 
 function getSlotDepthScale(slot, depth = getSlotDepth(slot)) {
   return 0.94 + depth * 0.1;
 }
 
-function updateSlotDepth(slot) {
+function updateSlotDepth(slot, referenceDepth = getDepthReferenceBaseDepth(), orderedSlots = getDepthOrderedSlots()) {
   if (!slot?.element) return;
-  const depth = getSlotDepth(slot);
+  const depth = getSlotDepth(slot, referenceDepth, orderedSlots);
   const scale = getSlotDepthScale(slot, depth);
   const brightness = 0.86 + depth * 0.18;
-  slot.element.style.setProperty("--depth", depth.toFixed(3));
-  slot.element.style.setProperty("--depth-scale", scale.toFixed(3));
-  slot.element.style.setProperty("--depth-brightness", brightness.toFixed(3));
+  setStylePropertyIfChanged(slot.element, "--depth", depth.toFixed(3));
+  setStylePropertyIfChanged(slot.element, "--depth-scale", formatScale(scale));
+  setStylePropertyIfChanged(slot.element, "--depth-brightness", brightness.toFixed(3));
+}
+
+function parseStyleNumber(value, fallback = 0) {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function captureSlotMotionState(slot) {
+  const style = slot.element?.style;
+  return {
+    parallaxX: parseStyleNumber(style?.getPropertyValue("--parallax-x"), 0),
+    parallaxY: parseStyleNumber(style?.getPropertyValue("--parallax-y"), 0),
+    depthScale: parseStyleNumber(style?.getPropertyValue("--depth-scale"), 1),
+    brightness: parseStyleNumber(style?.getPropertyValue("--depth-brightness"), 1)
+  };
+}
+
+function setSlotMotionState(slot, state) {
+  if (!slot?.element || !state) return;
+  setStylePropertyIfChanged(slot.element, "--parallax-x", formatPixel(state.parallaxX));
+  setStylePropertyIfChanged(slot.element, "--parallax-y", formatPixel(state.parallaxY));
+  setStylePropertyIfChanged(slot.element, "--depth-scale", formatScale(state.depthScale));
+  setStylePropertyIfChanged(slot.element, "--depth-brightness", state.brightness.toFixed(3));
+}
+
+function interpolateSlotMotionState(from, to, progress) {
+  return {
+    parallaxX: from.parallaxX + ((to.parallaxX - from.parallaxX) * progress),
+    parallaxY: from.parallaxY + ((to.parallaxY - from.parallaxY) * progress),
+    depthScale: from.depthScale + ((to.depthScale - from.depthScale) * progress),
+    brightness: from.brightness + ((to.brightness - from.brightness) * progress)
+  };
+}
+
+function animateSlotDepthReflow(animatedSlots, updateLayout) {
+  const targets = animatedSlots.filter((slot) => slot?.element && slot.wish && slot.mode === "display");
+  const before = new Map(targets.map((slot) => [slot, captureSlotMotionState(slot)]));
+
+  updateLayout();
+
+  if (!targets.length) {
+    return Promise.resolve();
+  }
+
+  const after = new Map(targets.map((slot) => [slot, captureSlotMotionState(slot)]));
+  targets.forEach((slot) => {
+    slot.depthReflowActive = true;
+    setSlotMotionState(slot, before.get(slot));
+  });
+
+  return new Promise((resolve) => {
+    const startedAt = performance.now();
+    const tick = (now) => {
+      const linearProgress = Math.min(1, Math.max(0, (now - startedAt) / TANZAKU_DEPTH_REFLOW_MS));
+      const progress = 0.5 - (Math.cos(Math.PI * linearProgress) / 2);
+      targets.forEach((slot) => {
+        setSlotMotionState(
+          slot,
+          interpolateSlotMotionState(before.get(slot), after.get(slot), progress)
+        );
+      });
+
+      if (linearProgress < 1) {
+        window.requestAnimationFrame(tick);
+        return;
+      }
+
+      targets.forEach((slot) => {
+        slot.depthReflowActive = false;
+        setSlotMotionState(slot, after.get(slot));
+      });
+      parallaxScene.refresh();
+      resolve();
+    };
+
+    window.requestAnimationFrame(tick);
+  });
 }
 
 function glowSlot(slot) {
@@ -1582,6 +2386,45 @@ function getSlotBounds(slot, position = slot.meta) {
   };
 }
 
+function getSlotStringHeightPercent(slot) {
+  const string = slot.element?.querySelector(".tanzaku-string");
+  if (!string) return 8;
+
+  const rect = string.getBoundingClientRect();
+  const plane = getCurrentProjectionPlaneMetrics();
+  return (rect.height / plane.height) * 100 || 8;
+}
+
+function getSafeSlotPosition(slot, position = slot.meta) {
+  const bounds = getSlotBounds(slot, position);
+  const stringHeight = getSlotStringHeightPercent(slot);
+  const minX = 0;
+  const maxX = Math.max(minX, 100 - bounds.width);
+  const minY = Math.max(0, stringHeight);
+  const maxY = Math.max(minY, 100 - bounds.height);
+  return {
+    x: Number(Math.max(minX, Math.min(maxX, position.x)).toFixed(2)),
+    y: Number(Math.max(minY, Math.min(maxY, position.y)).toFixed(2))
+  };
+}
+
+function syncSlotRenderPosition(slot, { force = false } = {}) {
+  if (!slot?.element) return null;
+  if (!force && slot.renderPosition) {
+    return slot.renderPosition;
+  }
+
+  const safePosition = getSafeSlotPosition(slot);
+  slot.renderPosition = safePosition;
+  setStylePropertyIfChanged(slot.element, "--render-x", `${safePosition.x}`);
+  setStylePropertyIfChanged(slot.element, "--render-y", `${safePosition.y}`);
+  return safePosition;
+}
+
+function getSlotVisualPosition(slot) {
+  return slot.renderPosition || getSafeSlotPosition(slot);
+}
+
 function getOverlapArea(a, b) {
   const right = Math.min(a.x + a.width, b.x + b.width);
   const left = Math.max(a.x, b.x);
@@ -1590,37 +2433,69 @@ function getOverlapArea(a, b) {
   return Math.max(0, right - left) * Math.max(0, bottom - top);
 }
 
-function getCandidatePlacementScore(targetSlot, candidate) {
-  const candidateBounds = getSlotBounds(targetSlot, candidate);
-  return getDisplaySlots()
-    .filter((slot) => slot !== targetSlot && slot.wish)
-    .reduce((score, slot) => {
-      const slotBounds = getSlotBounds(slot);
-      const overlap = getOverlapArea(candidateBounds, slotBounds);
-      const dx = candidate.x - slot.meta.x;
-      const dy = candidate.y - slot.meta.y;
-      const distance = Math.sqrt((dx * dx) + (dy * dy));
-      return score + (overlap * 1000) - distance;
-    }, 0);
+function getPlacementBlockingSlots(targetSlot) {
+  return slots.filter((slot) => (
+    slot !== targetSlot &&
+    slot.wish &&
+    slot.mode === "display" &&
+    !slot.dragging
+  ));
 }
 
-function createPlacementCandidates() {
+function expandBounds(bounds, padding) {
+  return {
+    x: bounds.x - padding,
+    y: bounds.y - padding,
+    width: bounds.width + (padding * 2),
+    height: bounds.height + (padding * 2)
+  };
+}
+
+function getCandidatePlacementScore(targetSlot, candidate) {
+  const candidateBounds = getSlotBounds(targetSlot, candidate);
+  const paddedCandidateBounds = expandBounds(candidateBounds, PLACEMENT_PADDING_PERCENT);
+  const safeCandidate = getSafeSlotPosition(targetSlot, candidate);
+  const safeShift = Math.abs(candidate.x - safeCandidate.x) + Math.abs(candidate.y - safeCandidate.y);
+  const centerX = candidate.x + (candidateBounds.width / 2);
+  const centerY = candidate.y + (candidateBounds.height / 2);
+  const centerDrift = Math.hypot(centerX - 50, centerY - 50) * PLACEMENT_EDGE_WEIGHT;
+  return getPlacementBlockingSlots(targetSlot)
+    .reduce((score, slot) => {
+      const slotBounds = getSlotBounds(slot, getSlotVisualPosition(slot));
+      const paddedSlotBounds = expandBounds(slotBounds, PLACEMENT_PADDING_PERCENT);
+      const overlap = getOverlapArea(candidateBounds, slotBounds);
+      const paddedOverlap = getOverlapArea(paddedCandidateBounds, paddedSlotBounds);
+      const dx = centerX - (slotBounds.x + (slotBounds.width / 2));
+      const dy = centerY - (slotBounds.y + (slotBounds.height / 2));
+      const distance = Math.max(0.1, Math.sqrt((dx * dx) + (dy * dy)));
+      return score + (overlap * 100000) + (paddedOverlap * 4200) + (900 / distance);
+    }, (safeShift * 100000) + centerDrift);
+}
+
+function createPlacementCandidates(targetSlot) {
   const targetCount = Math.max(
     PLACEMENT_MIN_CANDIDATES,
     Math.ceil(projectionSettings.slotCount * PLACEMENT_CANDIDATE_RATIO)
   );
-  const rowCount = Math.max(1, Math.ceil(targetCount / PLACEMENT_COLUMNS));
+  const bounds = getSlotBounds(targetSlot);
+  const stringHeight = getSlotStringHeightPercent(targetSlot);
+  const minX = 0;
+  const maxX = Math.max(minX, 100 - bounds.width);
+  const minY = Math.max(0, stringHeight);
+  const maxY = Math.max(minY, 100 - bounds.height);
+  const rowCount = Math.max(PLACEMENT_ROWS, Math.ceil(targetCount / PLACEMENT_COLUMNS));
   const candidates = [];
 
   for (let rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
-    const row = PLACEMENT_ROWS[rowIndex % PLACEMENT_ROWS.length];
-    const cycle = Math.floor(rowIndex / PLACEMENT_ROWS.length);
-    const y = Math.min(58, row.y + (cycle * 8));
+    const rowProgress = rowCount === 1 ? 0.5 : rowIndex / (rowCount - 1);
+    const y = minY + ((maxY - minY) * rowProgress);
+    const rowOffset = rowIndex % 2 ? 0.5 : 0;
 
     for (let columnIndex = 0; columnIndex < PLACEMENT_COLUMNS; columnIndex += 1) {
-      const columnWidth = 80 / (PLACEMENT_COLUMNS - 1);
-      const shiftedColumn = columnIndex + row.offset;
-      const x = Math.min(86, 10 + (shiftedColumn * columnWidth));
+      const columnProgress = PLACEMENT_COLUMNS === 1
+        ? 0.5
+        : (columnIndex + rowOffset) / (PLACEMENT_COLUMNS - 1);
+      const x = minX + ((maxX - minX) * Math.min(1, columnProgress));
       candidates.push({
         x: Number(x.toFixed(2)),
         y: Number(y.toFixed(2))
@@ -1631,10 +2506,10 @@ function createPlacementCandidates() {
   return candidates.slice(0, targetCount);
 }
 
-function placeSlotWhereVisible(targetSlot) {
-  if (initiallyStoredLayoutIndexes.has(targetSlot.index)) return;
+function placeSlotWhereVisible(targetSlot, { force = false } = {}) {
+  if (!force && initiallyStoredLayoutIndexes.has(targetSlot.index)) return;
 
-  const best = createPlacementCandidates()
+  const best = createPlacementCandidates(targetSlot)
     .map((candidate) => ({
       ...candidate,
       score: getCandidatePlacementScore(targetSlot, candidate)
@@ -1650,19 +2525,22 @@ function refreshSlot(slot) {
   if (!slot.element || !slot.textNode) return;
 
   const hasWish = Boolean(slot.wish);
-  const hidden = slot.mode === "waiting" && slot.state !== "leaving";
+  const hidden =
+    (slot.mode === "waiting" && slot.state !== "leaving") ||
+    slot.state === "pending-enter";
 
   slot.element.classList.toggle("tanzaku--waiting", slot.mode === "waiting" && slot.state !== "leaving");
   slot.element.classList.toggle("tanzaku--display", slot.mode === "display");
   slot.element.classList.toggle("tanzaku--typing", slot.state === "typing");
   slot.element.classList.toggle("tanzaku--leaving", slot.state === "leaving");
+  slot.element.classList.toggle("tanzaku--pending-enter", slot.state === "pending-enter");
   slot.element.classList.toggle("tanzaku--dragging", slot.dragging);
   slot.element.classList.toggle("tanzaku--empty", !hasWish);
   slot.element.style.opacity = hidden || !hasWish ? "0" : "1";
   slot.element.style.pointerEvents = hidden ? "none" : "auto";
-  slot.element.style.setProperty("--x", `${slot.meta.x}`);
-  slot.element.style.setProperty("--y", `${slot.meta.y}`);
-  slot.element.style.setProperty("--z", `${slot.meta.z}`);
+  setStylePropertyIfChanged(slot.element, "--x", `${slot.meta.x}`);
+  setStylePropertyIfChanged(slot.element, "--y", `${slot.meta.y}`);
+  syncSlotRenderPosition(slot);
   updateSlotDepth(slot);
 
   if (!hasWish) {
@@ -1681,6 +2559,62 @@ function getSlotTiltValue(slot) {
   return Number.parseFloat(slot.meta.tilt) || 0;
 }
 
+function clearSlotGust(slot) {
+  if (!slot?.element) return;
+  setStylePropertyIfChanged(slot.element, "--gust-x", "0px");
+  setStylePropertyIfChanged(slot.element, "--gust-y", "0px");
+  setStylePropertyIfChanged(slot.element, "--gust-rotate", "0deg");
+}
+
+function createGustController(slot, swing, gustStrength = 1) {
+  let frameId = null;
+  let cancelled = false;
+  const startedAt = performance.now();
+  const gustScale = Math.max(0, Number.isFinite(gustStrength) ? gustStrength : 1);
+  const gustX = (8 + (slot.meta.y / 100) * 5) * gustScale;
+  const gustY = (2 + (slot.meta.y / 100) * 3) * gustScale;
+  const attackRatio = 0.28;
+  const easeOut = (progress) => 1 - Math.pow(1 - progress, 3);
+  const easeInOut = (progress) => 0.5 - (Math.cos(Math.PI * progress) / 2);
+
+  const controller = {
+    cancel() {
+      cancelled = true;
+      if (frameId !== null) {
+        cancelAnimationFrame(frameId);
+      }
+      clearSlotGust(slot);
+    }
+  };
+
+  const tick = (now) => {
+    if (cancelled || !slot.element) return;
+    const progress = Math.min(1, Math.max(0, (now - startedAt) / WIND_GUST_MS));
+    const strength = progress < attackRatio
+      ? easeOut(progress / attackRatio)
+      : 1 - easeInOut((progress - attackRatio) / (1 - attackRatio));
+    const recoil = Math.sin(progress * Math.PI * 2) * 0.08 * (1 - progress);
+    const adjustedStrength = Math.max(0, strength + recoil);
+
+    setStylePropertyIfChanged(slot.element, "--gust-x", `${(gustX * adjustedStrength).toFixed(2)}px`);
+    setStylePropertyIfChanged(slot.element, "--gust-y", `${(gustY * adjustedStrength).toFixed(2)}px`);
+    setStylePropertyIfChanged(slot.element, "--gust-rotate", `${(swing * adjustedStrength).toFixed(2)}deg`);
+
+    if (progress < 1) {
+      frameId = requestAnimationFrame(tick);
+      return;
+    }
+
+    clearSlotGust(slot);
+    if (slot.gustAnimation === controller) {
+      slot.gustAnimation = null;
+    }
+  };
+
+  frameId = requestAnimationFrame(tick);
+  return controller;
+}
+
 function playWindGust(slot) {
   if (!slot.element || !slot.wish || slot.mode !== "display" || slot.state === "leaving" || slot.dragging) return;
 
@@ -1689,28 +2623,12 @@ function playWindGust(slot) {
     slot.gustAnimation = null;
   }
 
-  const tilt = getSlotTiltValue(slot);
-  const swing = 6.5 + (slot.meta.y / 100) * 1.5;
-
-  slot.gustAnimation = slot.element.animate(
-    [
-      { transform: `translate3d(var(--parallax-x, 0px), var(--parallax-y, 0px), 0) rotate(${tilt}deg)`, transformOrigin: WIND_PIVOT },
-      { transform: `translate3d(var(--parallax-x, 0px), var(--parallax-y, 0px), 0) rotate(${tilt + swing}deg)`, transformOrigin: WIND_PIVOT, offset: 0.44 },
-      { transform: `translate3d(var(--parallax-x, 0px), var(--parallax-y, 0px), 0) rotate(${tilt}deg)`, transformOrigin: WIND_PIVOT }
-    ],
-    {
-      duration: WIND_GUST_MS,
-      easing: "cubic-bezier(0.22, 0.74, 0.24, 1)",
-      fill: "none"
-    }
-  );
-
-  slot.gustAnimation.onfinish = () => {
-    slot.gustAnimation = null;
-  };
-  slot.gustAnimation.oncancel = () => {
-    slot.gustAnimation = null;
-  };
+  const swayStrengthValue = Number(projectionSettings.tanzakuSwayStrength);
+  const gustStrengthValue = Number(projectionSettings.windGustStrength);
+  const swayStrength = Number.isFinite(swayStrengthValue) ? Math.max(0, swayStrengthValue) : 1;
+  const gustStrength = Number.isFinite(gustStrengthValue) ? Math.max(0, gustStrengthValue) : 1;
+  const swing = (6.5 + (slot.meta.y / 100) * 1.5) * swayStrength;
+  slot.gustAnimation = createGustController(slot, swing, gustStrength);
 }
 
 function triggerWindGust() {
@@ -1733,7 +2651,9 @@ function triggerWindGust() {
     const normalizedX = (slot.meta.x - minX) / spread;
     const fallbackOrder = candidates.length > 1 ? index / (candidates.length - 1) : 0;
     const waveProgress = maxX === minX ? fallbackOrder : normalizedX;
-    const delay = Math.round(waveProgress * WIND_SWEEP_MS);
+    const depth = getSlotDepth(slot);
+    const depthDelay = (1 - depth) * WIND_DEPTH_STAGGER_MS;
+    const delay = Math.round((waveProgress * WIND_SWEEP_MS) + depthDelay);
 
     slot.gustTimer = setTimeout(() => {
       slot.gustTimer = null;
@@ -1742,47 +2662,130 @@ function triggerWindGust() {
   });
 }
 
+function getWindGustDelayMs() {
+  const cycleMs = Math.max(3000, Math.min(60000, Number(projectionSettings.windGustCycleMs) || 30000));
+  const jitterSeconds = Math.max(0, Math.min(60, Number(projectionSettings.windGustCycleJitterSeconds) || 0));
+  const jitterMs = jitterSeconds > 0 ? Math.round(Math.random() * jitterSeconds * 1000) : 0;
+  return cycleMs + jitterMs;
+}
+
+function scheduleWindLoopCycle(delayMs) {
+  const timeoutId = setTimeout(() => {
+    windLoopTimers = windLoopTimers.filter((timerId) => timerId !== timeoutId);
+    if (!windLoopStarted) return;
+    triggerWindGust();
+    scheduleWindLoopCycle(getWindGustDelayMs());
+  }, delayMs);
+  windLoopTimers.push(timeoutId);
+}
+
 function startWindLoop() {
-  if (windLoopStarted) return;
+  clearWindLoop();
   windLoopStarted = true;
 
-  METEOR_DELAYS_MS.forEach((meteorDelay) => {
-    const firstDelay = (meteorDelay - WIND_LEAD_MS + METEOR_CYCLE_MS) % METEOR_CYCLE_MS;
-    setTimeout(() => {
-      triggerWindGust();
-      setInterval(triggerWindGust, METEOR_CYCLE_MS);
-    }, firstDelay);
+  const firstDelay = Math.max(0, METEOR_DELAYS_MS[0] - WIND_LEAD_MS);
+  scheduleWindLoopCycle(firstDelay);
+}
+
+function clearWindLoop() {
+  windLoopTimers.forEach((timerId) => {
+    clearTimeout(timerId);
+    clearInterval(timerId);
   });
+  windLoopTimers = [];
+  windLoopStarted = false;
+}
+
+function restartWindLoop() {
+  clearWindLoop();
+  startWindLoop();
 }
 
 function renderSlots() {
   emptyState.hidden = slots.some((slot) => Boolean(slot.wish));
+  slots.forEach((slot) => {
+    if (slot.element) {
+      refreshSlot(slot);
+    }
+  });
+  syncSlotDomOrder();
+  if (!rotationInProgress && pendingSlotDomOrderSync) {
+    pendingSlotDomOrderSync = false;
+    syncSlotDomOrder();
+  }
   parallaxScene.refresh();
 }
 
 function mount() {
-  stage.replaceChildren(...slots.map((slot) => slot.element));
+  syncSlotDomOrder();
   renderSlots();
   saveLayout();
 }
 
-function rebuildSlots(wishes = []) {
+function rebuildSlots(wishes = [], options = {}) {
   slots.forEach(clearSlotTimers);
   slots = Array.from({ length: getSlotCount() }, (_, index) => createSlot(index));
   slots.forEach((slot) => buildSlotElement(slot));
   mount();
-  seedSlots(wishes);
+  seedSlots(wishes, options);
 }
 
 function applyProjectionSettings(settings, wishes = []) {
   const nextSettings = normalizeProjectionSettings(settings);
+  const nextSettingsSignature = getProjectionSettingsSignature(nextSettings);
+  const settingsChanged = nextSettingsSignature !== appliedProjectionSettingsSignature;
+  const previousDisplayCount = projectionSettings.displayCount;
+  const windSettingsChanged =
+    nextSettings.tanzakuSwayStrength !== projectionSettings.tanzakuSwayStrength ||
+    nextSettings.windGustStrength !== projectionSettings.windGustStrength ||
+    nextSettings.windGustCycleMs !== projectionSettings.windGustCycleMs ||
+    nextSettings.windGustCycleJitterSeconds !== projectionSettings.windGustCycleJitterSeconds;
   const slotShapeChanged =
     nextSettings.displayCount !== projectionSettings.displayCount ||
     nextSettings.slotCount !== projectionSettings.slotCount;
+  const addedDisplayStart = initialSeeded && nextSettings.displayCount > previousDisplayCount
+    ? previousDisplayCount
+    : nextSettings.displayCount;
   projectionSettings = nextSettings;
-  effectsScene.setMilkyWayGain(projectionSettings.milkyWayGain);
-  renderCloudLayer();
+  if (!settingsChanged) {
+    return { settingsChanged: false, slotShapeChanged: false };
+  }
+  appliedProjectionSettingsSignature = nextSettingsSignature;
+
+  effectsScene.setMilkyWayParams({
+    gain: projectionSettings.milkyWayGain,
+    twinkle: projectionSettings.milkyWayTwinkle,
+    sparkle: projectionSettings.milkyWaySparkle,
+    speed: projectionSettings.milkyWaySpeed,
+    particleCount: projectionSettings.milkyWayParticleCount,
+    sparkleRatio: projectionSettings.milkyWaySparkleRatio,
+    sparklePeriodVariance: projectionSettings.milkyWaySparklePeriodVariance,
+    sparkleIntensityVariance: projectionSettings.milkyWaySparkleIntensityVariance,
+    sparklePeriodSeconds: projectionSettings.milkyWaySparklePeriodSeconds,
+    sparkleDutyRatio: projectionSettings.milkyWaySparkleDutyRatio,
+    seed: projectionSettings.milkyWaySeed,
+    tanabataStarResponseIntensity: projectionSettings.tanabataStarResponseIntensity,
+    tanabataStarResponsePhaseDeg: projectionSettings.tanabataStarResponsePhaseDeg,
+    tanabataStarResponsePeriodSeconds: projectionSettings.tanabataStarResponsePeriodSeconds
+  });
+  applyAppearanceSettings({
+    ...loadAppearanceSettings(),
+    fontId: projectionSettings.tanzakuFontId
+  });
+  const nextCloudSettingsSignature = getCloudSettingsSignature(projectionSettings);
+  if (nextCloudSettingsSignature !== renderedCloudSettingsSignature) {
+    renderCloudLayer();
+    renderedCloudSettingsSignature = nextCloudSettingsSignature;
+  }
+  parallaxScene.setMotionMode(projectionSettings.parallaxMotionMode);
   parallaxScene.setStrength(projectionSettings.parallaxStrength);
+  parallaxScene.setViewerGeometry(
+    projectionSettings.parallaxViewerOffsetX,
+    projectionSettings.parallaxViewerOffsetY,
+    projectionSettings.parallaxViewerDistance
+  );
+  const depthReference = getDepthReferenceBaseDepth();
+  slots.forEach((slot) => updateSlotDepth(slot, depthReference));
   parallaxScene.setViewportMargin(projectionSettings.viewportMargin);
   parallaxScene.setVanishingPoint(
     projectionSettings.parallaxVanishingPointX,
@@ -1791,15 +2794,18 @@ function applyProjectionSettings(settings, wishes = []) {
   parallaxScene.setPopoutStrength(projectionSettings.parallaxPopoutStrength);
   parallaxScene.setMarkerEnabled(projectionSettings.parallaxMarkerEnabled);
   parallaxScene.setEnabled(projectionSettings.experimentalParallaxEnabled);
-
-  if (slotShapeChanged) {
-    rebuildSlots(wishes);
+  if (windSettingsChanged) {
+    restartWindLoop();
   }
 
-  return slotShapeChanged;
+  if (slotShapeChanged) {
+    rebuildSlots(wishes, { addedDisplayStart });
+  }
+
+  return { settingsChanged: true, slotShapeChanged };
 }
 
-function seedSlots(wishes) {
+function seedSlots(wishes, { addedDisplayStart = projectionSettings.displayCount } = {}) {
   const initial = wishes.slice(0, getSlotCount());
   backlog = wishes.slice(getSlotCount()).reverse();
 
@@ -1810,9 +2816,13 @@ function seedSlots(wishes) {
     slot.dragging = false;
     slot.wish = initial[index] || null;
     slot.rotationOrder = slot.wish ? getSlotCount() - index : null;
+    if (slot.mode === "display" && slot.wish && index >= addedDisplayStart) {
+      placeSlotWhereVisible(slot, { force: true });
+    }
     refreshSlot(slot);
   });
 
+  syncSlotDomOrder();
   nextRotationOrder = getSlotCount() + 1;
   knownApprovedIds = new Set(wishes.map((wish) => wish.id));
   initialSeeded = true;
@@ -1836,10 +2846,12 @@ function startTyping(slot, wishText) {
 
   return new Promise((resolve) => {
     let index = 0;
+    let typedText = "";
     const typingIntervalMs = getTypingIntervalMs(wishText, projectionSettings.typingIntervalMs);
     slot.typingTimer = setInterval(() => {
+      typedText += chars[index] || "";
       index += 1;
-      slot.textNode.textContent = chars.slice(0, index).join("");
+      slot.textNode.textContent = typedText;
       if (index >= chars.length) {
         clearInterval(slot.typingTimer);
         slot.typingTimer = null;
@@ -1851,7 +2863,7 @@ function startTyping(slot, wishText) {
   });
 }
 
-function startLeaving(slot) {
+function startLeaving(slot, { finalize = true } = {}) {
   clearSlotTimers(slot);
   slot.state = "leaving";
   if (slot.element) {
@@ -1861,6 +2873,11 @@ function startLeaving(slot) {
 
   return new Promise((resolve) => {
     slot.leaveTimer = setTimeout(() => {
+      slot.leaveTimer = null;
+      if (!finalize) {
+        resolve();
+        return;
+      }
       slot.state = null;
       slot.mode = "waiting";
       slot.dragging = false;
@@ -1924,6 +2941,14 @@ function getOldestWaitingSlot() {
   return getOldestSlot(getWaitingSlots()) || getEmptyWaitingSlot();
 }
 
+function getBackmostDisplaySlots(count) {
+  if (count <= 0) return [];
+  const displaySlots = new Set(getDisplaySlots());
+  return getDepthOrderedSlots()
+    .filter((slot) => displaySlots.has(slot))
+    .slice(0, count);
+}
+
 function getNextWaitingSlot(excludedWishIds) {
   const waitingSlots = getWaitingSlots();
   return (
@@ -1938,6 +2963,38 @@ function moveDisplaySlotToWaiting(sourceSlot) {
   return startLeaving(sourceSlot);
 }
 
+function pullNextWaitingWish(excludedWishIds) {
+  const waitingSlot = getOldestSlot(getWaitingSlots().filter((slot) => (
+    slot.wish && !excludedWishIds.has(slot.wish.id)
+  )));
+  if (waitingSlot?.wish) {
+    const wish = waitingSlot.wish;
+    waitingSlot.wish = null;
+    waitingSlot.rotationOrder = null;
+    refreshSlot(waitingSlot);
+    excludedWishIds.add(wish.id);
+    return wish;
+  }
+
+  const wish = pullUniqueFromBacklog(excludedWishIds);
+  if (wish) {
+    excludedWishIds.add(wish.id);
+  }
+  return wish;
+}
+
+function preparePendingEntry(slot, wish) {
+  clearSlotTimers(slot);
+  slot.mode = "display";
+  slot.state = "pending-enter";
+  slot.dragging = false;
+  slot.rotationOrder = nextRotationOrder;
+  nextRotationOrder += 1;
+  slot.wish = wish || null;
+  slot.meta.z = nextZOrder++;
+  refreshSlot(slot);
+}
+
 function promoteWaitingSlotToDisplay(targetSlot, wish, { animate = true, foreground = false } = {}) {
   if (!targetSlot) return Promise.resolve();
   targetSlot.mode = "display";
@@ -1945,8 +3002,9 @@ function promoteWaitingSlotToDisplay(targetSlot, wish, { animate = true, foregro
   targetSlot.dragging = false;
   targetSlot.rotationOrder = nextRotationOrder;
   nextRotationOrder += 1;
+  targetSlot.wish = wish || null;
   if (foreground) {
-    placeSlotWhereVisible(targetSlot);
+    placeSlotWhereVisible(targetSlot, { force: true });
   }
   bringSlotToFront(targetSlot);
   return assignWish(targetSlot, wish, { animate });
@@ -1998,13 +3056,49 @@ async function rotateWindow() {
   const nextWish = target.wish || pullUniqueFromBacklog(visibleWishIds) || source.wish;
   if (!nextWish) return;
 
-  await moveDisplaySlotToWaiting(source);
-  await promoteWaitingSlotToDisplay(target, nextWish, { animate: true });
+  await Promise.all([
+    moveDisplaySlotToWaiting(source),
+    promoteWaitingSlotToDisplay(target, nextWish, { animate: true })
+  ]);
 }
 
 async function rotateWindows() {
-  for (let index = 0; index < projectionSettings.moveCount; index += 1) {
-    await rotateWindow();
+  const sources = getBackmostDisplaySlots(projectionSettings.moveCount);
+  if (!sources.length) return;
+
+  const visibleWishIds = new Set(
+    getDisplaySlots()
+      .filter((slot) => !sources.includes(slot) && slot.wish)
+      .map((slot) => slot.wish.id)
+  );
+  const pairs = sources
+    .map((slot) => ({
+      slot,
+      oldWish: slot.wish,
+      nextWish: pullNextWaitingWish(visibleWishIds)
+    }))
+    .filter((pair) => pair.nextWish);
+
+  if (!pairs.length) return;
+
+  for (const pair of pairs) {
+    await startLeaving(pair.slot, { finalize: false });
+  }
+
+  const visibleSlots = getDisplaySlots().filter((slot) => !pairs.some((pair) => pair.slot === slot));
+  await animateSlotDepthReflow(visibleSlots, () => {
+    pairs.forEach((pair) => {
+      if (pair.oldWish) {
+        backlog.push(pair.oldWish);
+      }
+      preparePendingEntry(pair.slot, pair.nextWish);
+    });
+    syncSlotDomOrder();
+    parallaxScene.refresh();
+  });
+
+  for (const pair of pairs) {
+    await startTyping(pair.slot, pair.nextWish.text);
   }
 }
 
@@ -2298,19 +3392,28 @@ async function loadWishes() {
   const response = await fetch("/api/approved", { cache: "no-store" });
   const result = await response.json();
   const nextWishes = result.wishes || [];
+  const nextWishesSignature = getWishesSignature(nextWishes);
+  const wishesChanged = nextWishesSignature !== approvedWishesSignature;
   currentWishes = nextWishes;
   if (specialEffectInProgress) {
     return;
   }
 
-  const settingsChanged = applyProjectionSettings(result.settings, nextWishes);
-  if (settingsChanged) {
+  const settingsResult = applyProjectionSettings(result.settings, nextWishes);
+  if (settingsResult.slotShapeChanged) {
+    approvedWishesSignature = nextWishesSignature;
     renderSlots();
     ensureRotationStarted(nextWishes);
     return;
   }
 
+  if (!wishesChanged) {
+    ensureRotationStarted(nextWishes);
+    return;
+  }
+
   await reconcileApprovedWishes(nextWishes);
+  approvedWishesSignature = nextWishesSignature;
   renderSlots();
   ensureRotationStarted(nextWishes);
 }
