@@ -110,6 +110,9 @@ const PLACEMENT_COLUMNS = 10;
 const PLACEMENT_ROWS = 8;
 const PLACEMENT_PADDING_PERCENT = 1.4;
 const PLACEMENT_EDGE_WEIGHT = 0.16;
+const TANZAKU_TILT_VALUES = [-7, -5.5, -4, -2.5, -1, 1.25, 2.75, 4.25, 5.75, 7.25];
+const TANZAKU_RECENT_TILT_MEMORY = 5;
+const TANZAKU_MIN_TILT_GAP = 1.8;
 
 let savedLayout = loadSavedLayout();
 const initiallyStoredLayoutIndexes = new Set(
@@ -182,6 +185,7 @@ function clampVanishingPointForMargin(value, margin, axis) {
 }
 
 let nextZOrder = 1;
+let recentTanzakuTilts = [];
 let slots = Array.from({ length: getSlotCount() }, (_, index) => createSlot(index));
 
 let knownApprovedIds = new Set();
@@ -712,6 +716,50 @@ function formatScale(value) {
   return (Math.round(value / PARALLAX_SCALE_STEP) * PARALLAX_SCALE_STEP).toFixed(3);
 }
 
+function hashTextToUint32(text) {
+  let hash = 2166136261;
+  const source = String(text || "tanabata");
+  for (let index = 0; index < source.length; index += 1) {
+    hash ^= source.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function formatTilt(value) {
+  return `${Number(value).toFixed(2).replace(/\.?0+$/, "")}deg`;
+}
+
+function pickTanzakuTilt(seedText) {
+  const seed = hashTextToUint32(seedText);
+  const startIndex = seed % TANZAKU_TILT_VALUES.length;
+  let selected = TANZAKU_TILT_VALUES[startIndex];
+
+  for (let offset = 0; offset < TANZAKU_TILT_VALUES.length; offset += 1) {
+    const candidate = TANZAKU_TILT_VALUES[(startIndex + offset * 3) % TANZAKU_TILT_VALUES.length];
+    const tooClose = recentTanzakuTilts.some((tilt) => Math.abs(tilt - candidate) < TANZAKU_MIN_TILT_GAP);
+    if (!tooClose) {
+      selected = candidate;
+      break;
+    }
+  }
+
+  recentTanzakuTilts.push(selected);
+  if (recentTanzakuTilts.length > TANZAKU_RECENT_TILT_MEMORY) {
+    recentTanzakuTilts = recentTanzakuTilts.slice(-TANZAKU_RECENT_TILT_MEMORY);
+  }
+  return formatTilt(selected);
+}
+
+function setSlotTilt(slot, wish, salt = "") {
+  if (!slot) return;
+  const wishKey = wish?.id || wish?.text || "empty";
+  slot.meta.tilt = pickTanzakuTilt(`${wishKey}:${slot.index}:${salt}:${nextZOrder}:${nextRotationOrder}`);
+  if (slot.element) {
+    setStylePropertyIfChanged(slot.element, "--tilt", slot.meta.tilt);
+  }
+}
+
 function createSlot(index) {
   const stored = savedLayout[index] || {};
   return {
@@ -722,7 +770,9 @@ function createSlot(index) {
     element: null,
     textNode: null,
     typingTimer: null,
+    typingResolve: null,
     leaveTimer: null,
+    leaveResolve: null,
     gustTimer: null,
     glowTimer: null,
     gustAnimation: null,
@@ -733,7 +783,7 @@ function createSlot(index) {
       y: typeof stored.y === "number" ? stored.y : 8 + ((index * 23) % 58),
       z: nextZOrder++,
       delay: `${(index % 6) * -0.7}s`,
-      tilt: `${((index % 5) - 2) * 3}deg`
+      tilt: pickTanzakuTilt(`initial:${index}`)
     }
   };
 }
@@ -2098,9 +2148,19 @@ function clearSlotTimers(slot) {
     clearInterval(slot.typingTimer);
     slot.typingTimer = null;
   }
+  if (slot.typingResolve) {
+    const resolve = slot.typingResolve;
+    slot.typingResolve = null;
+    resolve();
+  }
   if (slot.leaveTimer) {
     clearTimeout(slot.leaveTimer);
     slot.leaveTimer = null;
+  }
+  if (slot.leaveResolve) {
+    const resolve = slot.leaveResolve;
+    slot.leaveResolve = null;
+    resolve();
   }
   if (slot.gustTimer) {
     clearTimeout(slot.gustTimer);
@@ -2542,6 +2602,7 @@ function refreshSlot(slot) {
   setStylePropertyIfChanged(slot.element, "--y", `${slot.meta.y}`);
   syncSlotRenderPosition(slot);
   updateSlotDepth(slot);
+  setStylePropertyIfChanged(slot.element, "--tilt", slot.meta.tilt);
 
   if (!hasWish) {
     slot.textNode.textContent = "";
@@ -2815,6 +2876,7 @@ function seedSlots(wishes, { addedDisplayStart = projectionSettings.displayCount
     slot.state = null;
     slot.dragging = false;
     slot.wish = initial[index] || null;
+    setSlotTilt(slot, slot.wish, `seed:${index}`);
     slot.rotationOrder = slot.wish ? getSlotCount() - index : null;
     if (slot.mode === "display" && slot.wish && index >= addedDisplayStart) {
       placeSlotWhereVisible(slot, { force: true });
@@ -2845,6 +2907,7 @@ function startTyping(slot, wishText) {
   }
 
   return new Promise((resolve) => {
+    slot.typingResolve = resolve;
     let index = 0;
     let typedText = "";
     const typingIntervalMs = getTypingIntervalMs(wishText, projectionSettings.typingIntervalMs);
@@ -2855,6 +2918,7 @@ function startTyping(slot, wishText) {
       if (index >= chars.length) {
         clearInterval(slot.typingTimer);
         slot.typingTimer = null;
+        slot.typingResolve = null;
         slot.state = null;
         refreshSlot(slot);
         resolve();
@@ -2872,8 +2936,10 @@ function startLeaving(slot, { finalize = true } = {}) {
   refreshSlot(slot);
 
   return new Promise((resolve) => {
+    slot.leaveResolve = resolve;
     slot.leaveTimer = setTimeout(() => {
       slot.leaveTimer = null;
+      slot.leaveResolve = null;
       if (!finalize) {
         resolve();
         return;
@@ -2992,6 +3058,7 @@ function preparePendingEntry(slot, wish) {
   nextRotationOrder += 1;
   slot.wish = wish || null;
   slot.meta.z = nextZOrder++;
+  setSlotTilt(slot, wish, "pending");
   refreshSlot(slot);
 }
 
@@ -3003,6 +3070,7 @@ function promoteWaitingSlotToDisplay(targetSlot, wish, { animate = true, foregro
   targetSlot.rotationOrder = nextRotationOrder;
   nextRotationOrder += 1;
   targetSlot.wish = wish || null;
+  setSlotTilt(targetSlot, wish, foreground ? "new" : "rotate");
   if (foreground) {
     placeSlotWhereVisible(targetSlot, { force: true });
   }
@@ -3184,39 +3252,47 @@ async function playMeteorShowerEffect() {
   if (activeDrag) endDrag();
 
   const layer = createMeteorShowerLayer();
-  document.body.classList.add("projection-effect-active");
-  document.body.classList.add("projection-effect-meteor-shower");
-  effectsScene.setMeteorShowerActive(true);
-  const bridgeStartPromise = wait(EFFECT_BRIDGE_START_MS).then(() => webglEffectsScene.startBridge());
-  const bridgeScatterPromise = wait(EFFECT_BRIDGE_SCATTER_START_MS).then(() => webglEffectsScene.startWarp());
-  projectionStage.append(layer);
+  try {
+    document.body.classList.add("projection-effect-active");
+    document.body.classList.add("projection-effect-meteor-shower");
+    effectsScene.setMeteorShowerActive(true);
+    const bridgeStartPromise = wait(EFFECT_BRIDGE_START_MS).then(() => webglEffectsScene.startBridge());
+    const bridgeScatterPromise = wait(EFFECT_BRIDGE_SCATTER_START_MS).then(() => webglEffectsScene.startWarp());
+    projectionStage.append(layer);
 
-  await wait(EFFECT_LEAVE_START_MS);
+    await wait(EFFECT_LEAVE_START_MS);
 
-  const leavingSlots = getDisplaySlots()
-    .filter((slot) => slot.wish)
-    .sort((a, b) => (a.rotationOrder ?? 0) - (b.rotationOrder ?? 0));
+    const leavingSlots = getDisplaySlots()
+      .filter((slot) => slot.wish)
+      .sort((a, b) => (a.rotationOrder ?? 0) - (b.rotationOrder ?? 0));
 
-  const leavePromises = leavingSlots.map((slot, index) => {
-    return wait(index * EFFECT_LEAVE_STAGGER_MS).then(() => startLeaving(slot));
-  });
+    const leavePromises = leavingSlots.map((slot, index) => {
+      return wait(index * EFFECT_LEAVE_STAGGER_MS).then(() => startLeaving(slot));
+    });
 
-  await Promise.all([bridgeStartPromise, bridgeScatterPromise, ...leavePromises]);
-  await wait(Math.max(0, METEOR_SHOWER_ACTIVE_MS - EFFECT_LEAVE_START_MS));
+    await Promise.all([bridgeStartPromise, bridgeScatterPromise, ...leavePromises]);
+    await wait(Math.max(0, METEOR_SHOWER_ACTIVE_MS - EFFECT_LEAVE_START_MS));
 
-  layer.classList.add("meteor-shower-field--ending");
-  effectsScene.setMeteorShowerActive(false);
-  webglEffectsScene.stop();
-  await wait(METEOR_SHOWER_FADE_MS);
-  layer.remove();
-  document.body.classList.remove("projection-effect-meteor-shower");
-  document.body.classList.remove("projection-effect-active");
+    layer.classList.add("meteor-shower-field--ending");
+    effectsScene.setMeteorShowerActive(false);
+    webglEffectsScene.stop();
+    await wait(METEOR_SHOWER_FADE_MS);
+  } catch (error) {
+    console.warn("Meteor shower effect recovered after an unexpected interruption.", error);
+  } finally {
+    effectsScene.setMeteorShowerActive(false);
+    webglEffectsScene.stop();
+    layer.remove();
+    document.body.classList.remove("projection-effect-meteor-shower");
+    document.body.classList.remove("projection-effect-active");
 
-  specialEffectInProgress = false;
-  rotationStarted = false;
-  seedSlots(currentWishes);
-  renderSlots();
-  ensureRotationStarted(currentWishes);
+    specialEffectInProgress = false;
+    rotationInProgress = false;
+    rotationStarted = false;
+    seedSlots(currentWishes);
+    renderSlots();
+    ensureRotationStarted(currentWishes);
+  }
 }
 
 async function checkProjectionEffect() {
