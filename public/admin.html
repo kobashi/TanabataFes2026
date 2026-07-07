@@ -200,24 +200,29 @@
               </label>
             </fieldset>
             <fieldset class="settings-group">
-              <legend>風</legend>
+              <legend>短冊の揺れ</legend>
               <label class="range-option">
-                <span class="range-option-label">短冊揺れ強度</span>
+                <span class="range-option-label">突風連動揺れ</span>
                 <input id="projection-tanzaku-sway-strength" type="range" min="0" max="3" step="0.05">
                 <output id="projection-tanzaku-sway-strength-value" for="projection-tanzaku-sway-strength">1</output>
               </label>
               <label class="range-option">
-                <span class="range-option-label">突風強度</span>
+                <span class="range-option-label">常時ゆらぎ</span>
+                <input id="projection-tanzaku-ambient-sway-strength" type="range" min="0" max="3" step="0.05">
+                <output id="projection-tanzaku-ambient-sway-strength-value" for="projection-tanzaku-ambient-sway-strength">0</output>
+              </label>
+              <label class="range-option">
+                <span class="range-option-label">押し流し強度</span>
                 <input id="projection-wind-gust-strength" type="range" min="0" max="3" step="0.05">
                 <output id="projection-wind-gust-strength-value" for="projection-wind-gust-strength">1</output>
               </label>
               <label class="range-option">
-                <span class="range-option-label">突風周期</span>
+                <span class="range-option-label">押し流し周期</span>
                 <input id="projection-wind-gust-cycle-seconds" type="range" min="3" max="60" step="1">
                 <output id="projection-wind-gust-cycle-seconds-value" for="projection-wind-gust-cycle-seconds">30秒</output>
               </label>
               <label class="range-option">
-                <span class="range-option-label">ランダム延長</span>
+                <span class="range-option-label">周期のゆらぎ</span>
                 <input id="projection-wind-gust-cycle-jitter-seconds" type="range" min="0" max="60" step="1">
                 <output id="projection-wind-gust-cycle-jitter-seconds-value" for="projection-wind-gust-cycle-jitter-seconds">0秒</output>
               </label>
@@ -343,25 +348,25 @@
                 <output id="projection-parallax-depth-multiplier-value" for="projection-parallax-depth-multiplier">1</output>
               </label>
               <label class="range-option">
-                <span class="range-option-label">奥行基準順</span>
-                <input id="projection-parallax-depth-reference-index" type="range" min="0" max="60" step="1">
-                <output id="projection-parallax-depth-reference-index-value" for="projection-parallax-depth-reference-index">中央</output>
+                <span class="range-option-label">奥行基準順（奥→手前）</span>
+                <input id="projection-parallax-depth-reference-index" type="range" min="1" max="60" step="1">
+                <output id="projection-parallax-depth-reference-index-value" for="projection-parallax-depth-reference-index">奥1</output>
               </label>
               <div class="range-pair range-pair--viewer" aria-label="鑑賞地点">
                 <p class="range-pair-label">鑑賞地点</p>
                 <label class="range-option">
                   <span class="range-option-label">X</span>
-                  <input id="projection-parallax-viewer-offset-x" type="range" min="-2" max="2" step="0.05">
+                  <input id="projection-parallax-viewer-offset-x" type="range" min="-8" max="8" step="0.05">
                   <output id="projection-parallax-viewer-offset-x-value" for="projection-parallax-viewer-offset-x">0</output>
                 </label>
                 <label class="range-option">
                   <span class="range-option-label">Y</span>
-                  <input id="projection-parallax-viewer-offset-y" type="range" min="-2" max="4" step="0.05">
+                  <input id="projection-parallax-viewer-offset-y" type="range" min="-8" max="16" step="0.05">
                   <output id="projection-parallax-viewer-offset-y-value" for="projection-parallax-viewer-offset-y">0</output>
                 </label>
                 <label class="range-option">
                   <span class="range-option-label">距離</span>
-                  <input id="projection-parallax-viewer-distance" type="range" min="0.5" max="8" step="0.1">
+                  <input id="projection-parallax-viewer-distance" type="range" min="0.5" max="32" step="0.1">
                   <output id="projection-parallax-viewer-distance-value" for="projection-parallax-viewer-distance">2.5</output>
                 </label>
               </div>

@@ -21,6 +21,7 @@ const projectionRotateIntervalInput = document.querySelector("#projection-rotate
 const projectionEffectAutoInput = document.querySelector("#projection-effect-auto-enabled");
 const projectionEffectIntervalInput = document.querySelector("#projection-effect-interval-ms");
 const projectionTanzakuSwayStrengthInput = document.querySelector("#projection-tanzaku-sway-strength");
+const projectionTanzakuAmbientSwayStrengthInput = document.querySelector("#projection-tanzaku-ambient-sway-strength");
 const projectionWindGustStrengthInput = document.querySelector("#projection-wind-gust-strength");
 const projectionWindGustCycleSecondsInput = document.querySelector("#projection-wind-gust-cycle-seconds");
 const projectionWindGustCycleJitterSecondsInput = document.querySelector("#projection-wind-gust-cycle-jitter-seconds");
@@ -73,6 +74,7 @@ const projectionTanabataStarResponseIntensityValue = document.querySelector("#pr
 const projectionTanabataStarResponsePhaseDegValue = document.querySelector("#projection-tanabata-star-response-phase-deg-value");
 const projectionTanabataStarResponsePeriodSecondsValue = document.querySelector("#projection-tanabata-star-response-period-seconds-value");
 const projectionTanzakuSwayStrengthValue = document.querySelector("#projection-tanzaku-sway-strength-value");
+const projectionTanzakuAmbientSwayStrengthValue = document.querySelector("#projection-tanzaku-ambient-sway-strength-value");
 const projectionWindGustStrengthValue = document.querySelector("#projection-wind-gust-strength-value");
 const projectionWindGustCycleSecondsValue = document.querySelector("#projection-wind-gust-cycle-seconds-value");
 const projectionWindGustCycleJitterSecondsValue = document.querySelector("#projection-wind-gust-cycle-jitter-seconds-value");
@@ -253,6 +255,9 @@ function syncProjectionSliderOutputs() {
   if (projectionTanzakuSwayStrengthValue && projectionTanzakuSwayStrengthInput) {
     projectionTanzakuSwayStrengthValue.textContent = formatSliderValue(projectionTanzakuSwayStrengthInput.value);
   }
+  if (projectionTanzakuAmbientSwayStrengthValue && projectionTanzakuAmbientSwayStrengthInput) {
+    projectionTanzakuAmbientSwayStrengthValue.textContent = formatSliderValue(projectionTanzakuAmbientSwayStrengthInput.value);
+  }
   if (projectionWindGustStrengthValue && projectionWindGustStrengthInput) {
     projectionWindGustStrengthValue.textContent = formatSliderValue(projectionWindGustStrengthInput.value);
   }
@@ -276,7 +281,10 @@ function syncProjectionSliderOutputs() {
   }
   if (projectionParallaxDepthReferenceIndexValue && projectionParallaxDepthReferenceIndexInput) {
     const referenceIndex = Number(projectionParallaxDepthReferenceIndexInput.value);
-    projectionParallaxDepthReferenceIndexValue.textContent = referenceIndex > 0 ? String(referenceIndex) : "中央";
+    const maxReferenceIndex = Number(projectionParallaxDepthReferenceIndexInput.max);
+    projectionParallaxDepthReferenceIndexValue.textContent = referenceIndex >= maxReferenceIndex
+      ? `手前${referenceIndex}`
+      : `奥${referenceIndex}`;
   }
   if (projectionCloudOriginYValue && projectionCloudOriginYInput) {
     projectionCloudOriginYValue.textContent = formatSliderValue(projectionCloudOriginYInput.value);
@@ -654,6 +662,7 @@ function renderProjectionSettings(settings, { force = false } = {}) {
     !projectionTanabataStarResponsePhaseDegInput ||
     !projectionTanabataStarResponsePeriodSecondsInput ||
     !projectionTanzakuSwayStrengthInput ||
+    !projectionTanzakuAmbientSwayStrengthInput ||
     !projectionWindGustStrengthInput ||
     !projectionWindGustCycleSecondsInput ||
     !projectionWindGustCycleJitterSecondsInput ||
@@ -708,6 +717,7 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   const tanabataStarResponsePhaseDeg = Number(settings.projectionTanabataStarResponsePhaseDeg ?? 166);
   const tanabataStarResponsePeriodSeconds = Number(settings.projectionTanabataStarResponsePeriodSeconds ?? 35);
   const tanzakuSwayStrength = Number(settings.projectionTanzakuSwayStrength ?? 1);
+  const tanzakuAmbientSwayStrength = Number(settings.projectionTanzakuAmbientSwayStrength ?? 0);
   const windGustStrength = Number(settings.projectionWindGustStrength ?? 1);
   const windGustCycleMs = Number(settings.projectionWindGustCycleMs ?? 30000);
   const windGustCycleJitterSeconds = Number(settings.projectionWindGustCycleJitterSeconds ?? 0);
@@ -729,7 +739,7 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   const parallaxStrength = Number(settings.projectionParallaxStrength ?? 1);
   const parallaxPopoutStrength = Number(settings.projectionParallaxPopoutStrength ?? 0);
   const parallaxDepthMultiplier = Number(settings.projectionParallaxDepthMultiplier ?? 1);
-  const parallaxDepthReferenceIndex = Number(settings.projectionParallaxDepthReferenceIndex ?? 0);
+  const parallaxDepthReferenceIndex = Number(settings.projectionParallaxDepthReferenceIndex ?? 1);
   const parallaxViewerOffsetX = Number(settings.projectionParallaxViewerOffsetX ?? 0);
   const parallaxViewerOffsetY = Number(settings.projectionParallaxViewerOffsetY ?? 0);
   const parallaxViewerDistance = Number(settings.projectionParallaxViewerDistance ?? 2.5);
@@ -772,6 +782,8 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   const tanabataStarResponsePeriodSecondsMax = settings.projectionTanabataStarResponsePeriodSecondsMax ?? 90;
   const tanzakuSwayStrengthMin = settings.projectionTanzakuSwayStrengthMin ?? 0;
   const tanzakuSwayStrengthMax = settings.projectionTanzakuSwayStrengthMax ?? 3;
+  const tanzakuAmbientSwayStrengthMin = settings.projectionTanzakuAmbientSwayStrengthMin ?? 0;
+  const tanzakuAmbientSwayStrengthMax = settings.projectionTanzakuAmbientSwayStrengthMax ?? 3;
   const windGustStrengthMin = settings.projectionWindGustStrengthMin ?? 0;
   const windGustStrengthMax = settings.projectionWindGustStrengthMax ?? 3;
   const windGustCycleSecondsMin = settings.projectionWindGustCycleSecondsMin ?? 3;
@@ -788,14 +800,14 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   const parallaxPopoutStrengthMax = settings.projectionParallaxPopoutStrengthMax ?? 3;
   const parallaxDepthMultiplierMin = settings.projectionParallaxDepthMultiplierMin ?? 0;
   const parallaxDepthMultiplierMax = settings.projectionParallaxDepthMultiplierMax ?? 3;
-  const parallaxDepthReferenceIndexMin = settings.projectionParallaxDepthReferenceIndexMin ?? 0;
+  const parallaxDepthReferenceIndexMin = settings.projectionParallaxDepthReferenceIndexMin ?? 1;
   const parallaxDepthReferenceIndexMax = settings.projectionParallaxDepthReferenceIndexMax ?? slotMax;
-  const parallaxViewerOffsetXMin = settings.projectionParallaxViewerOffsetXMin ?? -2;
-  const parallaxViewerOffsetXMax = settings.projectionParallaxViewerOffsetXMax ?? 2;
-  const parallaxViewerOffsetYMin = settings.projectionParallaxViewerOffsetYMin ?? -2;
-  const parallaxViewerOffsetYMax = settings.projectionParallaxViewerOffsetYMax ?? 2;
+  const parallaxViewerOffsetXMin = settings.projectionParallaxViewerOffsetXMin ?? -8;
+  const parallaxViewerOffsetXMax = settings.projectionParallaxViewerOffsetXMax ?? 8;
+  const parallaxViewerOffsetYMin = settings.projectionParallaxViewerOffsetYMin ?? -8;
+  const parallaxViewerOffsetYMax = settings.projectionParallaxViewerOffsetYMax ?? 16;
   const parallaxViewerDistanceMin = settings.projectionParallaxViewerDistanceMin ?? 0.5;
-  const parallaxViewerDistanceMax = settings.projectionParallaxViewerDistanceMax ?? 8;
+  const parallaxViewerDistanceMax = settings.projectionParallaxViewerDistanceMax ?? 32;
   const viewportMarginMin = settings.projectionViewportMarginMin ?? 0;
   const viewportMarginMax = settings.projectionViewportMarginMax ?? 24;
   const parallaxVanishingPointXMin = settings.projectionParallaxVanishingPointXMin ?? settings.projectionParallaxVanishingPointMin ?? -1;
@@ -859,6 +871,9 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   projectionTanzakuSwayStrengthInput.value = String(tanzakuSwayStrength);
   projectionTanzakuSwayStrengthInput.min = String(tanzakuSwayStrengthMin);
   projectionTanzakuSwayStrengthInput.max = String(tanzakuSwayStrengthMax);
+  projectionTanzakuAmbientSwayStrengthInput.value = String(tanzakuAmbientSwayStrength);
+  projectionTanzakuAmbientSwayStrengthInput.min = String(tanzakuAmbientSwayStrengthMin);
+  projectionTanzakuAmbientSwayStrengthInput.max = String(tanzakuAmbientSwayStrengthMax);
   projectionWindGustStrengthInput.value = String(windGustStrength);
   projectionWindGustStrengthInput.min = String(windGustStrengthMin);
   projectionWindGustStrengthInput.max = String(windGustStrengthMax);
@@ -887,7 +902,7 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   projectionParallaxDepthMultiplierInput.value = String(parallaxDepthMultiplier);
   projectionParallaxDepthMultiplierInput.min = String(parallaxDepthMultiplierMin);
   projectionParallaxDepthMultiplierInput.max = String(parallaxDepthMultiplierMax);
-  projectionParallaxDepthReferenceIndexInput.value = String(Math.min(parallaxDepthReferenceIndex, slotCount));
+  projectionParallaxDepthReferenceIndexInput.value = String(Math.max(parallaxDepthReferenceIndexMin, Math.min(parallaxDepthReferenceIndex, slotCount)));
   projectionParallaxDepthReferenceIndexInput.min = String(parallaxDepthReferenceIndexMin);
   projectionParallaxDepthReferenceIndexInput.max = String(Math.min(parallaxDepthReferenceIndexMax, slotCount));
   projectionParallaxViewerOffsetXInput.value = String(parallaxViewerOffsetX);
@@ -929,7 +944,7 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   projectionMoveCountInput.value = String(moveCount);
   projectionMoveCountInput.max = String(displayCount);
   syncProjectionCountInputs();
-  setProjectionSettingsState(`フォント ${tanzakuFontLabel} / 絵文字 ${colorEmojiFontEnabled ? "ON" : "OFF"} / 文字 ${typingIntervalMs}ms / 間隔 ${rotateIntervalMs}ms / 自動 ${effectAutoEnabled ? "ON" : "OFF"} / イベント ${effectIntervalMs}ms / 風 ${tanzakuSwayStrength},${windGustStrength},${formatSliderValue(windGustCycleMs / 1000)}秒+${windGustCycleJitterSeconds}秒 / 天の川 ${milkyWayGain},${milkyWayTwinkle},${milkyWaySparkle},${milkyWaySpeed},${milkyWayParticleCount},${milkyWaySparkleRatio},${milkyWaySparklePeriodVariance},${milkyWaySparkleIntensityVariance},${milkyWaySparklePeriodSeconds}秒,${Math.round(milkyWaySparkleDutyRatio * 100)}% / 星呼応 ${tanabataStarResponseIntensity},${tanabataStarResponsePhaseDeg},${tanabataStarResponsePeriodSeconds} / 雲 ${cloudCount} / 高さ ${cloudOriginY} / 視差 ${experimentalParallaxEnabled ? "ON" : "OFF"} / マーカー ${parallaxMarkerEnabled ? "ON" : "OFF"} / 笹舟 ${parallaxMotionModeLabel} / 左右 ${parallaxStrength} / 前後/上下 ${parallaxPopoutStrength} / 奥行 ${parallaxDepthMultiplier},${parallaxDepthReferenceIndex || "中央"} / 鑑賞 ${parallaxViewerOffsetX},${parallaxViewerOffsetY},${parallaxViewerDistance} / 余白 ${viewportMargin} / 消失点 ${parallaxVanishingPointX},${parallaxVanishingPointY} / スロット ${slotCount} / 表示 ${displayCount} / 入替 ${moveCount}`);
+  setProjectionSettingsState(`フォント ${tanzakuFontLabel} / 絵文字 ${colorEmojiFontEnabled ? "ON" : "OFF"} / 文字 ${typingIntervalMs}ms / 間隔 ${rotateIntervalMs}ms / 自動 ${effectAutoEnabled ? "ON" : "OFF"} / イベント ${effectIntervalMs}ms / 短冊 連動揺れ ${tanzakuSwayStrength}, ゆらぎ ${tanzakuAmbientSwayStrength}, 押し流し ${windGustStrength}, ${formatSliderValue(windGustCycleMs / 1000)}秒+${windGustCycleJitterSeconds}秒 / 天の川 ${milkyWayGain},${milkyWayTwinkle},${milkyWaySparkle},${milkyWaySpeed},${milkyWayParticleCount},${milkyWaySparkleRatio},${milkyWaySparklePeriodVariance},${milkyWaySparkleIntensityVariance},${milkyWaySparklePeriodSeconds}秒,${Math.round(milkyWaySparkleDutyRatio * 100)}% / 星呼応 ${tanabataStarResponseIntensity},${tanabataStarResponsePhaseDeg},${tanabataStarResponsePeriodSeconds} / 雲 ${cloudCount} / 高さ ${cloudOriginY} / 視差 ${experimentalParallaxEnabled ? "ON" : "OFF"} / マーカー ${parallaxMarkerEnabled ? "ON" : "OFF"} / 笹舟 ${parallaxMotionModeLabel} / 左右 ${parallaxStrength} / 前後/上下 ${parallaxPopoutStrength} / 奥行 ${parallaxDepthMultiplier},基準${parallaxDepthReferenceIndex} / 鑑賞 ${parallaxViewerOffsetX},${parallaxViewerOffsetY},${parallaxViewerDistance} / 余白 ${viewportMargin} / 消失点 ${parallaxVanishingPointX},${parallaxVanishingPointY} / スロット ${slotCount} / 表示 ${displayCount} / 入替 ${moveCount}`);
 }
 
 function setLiveState(text) {
@@ -1162,6 +1177,7 @@ function currentProjectionSettingsPayload() {
     projectionTanabataStarResponsePhaseDeg: Number(projectionTanabataStarResponsePhaseDegInput.value),
     projectionTanabataStarResponsePeriodSeconds: Number(projectionTanabataStarResponsePeriodSecondsInput.value),
     projectionTanzakuSwayStrength: Number(projectionTanzakuSwayStrengthInput.value),
+    projectionTanzakuAmbientSwayStrength: Number(projectionTanzakuAmbientSwayStrengthInput.value),
     projectionWindGustStrength: Number(projectionWindGustStrengthInput.value),
     projectionWindGustCycleMs: Math.round(Number(projectionWindGustCycleSecondsInput.value) * 1000),
     projectionWindGustCycleJitterSeconds: Number(projectionWindGustCycleJitterSecondsInput.value),

@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>七夕願い事 投影</title>
-    <link rel="stylesheet" href="/styles.css?v=projection-admin-fonts-20260704-48">
-    <script src="/projection.js?v=projection-admin-fonts-20260704-48" defer></script>
+    <link rel="stylesheet" href="/styles.css?v=projection-admin-fonts-20260704-62">
+    <script src="/projection.js?v=projection-admin-fonts-20260704-62" defer></script>
   </head>
   <body class="projection-page">
     <main class="projection-stage" aria-label="七夕祭り投影画面">
@@ -21,9 +21,9 @@
       <div id="cloud-layer" class="cloud-layer" aria-hidden="true"></div>
       <div id="projection-plane-frame" class="projection-plane-frame" aria-hidden="true"></div>
       <div id="vanishing-point-marker" class="vanishing-point-marker" aria-hidden="true" hidden></div>
-      <button id="layout-menu-trigger" class="moon" type="button" aria-label="短冊の配置と表示設定メニュー"></button>
+      <button id="layout-menu-trigger" class="moon" type="button" aria-label="短冊の配置メニュー"></button>
       <div id="layout-menu" class="projection-layout-menu" aria-hidden="true">
-        <p class="projection-layout-menu-title">短冊の配置と表示</p>
+        <p class="projection-layout-menu-title">投影調整</p>
         <p id="layout-menu-state" class="projection-layout-menu-state">保存なし</p>
         <div class="projection-layout-menu-controls">
           <label class="projection-layout-control" for="tanzaku-font-select">
@@ -42,15 +42,117 @@
             <span>笹舟下端余白 <output id="oracle-boat-offset-value" for="oracle-boat-offset">0px</output></span>
             <input id="oracle-boat-offset" type="range" min="-60" max="180" step="5">
           </label>
+          <div class="projection-layout-control-group" aria-label="3D表示">
+            <p>3D表示</p>
+            <label class="projection-layout-toggle" for="layout-parallax-enabled">
+              <span>3D</span>
+              <input id="layout-parallax-enabled" type="checkbox">
+            </label>
+            <label class="projection-layout-toggle" for="layout-parallax-marker-enabled">
+              <span>マーカー</span>
+              <input id="layout-parallax-marker-enabled" type="checkbox">
+            </label>
+          </div>
+          <div class="projection-layout-control-group" aria-label="3Dボックス">
+            <p>3Dボックス</p>
+            <label class="projection-layout-control" for="perspective-box-x">
+              <span>X <output id="perspective-box-x-value" for="perspective-box-x">-0.52</output></span>
+              <input id="perspective-box-x" type="range" min="-2" max="2" step="0.01">
+            </label>
+            <label class="projection-layout-control" for="perspective-box-y">
+              <span>Y <output id="perspective-box-y-value" for="perspective-box-y">-0.05</output></span>
+              <input id="perspective-box-y" type="range" min="-2" max="2" step="0.01">
+            </label>
+          </div>
+          <div class="projection-layout-control-group" aria-label="笹">
+            <p>笹</p>
+            <label class="projection-layout-control" for="bamboo-left-x">
+              <span>左X <output id="bamboo-left-x-value" for="bamboo-left-x">5</output></span>
+              <input id="bamboo-left-x" type="range" min="-50" max="150" step="0.5">
+            </label>
+            <label class="projection-layout-control" for="bamboo-left-y">
+              <span>左Y <output id="bamboo-left-y-value" for="bamboo-left-y">0</output></span>
+              <input id="bamboo-left-y" type="range" min="-40" max="40" step="0.5">
+            </label>
+            <label class="projection-layout-control" for="bamboo-right-x">
+              <span>右X <output id="bamboo-right-x-value" for="bamboo-right-x">93</output></span>
+              <input id="bamboo-right-x" type="range" min="-50" max="150" step="0.5">
+            </label>
+            <label class="projection-layout-control" for="bamboo-right-y">
+              <span>右Y <output id="bamboo-right-y-value" for="bamboo-right-y">0</output></span>
+              <input id="bamboo-right-y" type="range" min="-40" max="40" step="0.5">
+            </label>
+          </div>
+          <div class="projection-layout-control-group" aria-label="鑑賞地点">
+            <p>鑑賞地点</p>
+            <label class="projection-layout-control" for="layout-parallax-viewer-x">
+              <span>X <output id="layout-parallax-viewer-x-value" for="layout-parallax-viewer-x">0</output></span>
+              <input id="layout-parallax-viewer-x" type="range" min="-8" max="8" step="0.05">
+            </label>
+            <label class="projection-layout-control" for="layout-parallax-viewer-y">
+              <span>Y <output id="layout-parallax-viewer-y-value" for="layout-parallax-viewer-y">0</output></span>
+              <input id="layout-parallax-viewer-y" type="range" min="-8" max="16" step="0.05">
+            </label>
+            <label class="projection-layout-control" for="layout-parallax-viewer-z">
+              <span>Z <output id="layout-parallax-viewer-z-value" for="layout-parallax-viewer-z">2.5</output></span>
+              <input id="layout-parallax-viewer-z" type="range" min="0.5" max="32" step="0.1">
+            </label>
+          </div>
+          <div class="projection-layout-control-group" aria-label="消失点">
+            <p>消失点</p>
+            <label class="projection-layout-control" for="layout-parallax-vanishing-x">
+              <span>X <output id="layout-parallax-vanishing-x-value" for="layout-parallax-vanishing-x">0</output></span>
+              <input id="layout-parallax-vanishing-x" type="range" min="-8" max="8" step="0.05">
+            </label>
+            <label class="projection-layout-control" for="layout-parallax-vanishing-y">
+              <span>Y <output id="layout-parallax-vanishing-y-value" for="layout-parallax-vanishing-y">0</output></span>
+              <input id="layout-parallax-vanishing-y" type="range" min="-8" max="40" step="0.05">
+            </label>
+          </div>
+          <div class="projection-layout-control-group" aria-label="笹舟">
+            <p>笹舟</p>
+            <label class="projection-layout-control" for="layout-parallax-motion-mode">
+              <span>移動モード</span>
+              <select id="layout-parallax-motion-mode">
+                <option value="mapping">投影面: 左右/前後</option>
+                <option value="camera">実カメラ: 左右/前後</option>
+                <option value="camera-display">実カメラ: 左右/上下</option>
+                <option value="display">ディスプレイ: 左右/上下</option>
+              </select>
+            </label>
+            <label class="projection-layout-control" for="layout-oracle-motion-speed">
+              <span>速度 <output id="layout-oracle-motion-speed-value" for="layout-oracle-motion-speed">1</output></span>
+              <input id="layout-oracle-motion-speed" type="range" min="0.2" max="3" step="0.05">
+            </label>
+            <label class="projection-layout-control" for="layout-oracle-motion-direction">
+              <span>方向</span>
+              <select id="layout-oracle-motion-direction">
+                <option value="forward">順方向</option>
+                <option value="reverse">逆方向</option>
+              </select>
+            </label>
+            <label class="projection-layout-control" for="layout-parallax-strength">
+              <span>左右 <output id="layout-parallax-strength-value" for="layout-parallax-strength">1</output></span>
+              <input id="layout-parallax-strength" type="range" min="0" max="3" step="0.05">
+            </label>
+            <label class="projection-layout-control" for="layout-parallax-popout">
+              <span>前後/上下 <output id="layout-parallax-popout-value" for="layout-parallax-popout">0</output></span>
+              <input id="layout-parallax-popout" type="range" min="0" max="3" step="0.05">
+            </label>
+          </div>
         </div>
         <div class="projection-layout-menu-actions">
-          <button id="layout-save-button" type="button">配置と表示を保存</button>
-          <button id="layout-load-button" type="button">保存設定を呼び出し</button>
+          <button id="layout-fullscreen-button" type="button">全画面</button>
+          <button id="layout-save-button" type="button">配置と調整を保存</button>
+          <button id="layout-load-button" type="button">配置と調整を呼び出し</button>
+          <button id="layout-clear-button" type="button">保存値をクリア</button>
         </div>
       </div>
       <div class="bamboo bamboo-left" aria-hidden="true"></div>
       <div class="bamboo bamboo-right" aria-hidden="true"></div>
       <svg id="parallax-perspective-box" class="parallax-perspective-box" aria-hidden="true" hidden></svg>
+      <button id="parallax-box-drag-handle" class="parallax-box-drag-handle" type="button" aria-label="3Dボックスを移動" hidden></button>
+      <div id="parallax-depth-map" class="parallax-depth-map" aria-hidden="true" hidden></div>
       <div class="parallax-viewer-oracle" aria-hidden="true">
         <span class="parallax-oracle-star parallax-oracle-star--vega"></span>
         <span class="parallax-oracle-zero"></span>

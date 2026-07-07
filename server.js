@@ -48,6 +48,8 @@ const MIN_PROJECTION_TANABATA_STAR_RESPONSE_PERIOD_SECONDS = 8;
 const MAX_PROJECTION_TANABATA_STAR_RESPONSE_PERIOD_SECONDS = 90;
 const MIN_PROJECTION_TANZAKU_SWAY_STRENGTH = 0;
 const MAX_PROJECTION_TANZAKU_SWAY_STRENGTH = 3;
+const MIN_PROJECTION_TANZAKU_AMBIENT_SWAY_STRENGTH = 0;
+const MAX_PROJECTION_TANZAKU_AMBIENT_SWAY_STRENGTH = 3;
 const MIN_PROJECTION_WIND_GUST_STRENGTH = 0;
 const MAX_PROJECTION_WIND_GUST_STRENGTH = 3;
 const MIN_PROJECTION_WIND_GUST_CYCLE_SECONDS = 3;
@@ -64,14 +66,14 @@ const MIN_PROJECTION_PARALLAX_POPOUT_STRENGTH = 0;
 const MAX_PROJECTION_PARALLAX_POPOUT_STRENGTH = 3;
 const MIN_PROJECTION_PARALLAX_DEPTH_MULTIPLIER = 0;
 const MAX_PROJECTION_PARALLAX_DEPTH_MULTIPLIER = 3;
-const MIN_PROJECTION_PARALLAX_DEPTH_REFERENCE_INDEX = 0;
+const MIN_PROJECTION_PARALLAX_DEPTH_REFERENCE_INDEX = 1;
 const MAX_PROJECTION_PARALLAX_DEPTH_REFERENCE_INDEX = 60;
-const MIN_PROJECTION_PARALLAX_VIEWER_OFFSET_X = -2;
-const MAX_PROJECTION_PARALLAX_VIEWER_OFFSET_X = 2;
-const MIN_PROJECTION_PARALLAX_VIEWER_OFFSET_Y = -2;
-const MAX_PROJECTION_PARALLAX_VIEWER_OFFSET_Y = 2;
+const MIN_PROJECTION_PARALLAX_VIEWER_OFFSET_X = -8;
+const MAX_PROJECTION_PARALLAX_VIEWER_OFFSET_X = 8;
+const MIN_PROJECTION_PARALLAX_VIEWER_OFFSET_Y = -8;
+const MAX_PROJECTION_PARALLAX_VIEWER_OFFSET_Y = 16;
 const MIN_PROJECTION_PARALLAX_VIEWER_DISTANCE = 0.5;
-const MAX_PROJECTION_PARALLAX_VIEWER_DISTANCE = 8;
+const MAX_PROJECTION_PARALLAX_VIEWER_DISTANCE = 32;
 const MIN_PROJECTION_VIEWPORT_MARGIN = 0;
 const MAX_PROJECTION_VIEWPORT_MARGIN = 24;
 const PROJECTION_PARALLAX_MOTION_MODES = new Set(["display", "mapping", "camera", "camera-display"]);
@@ -115,6 +117,7 @@ const DEFAULT_SETTINGS = {
   projectionTanabataStarResponsePhaseDeg: 166,
   projectionTanabataStarResponsePeriodSeconds: 35,
   projectionTanzakuSwayStrength: 1,
+  projectionTanzakuAmbientSwayStrength: 0,
   projectionWindGustStrength: 1,
   projectionWindGustCycleMs: 30000,
   projectionWindGustCycleJitterSeconds: 0,
@@ -125,7 +128,7 @@ const DEFAULT_SETTINGS = {
   projectionParallaxMarkerEnabled: false,
   projectionParallaxPopoutStrength: 0,
   projectionParallaxDepthMultiplier: 1,
-  projectionParallaxDepthReferenceIndex: 0,
+  projectionParallaxDepthReferenceIndex: 1,
   projectionParallaxMotionMode: "mapping",
   projectionParallaxViewerOffsetX: 0,
   projectionParallaxViewerOffsetY: 0,
@@ -448,6 +451,12 @@ async function readSettings() {
       MIN_PROJECTION_TANZAKU_SWAY_STRENGTH,
       MAX_PROJECTION_TANZAKU_SWAY_STRENGTH
     );
+    const tanzakuAmbientSwayStrength = normalizeNumber(
+      parsed.projectionTanzakuAmbientSwayStrength,
+      DEFAULT_SETTINGS.projectionTanzakuAmbientSwayStrength,
+      MIN_PROJECTION_TANZAKU_AMBIENT_SWAY_STRENGTH,
+      MAX_PROJECTION_TANZAKU_AMBIENT_SWAY_STRENGTH
+    );
     const windGustStrength = normalizeNumber(
       parsed.projectionWindGustStrength,
       DEFAULT_SETTINGS.projectionWindGustStrength,
@@ -572,6 +581,7 @@ async function readSettings() {
       projectionTanabataStarResponsePhaseDeg: tanabataStarResponsePhaseDeg,
       projectionTanabataStarResponsePeriodSeconds: tanabataStarResponsePeriodSeconds,
       projectionTanzakuSwayStrength: tanzakuSwayStrength,
+      projectionTanzakuAmbientSwayStrength: tanzakuAmbientSwayStrength,
       projectionWindGustStrength: windGustStrength,
       projectionWindGustCycleMs: windGustCycleMs,
       projectionWindGustCycleJitterSeconds: windGustCycleJitterSeconds,
@@ -653,6 +663,7 @@ function projectionPresetFromSettings(settings) {
     projectionTanabataStarResponsePhaseDeg: settings.projectionTanabataStarResponsePhaseDeg,
     projectionTanabataStarResponsePeriodSeconds: settings.projectionTanabataStarResponsePeriodSeconds,
     projectionTanzakuSwayStrength: settings.projectionTanzakuSwayStrength,
+    projectionTanzakuAmbientSwayStrength: settings.projectionTanzakuAmbientSwayStrength,
     projectionWindGustStrength: settings.projectionWindGustStrength,
     projectionWindGustCycleMs: settings.projectionWindGustCycleMs,
     projectionWindGustCycleJitterSeconds: settings.projectionWindGustCycleJitterSeconds,
@@ -1073,6 +1084,7 @@ function publicSettings(settings) {
     projectionTanabataStarResponsePhaseDeg: settings.projectionTanabataStarResponsePhaseDeg,
     projectionTanabataStarResponsePeriodSeconds: settings.projectionTanabataStarResponsePeriodSeconds,
     projectionTanzakuSwayStrength: settings.projectionTanzakuSwayStrength,
+    projectionTanzakuAmbientSwayStrength: settings.projectionTanzakuAmbientSwayStrength,
     projectionWindGustStrength: settings.projectionWindGustStrength,
     projectionWindGustCycleMs: settings.projectionWindGustCycleMs,
     projectionWindGustCycleJitterSeconds: settings.projectionWindGustCycleJitterSeconds,
@@ -1132,6 +1144,8 @@ function publicSettings(settings) {
     projectionTanabataStarResponsePeriodSecondsMax: MAX_PROJECTION_TANABATA_STAR_RESPONSE_PERIOD_SECONDS,
     projectionTanzakuSwayStrengthMin: MIN_PROJECTION_TANZAKU_SWAY_STRENGTH,
     projectionTanzakuSwayStrengthMax: MAX_PROJECTION_TANZAKU_SWAY_STRENGTH,
+    projectionTanzakuAmbientSwayStrengthMin: MIN_PROJECTION_TANZAKU_AMBIENT_SWAY_STRENGTH,
+    projectionTanzakuAmbientSwayStrengthMax: MAX_PROJECTION_TANZAKU_AMBIENT_SWAY_STRENGTH,
     projectionWindGustStrengthMin: MIN_PROJECTION_WIND_GUST_STRENGTH,
     projectionWindGustStrengthMax: MAX_PROJECTION_WIND_GUST_STRENGTH,
     projectionWindGustCycleSecondsMin: MIN_PROJECTION_WIND_GUST_CYCLE_SECONDS,
@@ -1690,11 +1704,28 @@ async function handleApi(req, res, url) {
         sendError(
           res,
           400,
-          `短冊揺れ強度は${MIN_PROJECTION_TANZAKU_SWAY_STRENGTH}から${MAX_PROJECTION_TANZAKU_SWAY_STRENGTH}までです。`
+          `短冊の突風連動揺れは${MIN_PROJECTION_TANZAKU_SWAY_STRENGTH}から${MAX_PROJECTION_TANZAKU_SWAY_STRENGTH}までです。`
         );
         return;
       }
       nextSettings.projectionTanzakuSwayStrength = tanzakuSwayStrength;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionTanzakuAmbientSwayStrength")) {
+      const tanzakuAmbientSwayStrength = Number(body.projectionTanzakuAmbientSwayStrength);
+      if (
+        !Number.isFinite(tanzakuAmbientSwayStrength) ||
+        tanzakuAmbientSwayStrength < MIN_PROJECTION_TANZAKU_AMBIENT_SWAY_STRENGTH ||
+        tanzakuAmbientSwayStrength > MAX_PROJECTION_TANZAKU_AMBIENT_SWAY_STRENGTH
+      ) {
+        sendError(
+          res,
+          400,
+          `短冊の常時ゆらぎは${MIN_PROJECTION_TANZAKU_AMBIENT_SWAY_STRENGTH}から${MAX_PROJECTION_TANZAKU_AMBIENT_SWAY_STRENGTH}までです。`
+        );
+        return;
+      }
+      nextSettings.projectionTanzakuAmbientSwayStrength = tanzakuAmbientSwayStrength;
     }
 
     if (Object.prototype.hasOwnProperty.call(body, "projectionWindGustStrength")) {
@@ -1707,7 +1738,7 @@ async function handleApi(req, res, url) {
         sendError(
           res,
           400,
-          `突風強度は${MIN_PROJECTION_WIND_GUST_STRENGTH}から${MAX_PROJECTION_WIND_GUST_STRENGTH}までです。`
+          `押し流し強度は${MIN_PROJECTION_WIND_GUST_STRENGTH}から${MAX_PROJECTION_WIND_GUST_STRENGTH}までです。`
         );
         return;
       }
@@ -1724,7 +1755,7 @@ async function handleApi(req, res, url) {
         sendError(
           res,
           400,
-          `突風周期は${MIN_PROJECTION_WIND_GUST_CYCLE_SECONDS}から${MAX_PROJECTION_WIND_GUST_CYCLE_SECONDS}秒までです。`
+          `押し流し周期は${MIN_PROJECTION_WIND_GUST_CYCLE_SECONDS}から${MAX_PROJECTION_WIND_GUST_CYCLE_SECONDS}秒までです。`
         );
         return;
       }
@@ -1741,7 +1772,7 @@ async function handleApi(req, res, url) {
         sendError(
           res,
           400,
-          `突風のランダム延長は${MIN_PROJECTION_WIND_GUST_CYCLE_JITTER_SECONDS}から${MAX_PROJECTION_WIND_GUST_CYCLE_JITTER_SECONDS}秒までです。`
+          `押し流しのランダム延長は${MIN_PROJECTION_WIND_GUST_CYCLE_JITTER_SECONDS}から${MAX_PROJECTION_WIND_GUST_CYCLE_JITTER_SECONDS}秒までです。`
         );
         return;
       }

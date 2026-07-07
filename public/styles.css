@@ -20,6 +20,7 @@
   --tanzaku-font-family: "BIZ UDMincho", "Source Han Serif JP", "Noto Serif CJK JP", "Noto Serif JP", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif;
   --projection-tanzaku-font-family: var(--tanzaku-font-family);
   --projection-layout-font-family: var(--tanzaku-font-family);
+  --tanzaku-ambient-sway-strength: 0;
 }
 
 * {
@@ -922,9 +923,11 @@ select:focus {
 
 .projection-stage {
   position: relative;
-  width: 100vw;
-  height: 100vh;
-  --projection-margin: 0vmin;
+  --projection-margin: 0px;
+  --projection-viewport-width: 100vw;
+  --projection-viewport-height: 100vh;
+  width: var(--projection-viewport-width);
+  height: var(--projection-viewport-height);
   overflow: hidden;
   background:
     radial-gradient(circle at 50% 100%, rgba(72, 255, 198, 0.18), transparent 32%),
@@ -936,11 +939,11 @@ select:focus {
   position: absolute;
   inset: var(--projection-margin);
   z-index: 2;
-  border: 2px solid rgba(121, 231, 255, 0.38);
+  border: 3px solid rgba(121, 231, 255, 0.72);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 244, 190, 0.16),
-    0 0 0 9999px rgba(5, 8, 20, 0.18),
-    0 0 28px rgba(121, 231, 255, 0.12);
+    inset 0 0 0 2px rgba(255, 244, 190, 0.32),
+    0 0 0 9999px rgba(5, 8, 20, 0.26),
+    0 0 34px rgba(121, 231, 255, 0.28);
   pointer-events: none;
   opacity: var(--projection-frame-opacity, 0);
   transition: opacity 0.2s ease;
@@ -955,14 +958,15 @@ select:focus {
 
 .projection-plane-frame::before {
   inset: calc(var(--projection-margin) * -1);
-  border: 1px dashed rgba(255, 247, 215, 0.28);
+  border: 2px dashed rgba(255, 247, 215, 0.62);
+  box-shadow: inset 0 0 18px rgba(255, 247, 215, 0.1);
 }
 
 .projection-plane-frame::after {
   inset: 0;
   background:
-    linear-gradient(90deg, transparent calc(50% - 1px), rgba(121, 231, 255, 0.28) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px)),
-    linear-gradient(180deg, transparent calc(50% - 1px), rgba(121, 231, 255, 0.28) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px));
+    linear-gradient(90deg, transparent calc(50% - 1.5px), rgba(121, 231, 255, 0.62) calc(50% - 1.5px) calc(50% + 1.5px), transparent calc(50% + 1.5px)),
+    linear-gradient(180deg, transparent calc(50% - 1.5px), rgba(121, 231, 255, 0.62) calc(50% - 1.5px) calc(50% + 1.5px), transparent calc(50% + 1.5px));
 }
 
 .star-field,
@@ -1019,18 +1023,19 @@ select:focus {
   left: var(--vanishing-point-marker-left, 50vw);
   top: var(--vanishing-point-marker-top, 50vh);
   z-index: 32;
-  width: 34px;
+  width: 46px;
   aspect-ratio: 1;
-  border: 2px solid rgba(255, 247, 215, 0.72);
+  border: 4px solid rgba(255, 247, 215, 0.92);
   border-radius: 50%;
   pointer-events: none;
   transform: translate(-50%, -50%);
-  opacity: 0.78;
+  opacity: 0.96;
   contain: paint;
   will-change: transform;
   filter:
     drop-shadow(0 0 6px rgba(255, 220, 128, 0.44))
-    drop-shadow(0 0 12px rgba(121, 231, 255, 0.22));
+    drop-shadow(0 0 14px rgba(255, 220, 128, 0.68))
+    drop-shadow(0 0 22px rgba(121, 231, 255, 0.42));
 }
 
 .vanishing-point-marker[hidden] {
@@ -1044,7 +1049,7 @@ select:focus {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  opacity: 0.68;
+  opacity: 0.9;
   overflow: visible;
   mix-blend-mode: normal;
   shape-rendering: optimizeSpeed;
@@ -1060,21 +1065,171 @@ select:focus {
   stroke-linecap: round;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.parallax-perspective-box .parallax-box-handle-hit {
+  fill: rgba(255, 255, 255, 0.001);
+  stroke: none;
+  pointer-events: none;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.parallax-perspective-box .parallax-box-handle {
+  fill: rgba(255, 247, 215, 0.92);
+  stroke: rgba(32, 54, 68, 0.9);
+  stroke-width: 3;
+  filter:
+    drop-shadow(0 0 7px rgba(255, 220, 128, 0.65))
+    drop-shadow(0 0 14px rgba(121, 231, 255, 0.36));
+  pointer-events: none;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.parallax-perspective-box.is-dragging .parallax-box-handle-hit,
+.parallax-perspective-box.is-dragging .parallax-box-handle {
+  cursor: grabbing;
+}
+
+.parallax-box-drag-handle {
+  position: absolute;
+  left: var(--parallax-box-handle-x, 50%);
+  top: var(--parallax-box-handle-y, 50%);
+  z-index: 62;
+  width: 54px;
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 50%;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.001);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  transform: translate(-50%, -50%);
+}
+
+.parallax-box-drag-handle[hidden] {
+  display: none;
+}
+
+.parallax-box-drag-handle.is-dragging {
+  cursor: grabbing;
+}
+
+.parallax-box-drag-handle:focus-visible {
+  outline: 2px solid rgba(255, 247, 215, 0.88);
+  outline-offset: 4px;
 }
 
 .parallax-perspective-box .parallax-box-front {
-  stroke: rgba(255, 247, 215, 0.72);
-  stroke-width: 1.8;
+  stroke: rgba(255, 247, 215, 0.92);
+  stroke-width: 3;
 }
 
 .parallax-perspective-box .parallax-box-rear {
-  stroke: rgba(255, 247, 215, 0.48);
-  stroke-width: 1.4;
+  stroke: rgba(121, 231, 255, 0.72);
+  stroke-width: 2.4;
 }
 
 .parallax-perspective-box .parallax-box-depth {
-  stroke: rgba(255, 247, 215, 0.36);
-  stroke-width: 1.2;
+  stroke: rgba(255, 220, 128, 0.62);
+  stroke-width: 2;
+}
+
+.parallax-perspective-box .parallax-box-perspective {
+  stroke: rgba(255, 247, 215, 0.58);
+  stroke-dasharray: 9 7;
+  stroke-width: 1.8;
+}
+
+.parallax-depth-map {
+  position: absolute;
+  top: 8vh;
+  right: max(10px, env(safe-area-inset-right));
+  bottom: 8vh;
+  z-index: 13;
+  width: 48px;
+  pointer-events: none;
+  opacity: 0.86;
+  contain: layout paint;
+}
+
+.parallax-depth-map[hidden] {
+  display: none;
+}
+
+.parallax-depth-map::before {
+  position: absolute;
+  content: "";
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 247, 215, 0),
+    rgba(255, 247, 215, 0.5) 12%,
+    rgba(122, 232, 255, 0.5) 84%,
+    rgba(255, 111, 143, 0.42)
+  );
+  transform: translateX(-50%);
+}
+
+.parallax-depth-map-dot {
+  position: absolute;
+  left: var(--depth-dot-x, 50%);
+  top: var(--depth-dot-y, 50%);
+  display: block;
+  width: 7px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgba(255, 247, 215, 0.82);
+  box-shadow: 0 0 8px rgba(255, 247, 215, 0.48);
+  transform: translate(-50%, -50%);
+}
+
+.parallax-depth-map-dot--viewer {
+  width: 12px;
+  border-radius: 2px;
+  background: rgba(255, 244, 175, 0.94);
+  box-shadow:
+    0 0 10px rgba(255, 244, 175, 0.74),
+    0 0 18px rgba(122, 232, 255, 0.32);
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.parallax-depth-map-dot--behind {
+  opacity: 0.34;
+  filter: saturate(0.45);
+}
+
+.parallax-depth-map-dot--ivory {
+  background: #fff7d7;
+}
+
+.parallax-depth-map-dot--crimson {
+  background: #ff708c;
+}
+
+.parallax-depth-map-dot--aqua {
+  background: #63e9ff;
+}
+
+.parallax-depth-map-dot--violet {
+  background: #b99cff;
+}
+
+.parallax-depth-map-dot--gold {
+  background: #ffd65f;
+}
+
+.parallax-depth-map-dot--leaf {
+  background: #7bf0ad;
 }
 
 .vanishing-point-marker::before,
@@ -1082,16 +1237,16 @@ select:focus {
   position: absolute;
   content: "";
   inset: 50% auto auto 50%;
-  width: 56px;
-  height: 2px;
+  width: 74px;
+  height: 4px;
   border-radius: 999px;
-  background: rgba(255, 247, 215, 0.56);
+  background: rgba(255, 247, 215, 0.84);
   transform: translate(-50%, -50%);
 }
 
 .vanishing-point-marker::after {
-  width: 2px;
-  height: 56px;
+  width: 4px;
+  height: 74px;
 }
 
 .parallax-viewer-oracle {
@@ -1441,10 +1596,12 @@ select:focus {
 .projection-layout-menu {
   position: absolute;
   top: calc(5vh + 13vmin);
-  right: 6vw;
+  right: clamp(10px, 4vw, 6vw);
   z-index: 61;
-  width: min(320px, 82vw);
-  padding: 14px;
+  width: min(420px, calc(100vw - 20px));
+  max-height: min(78vh, 720px);
+  overflow: auto;
+  padding: 12px;
   border: 1px solid rgba(255, 244, 190, 0.32);
   border-radius: 16px;
   background:
@@ -1472,43 +1629,92 @@ select:focus {
 .projection-layout-menu-title {
   margin: 0 0 4px;
   color: #fffdf0;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   font-weight: 800;
   letter-spacing: 0.08em;
 }
 
 .projection-layout-menu-state {
   min-height: 1.4em;
-  margin: 0 0 12px;
+  margin: 0 0 8px;
   color: rgba(255, 247, 215, 0.74);
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   line-height: 1.5;
 }
 
 .projection-layout-menu-controls {
   display: grid;
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+
+.projection-layout-control-group {
+  display: grid;
+  gap: 5px;
+  border-top: 1px solid rgba(255, 244, 190, 0.16);
+  padding-top: 7px;
+}
+
+.projection-layout-control-group p {
+  margin: 0;
+  color: #fffdf0;
+  font-size: 0.7rem;
+  font-weight: 900;
+}
+
+.projection-layout-control-group[aria-label="3D表示"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.projection-layout-control-group[aria-label="3D表示"] p {
+  grid-column: 1 / -1;
 }
 
 .projection-layout-control {
   display: grid;
-  gap: 6px;
+  grid-template-columns: minmax(116px, 0.62fr) minmax(104px, 1fr);
+  align-items: center;
+  column-gap: 10px;
   color: rgba(255, 247, 215, 0.78);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 800;
 }
 
 .projection-layout-control span {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .projection-layout-control output {
   color: #fffdf0;
   font-variant-numeric: tabular-nums;
+  min-width: 2.8em;
+  text-align: right;
+}
+
+.projection-layout-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 28px;
+  color: rgba(255, 247, 215, 0.78);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.projection-layout-toggle input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #ffdf77;
+}
+
+.projection-layout-toggle input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
 }
 
 .projection-layout-control select,
@@ -1517,13 +1723,14 @@ select:focus {
 }
 
 .projection-layout-control select {
-  min-height: 36px;
+  min-height: 30px;
   border: 1px solid rgba(255, 244, 190, 0.28);
   border-radius: 8px;
-  padding: 0 10px;
+  padding: 0 8px;
   background: rgba(255, 247, 215, 0.12);
   color: #fff7d7;
   outline: none;
+  font-size: 0.72rem;
 }
 
 .projection-layout-control select:focus {
@@ -1532,24 +1739,26 @@ select:focus {
 }
 
 .projection-layout-control input[type="range"] {
-  min-height: 30px;
+  min-height: 24px;
   padding: 0;
   accent-color: #ffdf77;
 }
 
 .projection-layout-menu-actions {
   display: grid;
-  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .projection-layout-menu button {
   width: 100%;
-  min-height: 38px;
-  padding: 0 12px;
+  min-height: 32px;
+  padding: 0 8px;
   border: 1px solid rgba(255, 244, 190, 0.28);
   border-radius: 999px;
   background: rgba(255, 247, 215, 0.12);
   color: #fff7d7;
+  font-size: 0.7rem;
   font-weight: 800;
 }
 
@@ -1604,13 +1813,15 @@ select:focus {
 }
 
 .bamboo-left {
-  left: calc(var(--projection-margin) + (5 * ((100vw - (var(--projection-margin) * 2)) / 100)));
+  bottom: calc(-6vh + var(--bamboo-left-y, 0vh));
+  left: calc(var(--projection-margin) + (var(--bamboo-left-x, 5) * ((var(--projection-viewport-width) - (var(--projection-margin) * 2)) / 100)));
   transform: translate3d(var(--bamboo-left-parallax-x, 0px), var(--bamboo-left-parallax-y, 0px), 0) rotate(-7deg) scale(var(--bamboo-left-parallax-scale, 1));
   animation: bamboo-depth-left 9s ease-in-out infinite alternate;
 }
 
 .bamboo-right {
-  right: calc(var(--projection-margin) + (7 * ((100vw - (var(--projection-margin) * 2)) / 100)));
+  bottom: calc(-6vh + var(--bamboo-right-y, 0vh));
+  left: calc(var(--projection-margin) + (var(--bamboo-right-x, 93) * ((var(--projection-viewport-width) - (var(--projection-margin) * 2)) / 100)));
   transform: translate3d(var(--bamboo-right-parallax-x, 0px), var(--bamboo-right-parallax-y, 0px), 0) scaleX(-1) rotate(-8deg) scale(var(--bamboo-right-parallax-scale, 1));
   animation: bamboo-depth-right 10s ease-in-out infinite alternate;
 }
@@ -1625,8 +1836,8 @@ select:focus {
 .tanzaku {
   position: absolute;
   z-index: var(--z);
-  left: calc(var(--projection-margin) + (var(--render-x, var(--x)) * ((100vw - (var(--projection-margin) * 2)) / 100)));
-  top: calc(var(--projection-margin) + (var(--render-y, var(--y)) * ((100vh - (var(--projection-margin) * 2)) / 100)));
+  left: calc(var(--projection-margin) + (var(--render-x, var(--x)) * ((var(--projection-viewport-width) - (var(--projection-margin) * 2)) / 100)));
+  top: calc(var(--projection-margin) + (var(--render-y, var(--y)) * ((var(--projection-viewport-height) - (var(--projection-margin) * 2)) / 100)));
   width: var(--tanzaku-width);
   height: calc((var(--tanzaku-max-chars) * 1em) + var(--tanzaku-padding-top) + var(--tanzaku-padding-bottom));
   font-size: var(--tanzaku-font-size);
@@ -1655,6 +1866,30 @@ select:focus {
   transform-style: flat;
   contain: layout style;
   filter: brightness(var(--depth-brightness, 1));
+}
+
+.projection-stage--parallax-marker .tanzaku {
+  border: 1.5px solid rgba(255, 247, 215, 0.64);
+  background: rgba(12, 27, 48, 0.12) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(122, 232, 255, 0.24),
+    0 0 12px rgba(255, 247, 215, 0.16);
+  color: rgba(255, 247, 215, 0.5);
+  text-shadow: none;
+  filter: none;
+}
+
+.projection-stage--parallax-marker .tanzaku::before {
+  background: transparent;
+  border-color: rgba(255, 247, 215, 0.58);
+}
+
+.projection-stage--parallax-marker .tanzaku-string {
+  background: rgba(255, 247, 215, 0.42);
+}
+
+.projection-stage--parallax-marker .tanzaku-text {
+  opacity: 0.28;
 }
 
 .tanzaku::before {
@@ -1692,7 +1927,9 @@ select:focus {
 }
 
 .tanzaku--waiting,
-.tanzaku--empty {
+.tanzaku--empty,
+.tanzaku--behind-viewer {
+  visibility: hidden;
   opacity: 0;
   filter: blur(0.5px);
   pointer-events: none;
@@ -1808,10 +2045,10 @@ select:focus {
   }
   50% {
     transform: translate3d(
-      calc(var(--parallax-x, 0px) + 10px + var(--gust-x, 0px)),
-      calc(var(--parallax-y, 0px) + 4px + var(--gust-y, 0px)),
+      calc(var(--parallax-x, 0px) + (10px * var(--tanzaku-ambient-sway-strength, 1)) + var(--gust-x, 0px)),
+      calc(var(--parallax-y, 0px) + (4px * var(--tanzaku-ambient-sway-strength, 1)) + var(--gust-y, 0px)),
       0
-    ) rotate(calc(var(--tilt) + var(--gust-rotate, 0deg))) scale(var(--depth-scale, 1));
+    ) rotate(calc(var(--tilt) - (1.4deg * var(--tanzaku-ambient-sway-strength, 1)) + var(--gust-rotate, 0deg))) scale(var(--depth-scale, 1));
   }
 }
 
@@ -2136,10 +2373,10 @@ select:focus {
   }
 
   .bamboo-left {
-    left: var(--projection-margin);
+    left: calc(var(--projection-margin) + (var(--bamboo-left-x, 5) * ((var(--projection-viewport-width) - (var(--projection-margin) * 2)) / 100)));
   }
 
   .bamboo-right {
-    right: var(--projection-margin);
+    left: calc(var(--projection-margin) + (var(--bamboo-right-x, 93) * ((var(--projection-viewport-width) - (var(--projection-margin) * 2)) / 100)));
   }
 }
