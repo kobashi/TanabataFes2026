@@ -17,6 +17,7 @@ const detailsToggle = document.querySelector("#wish-details-toggle");
 const projectionSettingsForm = document.querySelector("#projection-settings-form");
 const projectionSettingsState = document.querySelector("#projection-settings-state");
 const projectionTypingIntervalInput = document.querySelector("#projection-typing-interval-ms");
+const projectionTanzakuGlowInput = document.querySelector("#projection-tanzaku-glow-ms");
 const projectionRotateIntervalInput = document.querySelector("#projection-rotate-interval-ms");
 const projectionEffectAutoInput = document.querySelector("#projection-effect-auto-enabled");
 const projectionEffectIntervalInput = document.querySelector("#projection-effect-interval-ms");
@@ -54,12 +55,16 @@ const projectionParallaxStrengthInput = document.querySelector("#projection-para
 const projectionParallaxPopoutStrengthInput = document.querySelector("#projection-parallax-popout-strength");
 const projectionParallaxDepthMultiplierInput = document.querySelector("#projection-parallax-depth-multiplier");
 const projectionParallaxDepthReferenceIndexInput = document.querySelector("#projection-parallax-depth-reference-index");
+const projectionPerspectiveBoxXInput = document.querySelector("#projection-perspective-box-x");
+const projectionPerspectiveBoxYInput = document.querySelector("#projection-perspective-box-y");
 const projectionParallaxViewerOffsetXInput = document.querySelector("#projection-parallax-viewer-offset-x");
 const projectionParallaxViewerOffsetYInput = document.querySelector("#projection-parallax-viewer-offset-y");
 const projectionParallaxViewerDistanceInput = document.querySelector("#projection-parallax-viewer-distance");
 const projectionViewportMarginInput = document.querySelector("#projection-viewport-margin");
 const projectionParallaxVanishingPointXInput = document.querySelector("#projection-parallax-vanishing-point-x");
 const projectionParallaxVanishingPointYInput = document.querySelector("#projection-parallax-vanishing-point-y");
+const projectionParallaxCameraTargetXInput = document.querySelector("#projection-parallax-camera-target-x");
+const projectionParallaxCameraTargetYInput = document.querySelector("#projection-parallax-camera-target-y");
 const projectionMilkyWayGainValue = document.querySelector("#projection-milky-way-gain-value");
 const projectionMilkyWayTwinkleValue = document.querySelector("#projection-milky-way-twinkle-value");
 const projectionMilkyWaySparkleValue = document.querySelector("#projection-milky-way-sparkle-value");
@@ -83,6 +88,8 @@ const projectionParallaxStrengthValue = document.querySelector("#projection-para
 const projectionParallaxPopoutStrengthValue = document.querySelector("#projection-parallax-popout-strength-value");
 const projectionParallaxDepthMultiplierValue = document.querySelector("#projection-parallax-depth-multiplier-value");
 const projectionParallaxDepthReferenceIndexValue = document.querySelector("#projection-parallax-depth-reference-index-value");
+const projectionPerspectiveBoxXValue = document.querySelector("#projection-perspective-box-x-value");
+const projectionPerspectiveBoxYValue = document.querySelector("#projection-perspective-box-y-value");
 const projectionCloudOriginYValue = document.querySelector("#projection-cloud-origin-y-value");
 const projectionParallaxViewerOffsetXValue = document.querySelector("#projection-parallax-viewer-offset-x-value");
 const projectionParallaxViewerOffsetYValue = document.querySelector("#projection-parallax-viewer-offset-y-value");
@@ -90,6 +97,8 @@ const projectionParallaxViewerDistanceValue = document.querySelector("#projectio
 const projectionViewportMarginValue = document.querySelector("#projection-viewport-margin-value");
 const projectionParallaxVanishingPointXValue = document.querySelector("#projection-parallax-vanishing-point-x-value");
 const projectionParallaxVanishingPointYValue = document.querySelector("#projection-parallax-vanishing-point-y-value");
+const projectionParallaxCameraTargetXValue = document.querySelector("#projection-parallax-camera-target-x-value");
+const projectionParallaxCameraTargetYValue = document.querySelector("#projection-parallax-camera-target-y-value");
 const projectionEffectsForm = document.querySelector("#projection-effects-form");
 const projectionEffectsState = document.querySelector("#projection-effects-state");
 const projectionPresetCards = document.querySelectorAll("[data-projection-preset]");
@@ -111,14 +120,18 @@ const PROJECTION_TANZAKU_FONT_LABELS = {
   kyokasho: "教科書体",
   brush: "筆文字風"
 };
+const PROJECTION_TARGET_DISPLAY_SCALE = 8;
 
 let adminKey = localStorage.getItem("tanabataAdminKey") || "";
 let eventSource = null;
 let wishDetailsVisible = localStorage.getItem("tanabataAdminWishDetails") === "true";
 let projectionSettingsDirty = false;
+let projectionParallaxCameraTargetXExplicit = false;
+let projectionParallaxCameraTargetYExplicit = false;
 let projectionParallaxPreviewTimer = null;
 let projectionParallaxPreviewRequestId = 0;
 let projectionSettingsEditingUntil = 0;
+let activeFineRangeDrag = null;
 let activeAdminTab = localStorage.getItem("tanabataAdminTab") || "connection";
 const pages = {
   pending: 1,
@@ -178,20 +191,26 @@ function clampNumber(value, min, max, fallback = min) {
   return Number.isFinite(number) ? Math.max(min, Math.min(max, number)) : fallback;
 }
 
+function toProjectionTargetDisplayValue(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Number((number * PROJECTION_TARGET_DISPLAY_SCALE).toFixed(2)) : 0;
+}
+
+function fromProjectionTargetDisplayValue(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Number((number / PROJECTION_TARGET_DISPLAY_SCALE).toFixed(4)) : 0;
+}
+
 function syncProjectionVanishingPointRanges() {
   if (
     !projectionParallaxVanishingPointXInput ||
     !projectionParallaxVanishingPointYInput
   ) return;
 
-  const xMin = Number(projectionParallaxVanishingPointXInput.dataset.serverMin ?? -1);
-  const xMax = Number(projectionParallaxVanishingPointXInput.dataset.serverMax ?? 1);
-  const yMin = Number(projectionParallaxVanishingPointYInput.dataset.serverMin ?? -1);
-  const yMax = Number(projectionParallaxVanishingPointYInput.dataset.serverMax ?? 5);
-  const safeXMin = Number.isFinite(xMin) ? xMin : -1;
-  const safeXMax = Number.isFinite(xMax) ? xMax : 1;
-  const safeYMin = Number.isFinite(yMin) ? yMin : -1;
-  const safeYMax = Number.isFinite(yMax) ? yMax : 5;
+  const safeXMin = toProjectionTargetDisplayValue(projectionParallaxVanishingPointXInput.dataset.serverMin ?? -1);
+  const safeXMax = toProjectionTargetDisplayValue(projectionParallaxVanishingPointXInput.dataset.serverMax ?? 1);
+  const safeYMin = toProjectionTargetDisplayValue(projectionParallaxVanishingPointYInput.dataset.serverMin ?? -1);
+  const safeYMax = toProjectionTargetDisplayValue(projectionParallaxVanishingPointYInput.dataset.serverMax ?? 5);
 
   projectionParallaxVanishingPointXInput.min = safeXMin.toFixed(2);
   projectionParallaxVanishingPointXInput.max = safeXMax.toFixed(2);
@@ -211,8 +230,38 @@ function syncProjectionVanishingPointRanges() {
   ));
 }
 
+function syncProjectionCameraTargetRanges() {
+  if (
+    !projectionParallaxCameraTargetXInput ||
+    !projectionParallaxCameraTargetYInput
+  ) return;
+
+  const safeXMin = toProjectionTargetDisplayValue(projectionParallaxCameraTargetXInput.dataset.serverMin ?? -1);
+  const safeXMax = toProjectionTargetDisplayValue(projectionParallaxCameraTargetXInput.dataset.serverMax ?? 1);
+  const safeYMin = toProjectionTargetDisplayValue(projectionParallaxCameraTargetYInput.dataset.serverMin ?? -1);
+  const safeYMax = toProjectionTargetDisplayValue(projectionParallaxCameraTargetYInput.dataset.serverMax ?? 5);
+
+  projectionParallaxCameraTargetXInput.min = safeXMin.toFixed(2);
+  projectionParallaxCameraTargetXInput.max = safeXMax.toFixed(2);
+  projectionParallaxCameraTargetXInput.value = String(clampNumber(
+    projectionParallaxCameraTargetXInput.value,
+    safeXMin,
+    safeXMax,
+    0
+  ));
+  projectionParallaxCameraTargetYInput.min = safeYMin.toFixed(2);
+  projectionParallaxCameraTargetYInput.max = safeYMax.toFixed(2);
+  projectionParallaxCameraTargetYInput.value = String(clampNumber(
+    projectionParallaxCameraTargetYInput.value,
+    safeYMin,
+    safeYMax,
+    0
+  ));
+}
+
 function syncProjectionSliderOutputs() {
   syncProjectionVanishingPointRanges();
+  syncProjectionCameraTargetRanges();
   if (projectionMilkyWayGainValue && projectionMilkyWayGainInput) {
     projectionMilkyWayGainValue.textContent = formatSliderValue(projectionMilkyWayGainInput.value);
   }
@@ -286,6 +335,12 @@ function syncProjectionSliderOutputs() {
       ? `手前${referenceIndex}`
       : `奥${referenceIndex}`;
   }
+  if (projectionPerspectiveBoxXValue && projectionPerspectiveBoxXInput) {
+    projectionPerspectiveBoxXValue.textContent = formatSliderValue(projectionPerspectiveBoxXInput.value);
+  }
+  if (projectionPerspectiveBoxYValue && projectionPerspectiveBoxYInput) {
+    projectionPerspectiveBoxYValue.textContent = formatSliderValue(projectionPerspectiveBoxYInput.value);
+  }
   if (projectionCloudOriginYValue && projectionCloudOriginYInput) {
     projectionCloudOriginYValue.textContent = formatSliderValue(projectionCloudOriginYInput.value);
   }
@@ -307,6 +362,12 @@ function syncProjectionSliderOutputs() {
   if (projectionParallaxVanishingPointYValue && projectionParallaxVanishingPointYInput) {
     projectionParallaxVanishingPointYValue.textContent = formatSliderValue(projectionParallaxVanishingPointYInput.value);
   }
+  if (projectionParallaxCameraTargetXValue && projectionParallaxCameraTargetXInput) {
+    projectionParallaxCameraTargetXValue.textContent = formatSliderValue(projectionParallaxCameraTargetXInput.value);
+  }
+  if (projectionParallaxCameraTargetYValue && projectionParallaxCameraTargetYInput) {
+    projectionParallaxCameraTargetYValue.textContent = formatSliderValue(projectionParallaxCameraTargetYInput.value);
+  }
 }
 
 function setProjectionEffectsState(text) {
@@ -326,7 +387,11 @@ function presetSummary(preset) {
   };
   const motionMode = motionModeLabels[settings.projectionParallaxMotionMode] || motionModeLabels.mapping;
   const fontLabel = PROJECTION_TANZAKU_FONT_LABELS[settings.projectionTanzakuFontId] || PROJECTION_TANZAKU_FONT_LABELS.mincho;
-  return `スロット ${settings.projectionSlotCount} / 表示 ${settings.projectionDisplayCount} / 移動 ${settings.projectionMoveCount} / フォント ${fontLabel} / 絵文字 ${settings.projectionColorEmojiFontEnabled ? "ON" : "OFF"} / 文字 ${settings.projectionTypingIntervalMs}ms / 間隔 ${settings.projectionRotateIntervalMs}ms / 天の川 ${settings.projectionMilkyWayGain} / 雲 ${settings.projectionCloudCount} / 視差 ${settings.projectionExperimentalParallaxEnabled ? "ON" : "OFF"} / 笹舟 ${motionMode} / 左右 ${settings.projectionParallaxStrength} / 前後/上下 ${settings.projectionParallaxPopoutStrength ?? 0} / 鑑賞 ${settings.projectionParallaxViewerOffsetX ?? 0},${settings.projectionParallaxViewerOffsetY ?? 0},${settings.projectionParallaxViewerDistance ?? 2.5} / 余白 ${settings.projectionViewportMargin ?? 0} / 消失点 ${settings.projectionParallaxVanishingPointX},${settings.projectionParallaxVanishingPointY}`;
+  const targetX = toProjectionTargetDisplayValue(settings.projectionParallaxVanishingPointX ?? 0);
+  const targetY = toProjectionTargetDisplayValue(settings.projectionParallaxVanishingPointY ?? 0);
+  const cameraTargetX = toProjectionTargetDisplayValue(settings.projectionParallaxCameraTargetX ?? settings.projectionParallaxVanishingPointX ?? 0);
+  const cameraTargetY = toProjectionTargetDisplayValue(settings.projectionParallaxCameraTargetY ?? settings.projectionParallaxVanishingPointY ?? 0);
+  return `スロット ${settings.projectionSlotCount} / 表示 ${settings.projectionDisplayCount} / 移動 ${settings.projectionMoveCount} / フォント ${fontLabel} / 絵文字 ${settings.projectionColorEmojiFontEnabled ? "ON" : "OFF"} / 文字 ${settings.projectionTypingIntervalMs}ms / ハイライト ${settings.projectionTanzakuGlowMs ?? 3200}ms / 間隔 ${settings.projectionRotateIntervalMs}ms / 天の川 ${settings.projectionMilkyWayGain} / 雲 ${settings.projectionCloudCount} / 視差 ${settings.projectionExperimentalParallaxEnabled ? "ON" : "OFF"} / 笹舟 ${motionMode} / 左右 ${settings.projectionParallaxStrength} / 前後/上下 ${settings.projectionParallaxPopoutStrength ?? 0} / 鑑賞 ${settings.projectionParallaxViewerOffsetX ?? 0},${settings.projectionParallaxViewerOffsetY ?? 0},${settings.projectionParallaxViewerDistance ?? 2.5} / 3D箱 ${settings.projectionPerspectiveBoxX ?? -0.52},${settings.projectionPerspectiveBoxY ?? -0.05} / 余白 ${settings.projectionViewportMargin ?? 0} / 短冊目標 ${targetX},${targetY} / 注視点 ${cameraTargetX},${cameraTargetY}`;
 }
 
 function renderProjectionPresets(presets = []) {
@@ -639,6 +704,7 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   if (
     !projectionSettingsForm ||
     !projectionTypingIntervalInput ||
+    !projectionTanzakuGlowInput ||
     !projectionRotateIntervalInput ||
     !projectionEffectAutoInput ||
     !projectionEffectIntervalInput ||
@@ -674,12 +740,16 @@ function renderProjectionSettings(settings, { force = false } = {}) {
     !projectionParallaxMotionModeInput ||
     !projectionParallaxStrengthInput ||
     !projectionParallaxPopoutStrengthInput ||
+    !projectionPerspectiveBoxXInput ||
+    !projectionPerspectiveBoxYInput ||
     !projectionParallaxViewerOffsetXInput ||
     !projectionParallaxViewerOffsetYInput ||
     !projectionParallaxViewerDistanceInput ||
     !projectionViewportMarginInput ||
     !projectionParallaxVanishingPointXInput ||
     !projectionParallaxVanishingPointYInput ||
+    !projectionParallaxCameraTargetXInput ||
+    !projectionParallaxCameraTargetYInput ||
     !settings
   ) return;
 
@@ -694,6 +764,7 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   const slotCount = settings.projectionSlotCount || displayCount + 3;
   const moveCount = settings.projectionMoveCount || 1;
   const typingIntervalMs = settings.projectionTypingIntervalMs || 240;
+  const tanzakuGlowMs = settings.projectionTanzakuGlowMs || 3200;
   const rotateIntervalMs = settings.projectionRotateIntervalMs || 18000;
   const effectAutoEnabled = settings.projectionEffectAutoEnabled === true;
   const effectIntervalMs = settings.projectionEffectIntervalMs || 300000;
@@ -740,16 +811,30 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   const parallaxPopoutStrength = Number(settings.projectionParallaxPopoutStrength ?? 0);
   const parallaxDepthMultiplier = Number(settings.projectionParallaxDepthMultiplier ?? 1);
   const parallaxDepthReferenceIndex = Number(settings.projectionParallaxDepthReferenceIndex ?? 1);
+  const perspectiveBoxX = Number(settings.projectionPerspectiveBoxX ?? -0.52);
+  const perspectiveBoxY = Number(settings.projectionPerspectiveBoxY ?? -0.05);
   const parallaxViewerOffsetX = Number(settings.projectionParallaxViewerOffsetX ?? 0);
   const parallaxViewerOffsetY = Number(settings.projectionParallaxViewerOffsetY ?? 0);
   const parallaxViewerDistance = Number(settings.projectionParallaxViewerDistance ?? 2.5);
   const viewportMargin = Number(settings.projectionViewportMargin ?? 0);
   const parallaxVanishingPointX = Number(settings.projectionParallaxVanishingPointX ?? 0);
   const parallaxVanishingPointY = Number(settings.projectionParallaxVanishingPointY ?? 0);
+  const parallaxVanishingPointDisplayX = toProjectionTargetDisplayValue(parallaxVanishingPointX);
+  const parallaxVanishingPointDisplayY = toProjectionTargetDisplayValue(parallaxVanishingPointY);
+  projectionParallaxCameraTargetXExplicit = settings.projectionParallaxCameraTargetX !== null &&
+    settings.projectionParallaxCameraTargetX !== undefined;
+  projectionParallaxCameraTargetYExplicit = settings.projectionParallaxCameraTargetY !== null &&
+    settings.projectionParallaxCameraTargetY !== undefined;
+  const parallaxCameraTargetX = Number(settings.projectionParallaxCameraTargetX ?? parallaxVanishingPointX);
+  const parallaxCameraTargetY = Number(settings.projectionParallaxCameraTargetY ?? parallaxVanishingPointY);
+  const parallaxCameraTargetDisplayX = toProjectionTargetDisplayValue(parallaxCameraTargetX);
+  const parallaxCameraTargetDisplayY = toProjectionTargetDisplayValue(parallaxCameraTargetY);
   const displayMax = settings.projectionDisplayCountMax || 30;
   const slotMax = settings.projectionSlotCountMax || 60;
   const typingMin = settings.projectionTypingIntervalMsMin || 120;
   const typingMax = settings.projectionTypingIntervalMsMax || 1000;
+  const glowMin = settings.projectionTanzakuGlowMsMin || 500;
+  const glowMax = settings.projectionTanzakuGlowMsMax || 12000;
   const rotateMin = settings.projectionRotateIntervalMsMin || 5000;
   const rotateMax = settings.projectionRotateIntervalMsMax || 120000;
   const effectMin = settings.projectionEffectIntervalMsMin || 60000;
@@ -799,26 +884,35 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   const parallaxPopoutStrengthMin = settings.projectionParallaxPopoutStrengthMin ?? 0;
   const parallaxPopoutStrengthMax = settings.projectionParallaxPopoutStrengthMax ?? 3;
   const parallaxDepthMultiplierMin = settings.projectionParallaxDepthMultiplierMin ?? 0;
-  const parallaxDepthMultiplierMax = settings.projectionParallaxDepthMultiplierMax ?? 3;
+  const parallaxDepthMultiplierMax = settings.projectionParallaxDepthMultiplierMax ?? 8;
   const parallaxDepthReferenceIndexMin = settings.projectionParallaxDepthReferenceIndexMin ?? 1;
   const parallaxDepthReferenceIndexMax = settings.projectionParallaxDepthReferenceIndexMax ?? slotMax;
+  const perspectiveBoxMin = settings.projectionPerspectiveBoxMin ?? -4;
+  const perspectiveBoxMax = settings.projectionPerspectiveBoxMax ?? 4;
   const parallaxViewerOffsetXMin = settings.projectionParallaxViewerOffsetXMin ?? -8;
   const parallaxViewerOffsetXMax = settings.projectionParallaxViewerOffsetXMax ?? 8;
-  const parallaxViewerOffsetYMin = settings.projectionParallaxViewerOffsetYMin ?? -8;
-  const parallaxViewerOffsetYMax = settings.projectionParallaxViewerOffsetYMax ?? 16;
+  const parallaxViewerOffsetYMin = settings.projectionParallaxViewerOffsetYMin ?? -16;
+  const parallaxViewerOffsetYMax = settings.projectionParallaxViewerOffsetYMax ?? 32;
   const parallaxViewerDistanceMin = settings.projectionParallaxViewerDistanceMin ?? 0.5;
-  const parallaxViewerDistanceMax = settings.projectionParallaxViewerDistanceMax ?? 32;
+  const parallaxViewerDistanceMax = settings.projectionParallaxViewerDistanceMax ?? 8;
   const viewportMarginMin = settings.projectionViewportMarginMin ?? 0;
   const viewportMarginMax = settings.projectionViewportMarginMax ?? 24;
   const parallaxVanishingPointXMin = settings.projectionParallaxVanishingPointXMin ?? settings.projectionParallaxVanishingPointMin ?? -1;
   const parallaxVanishingPointXMax = settings.projectionParallaxVanishingPointXMax ?? settings.projectionParallaxVanishingPointMax ?? 1;
   const parallaxVanishingPointYMin = settings.projectionParallaxVanishingPointYMin ?? settings.projectionParallaxVanishingPointMin ?? -1;
   const parallaxVanishingPointYMax = settings.projectionParallaxVanishingPointYMax ?? 5;
+  const parallaxCameraTargetXMin = settings.projectionParallaxCameraTargetXMin ?? -1;
+  const parallaxCameraTargetXMax = settings.projectionParallaxCameraTargetXMax ?? 1;
+  const parallaxCameraTargetYMin = settings.projectionParallaxCameraTargetYMin ?? -1;
+  const parallaxCameraTargetYMax = settings.projectionParallaxCameraTargetYMax ?? 5;
   renderProjectionPresets(settings.projectionPresets || []);
 
   projectionTypingIntervalInput.value = String(typingIntervalMs);
   projectionTypingIntervalInput.min = String(typingMin);
   projectionTypingIntervalInput.max = String(typingMax);
+  projectionTanzakuGlowInput.value = String(tanzakuGlowMs);
+  projectionTanzakuGlowInput.min = String(glowMin);
+  projectionTanzakuGlowInput.max = String(glowMax);
   projectionRotateIntervalInput.value = String(rotateIntervalMs);
   projectionRotateIntervalInput.min = String(rotateMin);
   projectionRotateIntervalInput.max = String(rotateMax);
@@ -905,6 +999,12 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   projectionParallaxDepthReferenceIndexInput.value = String(Math.max(parallaxDepthReferenceIndexMin, Math.min(parallaxDepthReferenceIndex, slotCount)));
   projectionParallaxDepthReferenceIndexInput.min = String(parallaxDepthReferenceIndexMin);
   projectionParallaxDepthReferenceIndexInput.max = String(Math.min(parallaxDepthReferenceIndexMax, slotCount));
+  projectionPerspectiveBoxXInput.value = String(perspectiveBoxX);
+  projectionPerspectiveBoxXInput.min = String(perspectiveBoxMin);
+  projectionPerspectiveBoxXInput.max = String(perspectiveBoxMax);
+  projectionPerspectiveBoxYInput.value = String(perspectiveBoxY);
+  projectionPerspectiveBoxYInput.min = String(perspectiveBoxMin);
+  projectionPerspectiveBoxYInput.max = String(perspectiveBoxMax);
   projectionParallaxViewerOffsetXInput.value = String(parallaxViewerOffsetX);
   projectionParallaxViewerOffsetXInput.min = String(parallaxViewerOffsetXMin);
   projectionParallaxViewerOffsetXInput.max = String(parallaxViewerOffsetXMax);
@@ -923,15 +1023,32 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   projectionParallaxVanishingPointYInput.dataset.serverMax = String(parallaxVanishingPointYMax);
   syncProjectionVanishingPointRanges();
   projectionParallaxVanishingPointXInput.value = String(clampNumber(
-    parallaxVanishingPointX,
+    toProjectionTargetDisplayValue(parallaxVanishingPointX),
     Number(projectionParallaxVanishingPointXInput.min),
     Number(projectionParallaxVanishingPointXInput.max),
     0
   ));
   projectionParallaxVanishingPointYInput.value = String(clampNumber(
-    parallaxVanishingPointY,
+    toProjectionTargetDisplayValue(parallaxVanishingPointY),
     Number(projectionParallaxVanishingPointYInput.min),
     Number(projectionParallaxVanishingPointYInput.max),
+    0
+  ));
+  projectionParallaxCameraTargetXInput.dataset.serverMin = String(parallaxCameraTargetXMin);
+  projectionParallaxCameraTargetXInput.dataset.serverMax = String(parallaxCameraTargetXMax);
+  projectionParallaxCameraTargetYInput.dataset.serverMin = String(parallaxCameraTargetYMin);
+  projectionParallaxCameraTargetYInput.dataset.serverMax = String(parallaxCameraTargetYMax);
+  syncProjectionCameraTargetRanges();
+  projectionParallaxCameraTargetXInput.value = String(clampNumber(
+    toProjectionTargetDisplayValue(parallaxCameraTargetX),
+    Number(projectionParallaxCameraTargetXInput.min),
+    Number(projectionParallaxCameraTargetXInput.max),
+    0
+  ));
+  projectionParallaxCameraTargetYInput.value = String(clampNumber(
+    toProjectionTargetDisplayValue(parallaxCameraTargetY),
+    Number(projectionParallaxCameraTargetYInput.min),
+    Number(projectionParallaxCameraTargetYInput.max),
     0
   ));
   syncProjectionSliderOutputs();
@@ -944,7 +1061,7 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   projectionMoveCountInput.value = String(moveCount);
   projectionMoveCountInput.max = String(displayCount);
   syncProjectionCountInputs();
-  setProjectionSettingsState(`フォント ${tanzakuFontLabel} / 絵文字 ${colorEmojiFontEnabled ? "ON" : "OFF"} / 文字 ${typingIntervalMs}ms / 間隔 ${rotateIntervalMs}ms / 自動 ${effectAutoEnabled ? "ON" : "OFF"} / イベント ${effectIntervalMs}ms / 短冊 連動揺れ ${tanzakuSwayStrength}, ゆらぎ ${tanzakuAmbientSwayStrength}, 押し流し ${windGustStrength}, ${formatSliderValue(windGustCycleMs / 1000)}秒+${windGustCycleJitterSeconds}秒 / 天の川 ${milkyWayGain},${milkyWayTwinkle},${milkyWaySparkle},${milkyWaySpeed},${milkyWayParticleCount},${milkyWaySparkleRatio},${milkyWaySparklePeriodVariance},${milkyWaySparkleIntensityVariance},${milkyWaySparklePeriodSeconds}秒,${Math.round(milkyWaySparkleDutyRatio * 100)}% / 星呼応 ${tanabataStarResponseIntensity},${tanabataStarResponsePhaseDeg},${tanabataStarResponsePeriodSeconds} / 雲 ${cloudCount} / 高さ ${cloudOriginY} / 視差 ${experimentalParallaxEnabled ? "ON" : "OFF"} / マーカー ${parallaxMarkerEnabled ? "ON" : "OFF"} / 笹舟 ${parallaxMotionModeLabel} / 左右 ${parallaxStrength} / 前後/上下 ${parallaxPopoutStrength} / 奥行 ${parallaxDepthMultiplier},基準${parallaxDepthReferenceIndex} / 鑑賞 ${parallaxViewerOffsetX},${parallaxViewerOffsetY},${parallaxViewerDistance} / 余白 ${viewportMargin} / 消失点 ${parallaxVanishingPointX},${parallaxVanishingPointY} / スロット ${slotCount} / 表示 ${displayCount} / 入替 ${moveCount}`);
+  setProjectionSettingsState(`フォント ${tanzakuFontLabel} / 絵文字 ${colorEmojiFontEnabled ? "ON" : "OFF"} / 文字 ${typingIntervalMs}ms / ハイライト ${tanzakuGlowMs}ms / 間隔 ${rotateIntervalMs}ms / 自動 ${effectAutoEnabled ? "ON" : "OFF"} / イベント ${effectIntervalMs}ms / 短冊 連動揺れ ${tanzakuSwayStrength}, ゆらぎ ${tanzakuAmbientSwayStrength}, 押し流し ${windGustStrength}, ${formatSliderValue(windGustCycleMs / 1000)}秒+${windGustCycleJitterSeconds}秒 / 天の川 ${milkyWayGain},${milkyWayTwinkle},${milkyWaySparkle},${milkyWaySpeed},${milkyWayParticleCount},${milkyWaySparkleRatio},${milkyWaySparklePeriodVariance},${milkyWaySparkleIntensityVariance},${milkyWaySparklePeriodSeconds}秒,${Math.round(milkyWaySparkleDutyRatio * 100)}% / 星呼応 ${tanabataStarResponseIntensity},${tanabataStarResponsePhaseDeg},${tanabataStarResponsePeriodSeconds} / 雲 ${cloudCount} / 高さ ${cloudOriginY} / 視差 ${experimentalParallaxEnabled ? "ON" : "OFF"} / マーカー ${parallaxMarkerEnabled ? "ON" : "OFF"} / 笹舟 ${parallaxMotionModeLabel} / 左右 ${parallaxStrength} / 前後/上下 ${parallaxPopoutStrength} / 奥行 ${parallaxDepthMultiplier},基準${parallaxDepthReferenceIndex} / 3D箱 ${perspectiveBoxX},${perspectiveBoxY} / 鑑賞 ${parallaxViewerOffsetX},${parallaxViewerOffsetY},${parallaxViewerDistance} / 余白 ${viewportMargin} / 短冊目標 ${parallaxVanishingPointDisplayX},${parallaxVanishingPointDisplayY} / 注視点 ${parallaxCameraTargetDisplayX},${parallaxCameraTargetDisplayY} / スロット ${slotCount} / 表示 ${displayCount} / 入替 ${moveCount}`);
 }
 
 function setLiveState(text) {
@@ -1084,6 +1201,84 @@ function markProjectionSettingsDirty() {
   setProjectionSettingsState("編集中");
 }
 
+function getFineRangeSensitivity(deltaY) {
+  const distance = Math.abs(deltaY);
+  if (distance > 110) return 0.06;
+  if (distance > 72) return 0.12;
+  if (distance > 38) return 0.28;
+  return 1;
+}
+
+function roundRangeValue(value, step) {
+  const safeStep = Number(step);
+  if (!Number.isFinite(safeStep) || safeStep <= 0) return value;
+  const decimals = Math.max(0, (String(step).split(".")[1] || "").length);
+  return Number((Math.round(value / safeStep) * safeStep).toFixed(decimals));
+}
+
+function setFineRangeValue(input, value) {
+  const min = Number(input.min);
+  const max = Number(input.max);
+  const clamped = Math.max(min, Math.min(max, value));
+  const rounded = roundRangeValue(clamped, input.step);
+  if (String(input.value) === String(rounded)) return;
+  input.value = String(rounded);
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+function getRangeValuePerPixel(input) {
+  const min = Number(input.min);
+  const max = Number(input.max);
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return 0;
+  const rect = input.getBoundingClientRect();
+  return (max - min) / Math.max(96, rect.width);
+}
+
+function beginFineRangeDrag(event) {
+  const input = event.target.closest('input[type="range"]');
+  if (!input || !projectionSettingsForm?.contains(input)) return;
+  if (event.pointerType === "mouse") return;
+
+  event.preventDefault();
+  input.focus({ preventScroll: true });
+  activeFineRangeDrag = {
+    input,
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    startValue: Number(input.value),
+    valuePerPixel: getRangeValuePerPixel(input)
+  };
+  input.classList.add("is-fine-dragging");
+  input.setPointerCapture?.(event.pointerId);
+}
+
+function updateFineRangeDrag(event) {
+  if (!activeFineRangeDrag || event.pointerId !== activeFineRangeDrag.pointerId) return;
+  event.preventDefault();
+  const { input, startX, startY, startValue, valuePerPixel } = activeFineRangeDrag;
+  const sensitivity = getFineRangeSensitivity(event.clientY - startY);
+  setFineRangeValue(input, startValue + ((event.clientX - startX) * valuePerPixel * sensitivity));
+}
+
+function endFineRangeDrag(event) {
+  if (!activeFineRangeDrag || event.pointerId !== activeFineRangeDrag.pointerId) return;
+  const { input } = activeFineRangeDrag;
+  input.classList.remove("is-fine-dragging");
+  input.releasePointerCapture?.(event.pointerId);
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+  activeFineRangeDrag = null;
+}
+
+function markProjectionCameraTargetExplicit(target) {
+  if (target === projectionParallaxCameraTargetXInput) {
+    projectionParallaxCameraTargetXExplicit = true;
+  }
+  if (target === projectionParallaxCameraTargetYInput) {
+    projectionParallaxCameraTargetYExplicit = true;
+  }
+}
+
 function isProjectionParallaxPreviewInput(target) {
   return [
     projectionExperimentalParallaxInput,
@@ -1093,13 +1288,28 @@ function isProjectionParallaxPreviewInput(target) {
     projectionParallaxPopoutStrengthInput,
     projectionParallaxDepthMultiplierInput,
     projectionParallaxDepthReferenceIndexInput,
+    projectionPerspectiveBoxXInput,
+    projectionPerspectiveBoxYInput,
     projectionParallaxViewerOffsetXInput,
     projectionParallaxViewerOffsetYInput,
     projectionParallaxViewerDistanceInput,
     projectionViewportMarginInput,
     projectionParallaxVanishingPointXInput,
-    projectionParallaxVanishingPointYInput
+    projectionParallaxVanishingPointYInput,
+    projectionParallaxCameraTargetXInput,
+    projectionParallaxCameraTargetYInput
   ].includes(target);
+}
+
+function currentProjectionCameraTargetPayload() {
+  return {
+    projectionParallaxCameraTargetX: projectionParallaxCameraTargetXExplicit
+      ? fromProjectionTargetDisplayValue(projectionParallaxCameraTargetXInput.value)
+      : null,
+    projectionParallaxCameraTargetY: projectionParallaxCameraTargetYExplicit
+      ? fromProjectionTargetDisplayValue(projectionParallaxCameraTargetYInput.value)
+      : null
+  };
 }
 
 function currentProjectionParallaxPayload() {
@@ -1111,12 +1321,15 @@ function currentProjectionParallaxPayload() {
     projectionParallaxPopoutStrength: Number(projectionParallaxPopoutStrengthInput.value),
     projectionParallaxDepthMultiplier: Number(projectionParallaxDepthMultiplierInput.value),
     projectionParallaxDepthReferenceIndex: Number(projectionParallaxDepthReferenceIndexInput.value),
+    projectionPerspectiveBoxX: Number(projectionPerspectiveBoxXInput.value),
+    projectionPerspectiveBoxY: Number(projectionPerspectiveBoxYInput.value),
     projectionParallaxViewerOffsetX: Number(projectionParallaxViewerOffsetXInput.value),
     projectionParallaxViewerOffsetY: Number(projectionParallaxViewerOffsetYInput.value),
     projectionParallaxViewerDistance: Number(projectionParallaxViewerDistanceInput.value),
     projectionViewportMargin: Number(projectionViewportMarginInput.value),
-    projectionParallaxVanishingPointX: Number(projectionParallaxVanishingPointXInput.value),
-    projectionParallaxVanishingPointY: Number(projectionParallaxVanishingPointYInput.value)
+    projectionParallaxVanishingPointX: fromProjectionTargetDisplayValue(projectionParallaxVanishingPointXInput.value),
+    projectionParallaxVanishingPointY: fromProjectionTargetDisplayValue(projectionParallaxVanishingPointYInput.value),
+    ...currentProjectionCameraTargetPayload()
   };
 }
 
@@ -1154,6 +1367,7 @@ function scheduleProjectionParallaxPreview() {
 function currentProjectionSettingsPayload() {
   return {
     projectionTypingIntervalMs: Number(projectionTypingIntervalInput.value),
+    projectionTanzakuGlowMs: Number(projectionTanzakuGlowInput.value),
     projectionRotateIntervalMs: Number(projectionRotateIntervalInput.value),
     projectionEffectAutoEnabled: projectionEffectAutoInput.checked,
     projectionEffectIntervalMs: Number(projectionEffectIntervalInput.value),
@@ -1191,12 +1405,15 @@ function currentProjectionSettingsPayload() {
     projectionParallaxPopoutStrength: Number(projectionParallaxPopoutStrengthInput.value),
     projectionParallaxDepthMultiplier: Number(projectionParallaxDepthMultiplierInput.value),
     projectionParallaxDepthReferenceIndex: Number(projectionParallaxDepthReferenceIndexInput.value),
+    projectionPerspectiveBoxX: Number(projectionPerspectiveBoxXInput.value),
+    projectionPerspectiveBoxY: Number(projectionPerspectiveBoxYInput.value),
     projectionParallaxViewerOffsetX: Number(projectionParallaxViewerOffsetXInput.value),
     projectionParallaxViewerOffsetY: Number(projectionParallaxViewerOffsetYInput.value),
     projectionParallaxViewerDistance: Number(projectionParallaxViewerDistanceInput.value),
     projectionViewportMargin: Number(projectionViewportMarginInput.value),
-    projectionParallaxVanishingPointX: Number(projectionParallaxVanishingPointXInput.value),
-    projectionParallaxVanishingPointY: Number(projectionParallaxVanishingPointYInput.value)
+    projectionParallaxVanishingPointX: fromProjectionTargetDisplayValue(projectionParallaxVanishingPointXInput.value),
+    projectionParallaxVanishingPointY: fromProjectionTargetDisplayValue(projectionParallaxVanishingPointYInput.value),
+    ...currentProjectionCameraTargetPayload()
   };
 }
 
@@ -1214,6 +1431,7 @@ if (projectionDisplayCountInput && projectionSlotCountInput && projectionMoveCou
 if (
   projectionSettingsForm &&
   projectionTypingIntervalInput &&
+  projectionTanzakuGlowInput &&
   projectionRotateIntervalInput &&
   projectionEffectAutoInput &&
   projectionEffectIntervalInput &&
@@ -1246,12 +1464,16 @@ if (
   projectionParallaxPopoutStrengthInput &&
   projectionParallaxDepthMultiplierInput &&
   projectionParallaxDepthReferenceIndexInput &&
+  projectionPerspectiveBoxXInput &&
+  projectionPerspectiveBoxYInput &&
   projectionParallaxViewerOffsetXInput &&
   projectionParallaxViewerOffsetYInput &&
   projectionParallaxViewerDistanceInput &&
   projectionViewportMarginInput &&
   projectionParallaxVanishingPointXInput &&
-  projectionParallaxVanishingPointYInput
+  projectionParallaxVanishingPointYInput &&
+  projectionParallaxCameraTargetXInput &&
+  projectionParallaxCameraTargetYInput
 ) {
   projectionSettingsForm.addEventListener("click", (event) => {
     const button = event.target.closest("[data-stepper-target][data-stepper-delta]");
@@ -1259,6 +1481,7 @@ if (
     stepProjectionCountInput(button.dataset.stepperTarget, Number(button.dataset.stepperDelta));
   });
   projectionSettingsForm.addEventListener("input", (event) => {
+    markProjectionCameraTargetExplicit(event.target);
     if (isProjectionParallaxPreviewInput(event.target)) {
       scheduleProjectionParallaxPreview();
       return;
@@ -1266,6 +1489,7 @@ if (
     markProjectionSettingsDirty();
   });
   projectionSettingsForm.addEventListener("change", (event) => {
+    markProjectionCameraTargetExplicit(event.target);
     if (isProjectionParallaxPreviewInput(event.target)) {
       scheduleProjectionParallaxPreview();
       return;
@@ -1273,9 +1497,13 @@ if (
     markProjectionSettingsDirty();
   });
   projectionSettingsForm.addEventListener("pointerdown", (event) => {
+    beginFineRangeDrag(event);
     if (!event.target.closest("input, select, textarea")) return;
     projectionSettingsEditingUntil = Date.now() + 1800;
   });
+  projectionSettingsForm.addEventListener("pointermove", updateFineRangeDrag);
+  projectionSettingsForm.addEventListener("pointerup", endFineRangeDrag);
+  projectionSettingsForm.addEventListener("pointercancel", endFineRangeDrag);
   projectionSettingsForm.addEventListener("focusin", (event) => {
     if (!event.target.closest("input, select, textarea")) return;
     projectionSettingsEditingUntil = Date.now() + 1800;

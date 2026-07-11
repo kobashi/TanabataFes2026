@@ -15,9 +15,11 @@ const layoutSaveButton = document.querySelector("#layout-save-button");
 const layoutLoadButton = document.querySelector("#layout-load-button");
 const layoutClearButton = document.querySelector("#layout-clear-button");
 const layoutFullscreenButton = document.querySelector("#layout-fullscreen-button");
+const layoutCenterButton = document.querySelector("#layout-center-button");
 const tanzakuFontSelect = document.querySelector("#tanzaku-font-select");
 const tanzakuFontSizeInput = document.querySelector("#tanzaku-font-size");
 const tanzakuFontSizeValue = document.querySelector("#tanzaku-font-size-value");
+const tanzakuTypingCaretEnabledInput = document.querySelector("#tanzaku-typing-caret-enabled");
 const oracleBoatSizeInput = document.querySelector("#oracle-boat-size");
 const oracleBoatSizeValue = document.querySelector("#oracle-boat-size-value");
 const oracleBoatOffsetInput = document.querySelector("#oracle-boat-offset");
@@ -44,6 +46,10 @@ const layoutParallaxVanishingXInput = document.querySelector("#layout-parallax-v
 const layoutParallaxVanishingXValue = document.querySelector("#layout-parallax-vanishing-x-value");
 const layoutParallaxVanishingYInput = document.querySelector("#layout-parallax-vanishing-y");
 const layoutParallaxVanishingYValue = document.querySelector("#layout-parallax-vanishing-y-value");
+const layoutParallaxCameraTargetXInput = document.querySelector("#layout-parallax-camera-target-x");
+const layoutParallaxCameraTargetXValue = document.querySelector("#layout-parallax-camera-target-x-value");
+const layoutParallaxCameraTargetYInput = document.querySelector("#layout-parallax-camera-target-y");
+const layoutParallaxCameraTargetYValue = document.querySelector("#layout-parallax-camera-target-y-value");
 const layoutParallaxEnabledInput = document.querySelector("#layout-parallax-enabled");
 const layoutParallaxMarkerEnabledInput = document.querySelector("#layout-parallax-marker-enabled");
 const layoutParallaxMotionModeInput = document.querySelector("#layout-parallax-motion-mode");
@@ -54,6 +60,10 @@ const layoutParallaxStrengthInput = document.querySelector("#layout-parallax-str
 const layoutParallaxStrengthValue = document.querySelector("#layout-parallax-strength-value");
 const layoutParallaxPopoutInput = document.querySelector("#layout-parallax-popout");
 const layoutParallaxPopoutValue = document.querySelector("#layout-parallax-popout-value");
+
+if (layoutMenu && layoutMenu.parentElement !== document.body) {
+  document.body.append(layoutMenu);
+}
 
 const colors = ["ivory", "crimson", "aqua", "violet", "gold", "leaf"];
 const tanzakuFontOptions = [
@@ -99,27 +109,22 @@ const DEFAULT_ROTATE_INTERVAL_MS = 18000;
 const REFRESH_INTERVAL_MS = 7000;
 const EFFECT_POLL_INTERVAL_MS = 2500;
 const PARALLAX_VIEWER_STEP_MS = 4200;
-const PARALLAX_VIEWER_DISTANCE_MAX = 32;
+const PARALLAX_VIEWER_DISTANCE_MAX = 8;
 const PARALLAX_OVERLAY_FRAME_MS = 1000 / 15;
 const PARALLAX_PIXEL_STEP = 0.5;
 const PARALLAX_SCALE_STEP = 0.005;
 const PARALLAX_CAMERA_X = 0.16;
 const PARALLAX_CAMERA_Y = 0.14;
 const PARALLAX_CAMERA_Z = 0.34;
+const PARALLAX_CAMERA_BASE_DISTANCE = 2.5;
+const PARALLAX_WORLD_DEPTH_SCALE = 1.55;
 const PARALLAX_VIEWER_OFFSET_X_MIN = -8;
 const PARALLAX_VIEWER_OFFSET_X_MAX = 8;
-const PARALLAX_VIEWER_OFFSET_Y_MIN = -8;
-const PARALLAX_VIEWER_OFFSET_Y_MAX = 16;
-const PARALLAX_VIEWER_OFFSET_CAMERA_X = 0.42;
-const PARALLAX_VIEWER_OFFSET_CAMERA_Y = 0.42;
-const PARALLAX_VIEWER_OFFSET_DISTANCE_MIN = 0.34;
-const PARALLAX_VIEWER_OFFSET_DISTANCE_MAX = 1.75;
+const PARALLAX_VIEWER_OFFSET_Y_MIN = -16;
+const PARALLAX_VIEWER_OFFSET_Y_MAX = 32;
 const PARALLAX_VANISHING_POINT_VIEWER_SCALE = 8;
 const PARALLAX_PLACEMENT_REACH_X_MAX_PERCENT = 140;
 const PARALLAX_PLACEMENT_REACH_Y_MAX_PERCENT = 180;
-const PARALLAX_FOCAL_LENGTH = 1.65;
-const PARALLAX_FAR_Z = 4.8;
-const PARALLAX_NEAR_Z = 1.35;
 const PARALLAX_CAMERA_NEAR_CLIP_Z = 0.72;
 const PARALLAX_SCALE_RESPONSE = 0.24;
 const PARALLAX_SCALE_MIN = 0.68;
@@ -128,22 +133,28 @@ const TANZAKU_COMBINED_SCALE_MAX = 1.9;
 const TANZAKU_DEPTH_REFERENCE_NEUTRAL = 0.5;
 const PERSPECTIVE_BOX_WALL_X_DEFAULT = -0.52;
 const PERSPECTIVE_BOX_WALL_Y_DEFAULT = -0.05;
-const PERSPECTIVE_BOX_WALL_MIN = -2;
-const PERSPECTIVE_BOX_WALL_MAX = 2;
+const PERSPECTIVE_BOX_WALL_MIN = -4;
+const PERSPECTIVE_BOX_WALL_MAX = 4;
 const BAMBOO_LEFT_X_DEFAULT = 5;
 const BAMBOO_RIGHT_X_DEFAULT = 93;
 const BAMBOO_Y_DEFAULT = 0;
 const PERSPECTIVE_BOX_FRONT_DEPTH = TANZAKU_DEPTH_REFERENCE_NEUTRAL;
-const PERSPECTIVE_BOX_BUILDING_DEPTH = -0.7;
+const PERSPECTIVE_BOX_BUILDING_DEPTH = -2.1;
+const PERSPECTIVE_BOX_HALF_WIDTH = 0.78;
+const PERSPECTIVE_BOX_HALF_HEIGHT = 0.99;
 const ORACLE_MOTION_SPEED_MIN = 0.2;
 const ORACLE_MOTION_SPEED_MAX = 3;
 const TANZAKU_DEPTH_VISUAL_GAIN = 3;
-const TANZAKU_DEPTH_FAR_EXTENSION = 1.15;
-const TANZAKU_DEPTH_NEAR_EXTENSION = 1.05;
+const TANZAKU_DEPTH_FAR_EXTENSION = 0.95;
+const TANZAKU_DEPTH_NEAR_EXTENSION = 0.95;
 const TANZAKU_DEPTH_VISUAL_MIN = -1.9;
 const TANZAKU_DEPTH_VISUAL_MAX = 3.4;
+const PARALLAX_DEPTH_MAP_VIEWER_Y = 64;
+const PARALLAX_DEPTH_MAP_SCALE = 5;
+const PARALLAX_DEPTH_MAP_MIN_Y = 4;
+const PARALLAX_DEPTH_MAP_MAX_Y = 96;
 const TYPE_INTERVAL_MIN_RATIO = 0.2;
-const TYPE_LENGTH_SLOW_MAX = 40;
+const TYPE_LENGTH_SLOW_MAX = 13;
 const TYPE_INTERVAL_CURVE = 2.2;
 const LEAVE_ANIMATION_MS = 1100;
 const METEOR_SHOWER_ACTIVE_MS = 17000;
@@ -162,11 +173,45 @@ const WIND_DEPTH_STAGGER_MS = 700;
 const WIND_GUST_MS = 2200;
 const WIND_PIVOT = "50% -18vh";
 const TANZAKU_DEPTH_REFLOW_MS = 720;
-const TANZAKU_GLOW_MS = 3200;
+const TANZAKU_DEPTH_REFLOW_FRAME_MS = 1000 / 30;
+const DEFAULT_TANZAKU_GLOW_MS = 3200;
+const TANZAKU_GLOW_STAGGER_BASE_MS = 420;
+const TANZAKU_GLOW_STAGGER_STEP_MS = 140;
+const TANZAKU_GLOW_STAGGER_MAX_MS = 1200;
+const TYPE_CHUNK_LENGTH_STEP = 13;
+const TYPE_CHUNK_MAX = 4;
 const DEFAULT_MILKY_WAY_PROJECTION_GAIN = 1.75;
 const LAYOUT_STORAGE_KEY = "tanabataProjectionLayout.v1";
 const LAYOUT_PRESET_STORAGE_KEY = "tanabataProjectionLayoutPreset.v1";
 const APPEARANCE_STORAGE_KEY = "tanabataProjectionAppearance.v1";
+const APPEARANCE_OVERRIDE_KEYS = [
+  "fontId",
+  "fontSize",
+  "typingCaretEnabled",
+  "oracleBoatSize",
+  "oracleBoatOffset",
+  "perspectiveBoxX",
+  "perspectiveBoxY",
+  "bambooLeftX",
+  "bambooLeftY",
+  "bambooRightX",
+  "bambooRightY",
+  "parallaxViewerOffsetX",
+  "parallaxViewerOffsetY",
+  "parallaxViewerDistance",
+  "parallaxVanishingPointX",
+  "parallaxVanishingPointY",
+  "parallaxCameraTargetExplicit",
+  "parallaxCameraTargetX",
+  "parallaxCameraTargetY",
+  "experimentalParallaxEnabled",
+  "parallaxMarkerEnabled",
+  "parallaxMotionMode",
+  "oracleMotionSpeed",
+  "oracleMotionDirection",
+  "parallaxStrength",
+  "parallaxPopoutStrength"
+];
 const DEFAULT_TANZAKU_BOUNDS = { width: 9, height: 42 };
 const ORACLE_BOAT_BASE_WIDTH_PX = 72;
 const ORACLE_BOAT_BASE_HEIGHT_PX = 28;
@@ -180,6 +225,10 @@ const PLACEMENT_ROWS = 8;
 const PLACEMENT_PADDING_PERCENT = 1.4;
 const PLACEMENT_EDGE_WEIGHT = 0.16;
 const TANZAKU_MIN_VISIBLE_PERCENT = 2.5;
+const EXPERIMENTAL_TANZAKU_RENDER_SUSPEND = true;
+const TANZAKU_RENDER_SUSPEND_ENTER_RATIO = 0.02;
+const TANZAKU_RENDER_SUSPEND_EXIT_RATIO = 0.06;
+const TANZAKU_RENDER_SUSPEND_EDGE_CUSHION_PX = 24;
 const TANZAKU_TILT_VALUES = [-7, -5.5, -4, -2.5, -1, 1.25, 2.75, 4.25, 5.75, 7.25];
 const TANZAKU_RECENT_TILT_MEMORY = 5;
 const TANZAKU_MIN_TILT_GAP = 1.8;
@@ -197,6 +246,7 @@ let projectionSettings = {
   slotCount: DEFAULT_SLOT_COUNT,
   moveCount: DEFAULT_MOVE_COUNT,
   typingIntervalMs: DEFAULT_TYPING_INTERVAL_MS,
+  tanzakuGlowMs: DEFAULT_TANZAKU_GLOW_MS,
   rotateIntervalMs: DEFAULT_ROTATE_INTERVAL_MS,
   tanzakuFontId: "mincho",
   colorEmojiFontEnabled: false,
@@ -232,6 +282,10 @@ let projectionSettings = {
   parallaxViewerOffsetX: 0,
   parallaxViewerOffsetY: 0,
   parallaxViewerDistance: 2.5,
+  parallaxCameraTargetX: null,
+  parallaxCameraTargetY: null,
+  perspectiveBoxX: PERSPECTIVE_BOX_WALL_X_DEFAULT,
+  perspectiveBoxY: PERSPECTIVE_BOX_WALL_Y_DEFAULT,
   viewportMargin: 0
 };
 
@@ -301,12 +355,17 @@ let nextRotationOrder = 1;
 let backlog = [];
 let activeDrag = null;
 let activePerspectiveBoxDrag = null;
+let activeLayoutRangeDrag = null;
 let currentWishes = [];
 let latestEffectId = null;
 let specialEffectInProgress = false;
 let layoutMenuPointerToggled = false;
+let layoutCameraTargetExplicit = false;
+let layoutAppearanceOverrides = {};
 let projectionEventSource = null;
 let projectionUpdateTimer = null;
+let projectionControlSettingsTimer = null;
+let projectionControlSettingsRequestId = 0;
 let appliedProjectionSettingsSignature = "";
 let latestServerProjectionSettings = null;
 let renderedCloudSettingsSignature = "";
@@ -333,36 +392,178 @@ function loadAppearanceSettings() {
   try {
     const raw = localStorage.getItem(APPEARANCE_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : {};
-    return normalizeAppearanceSettings(parsed);
+    const normalizedSettings = normalizeAppearanceSettings(filterAppearanceSettingsToOverrides(parsed));
+    layoutAppearanceOverrides = normalizedSettings.overrides;
+    layoutCameraTargetExplicit = hasExplicitLayoutCameraTarget(normalizedSettings);
+    return normalizedSettings;
   } catch {
+    layoutCameraTargetExplicit = false;
+    layoutAppearanceOverrides = {};
     return normalizeAppearanceSettings();
   }
 }
 
 function saveAppearanceSettings(settings) {
   try {
-    localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify(settings));
+    const normalizedSettings = normalizeAppearanceSettings(filterAppearanceSettingsToOverrides(settings));
+    localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify(normalizedSettings));
   } catch {
     // Ignore storage failures in private mode / kiosk restrictions.
   }
 }
 
+function normalizeAppearanceOverrides(overrides = {}) {
+  const nextOverrides = {};
+  if (!overrides || typeof overrides !== "object") return nextOverrides;
+  APPEARANCE_OVERRIDE_KEYS.forEach((key) => {
+    if (overrides[key] === true) {
+      nextOverrides[key] = true;
+    }
+  });
+  if (nextOverrides.parallaxCameraTargetX || nextOverrides.parallaxCameraTargetY) {
+    nextOverrides.parallaxCameraTargetExplicit = true;
+  }
+  return nextOverrides;
+}
+
+function getAppearanceOverrides(settings = {}) {
+  return normalizeAppearanceOverrides(settings?.overrides);
+}
+
+function filterAppearanceSettingsToOverrides(settings = {}) {
+  const overrides = getAppearanceOverrides(settings);
+  const filteredSettings = { overrides };
+  APPEARANCE_OVERRIDE_KEYS.forEach((key) => {
+    if (overrides[key] === true && Object.prototype.hasOwnProperty.call(settings, key)) {
+      filteredSettings[key] = settings[key];
+    }
+  });
+  if (
+    overrides.parallaxCameraTargetExplicit ||
+    overrides.parallaxCameraTargetX ||
+    overrides.parallaxCameraTargetY
+  ) {
+    filteredSettings.parallaxCameraTargetExplicit = true;
+  }
+  return filteredSettings;
+}
+
+function markAllAppearanceOverrides(settings = {}) {
+  const overrides = {};
+  APPEARANCE_OVERRIDE_KEYS.forEach((key) => {
+    if (key === "parallaxCameraTargetExplicit") return;
+    if (Object.prototype.hasOwnProperty.call(settings, key)) {
+      overrides[key] = true;
+    }
+  });
+  if (settings.parallaxCameraTargetExplicit === true) {
+    overrides.parallaxCameraTargetExplicit = true;
+  }
+  return {
+    ...settings,
+    overrides: normalizeAppearanceOverrides(overrides)
+  };
+}
+
+function markAppearanceOverrides(keys = []) {
+  layoutAppearanceOverrides = normalizeAppearanceOverrides({
+    ...layoutAppearanceOverrides,
+    ...keys.reduce((nextOverrides, key) => {
+      nextOverrides[key] = true;
+      return nextOverrides;
+    }, {})
+  });
+}
+
+function hasExplicitLayoutCameraTarget(settings = {}) {
+  const overrides = getAppearanceOverrides(settings);
+  return settings.parallaxCameraTargetExplicit === true ||
+    overrides.parallaxCameraTargetExplicit === true ||
+    overrides.parallaxCameraTargetX === true ||
+    overrides.parallaxCameraTargetY === true;
+}
+
+function getProjectionControlAdminKey() {
+  try {
+    return localStorage.getItem("tanabataAdminKey") || "";
+  } catch {
+    return "";
+  }
+}
+
+function scheduleProjectionControlSettingsPatch(payload, { immediate = false } = {}) {
+  const adminKey = getProjectionControlAdminKey();
+  if (!adminKey || !payload || !Object.keys(payload).length) return;
+
+  if (projectionControlSettingsTimer) {
+    clearTimeout(projectionControlSettingsTimer);
+    projectionControlSettingsTimer = null;
+  }
+
+  const send = async () => {
+    const requestId = ++projectionControlSettingsRequestId;
+    try {
+      const response = await fetch("/api/admin/settings", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Admin-Key": adminKey
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) return;
+      if (requestId !== projectionControlSettingsRequestId) return;
+      const data = await response.json();
+      if (data?.settings) {
+        latestServerProjectionSettings = normalizeProjectionSettings(data.settings);
+      }
+    } catch {
+      // The local projection adjustment still applies even if remote persistence fails.
+    }
+  };
+
+  if (immediate) {
+    send();
+    return;
+  }
+
+  projectionControlSettingsTimer = window.setTimeout(() => {
+    projectionControlSettingsTimer = null;
+    send();
+  }, 300);
+}
+
 function normalizeAppearanceSettings(settings = {}) {
   const fallback = projectionSettings || {};
+  const overrides = getAppearanceOverrides(settings);
   const read = (key, defaultValue) => (
     Object.prototype.hasOwnProperty.call(settings, key) ? settings[key] : defaultValue
   );
+  const hasCameraTargetFlag = Object.prototype.hasOwnProperty.call(settings, "parallaxCameraTargetExplicit");
+  const hasLegacyCameraTargetValues = Object.prototype.hasOwnProperty.call(settings, "parallaxCameraTargetX") ||
+    Object.prototype.hasOwnProperty.call(settings, "parallaxCameraTargetY");
+  const fallbackHasCameraTarget = fallback.parallaxCameraTargetX != null ||
+    fallback.parallaxCameraTargetY != null;
+  const hasExplicitCameraTarget = hasCameraTargetFlag
+    ? hasExplicitLayoutCameraTarget(settings)
+    : (!hasLegacyCameraTargetValues && fallbackHasCameraTarget);
   return {
-    fontId: normalizeTanzakuFontId(settings.fontId),
-    fontSize: normalizeTanzakuFontSize(settings.fontSize),
-    oracleBoatSize: normalizeOracleBoatSize(settings.oracleBoatSize),
-    oracleBoatOffset: normalizeOracleBoatOffset(settings.oracleBoatOffset),
-    perspectiveBoxX: normalizePerspectiveBoxCoordinate(read("perspectiveBoxX", PERSPECTIVE_BOX_WALL_X_DEFAULT)),
-    perspectiveBoxY: normalizePerspectiveBoxCoordinate(read("perspectiveBoxY", PERSPECTIVE_BOX_WALL_Y_DEFAULT)),
-    bambooLeftX: normalizeBambooX(read("bambooLeftX", BAMBOO_LEFT_X_DEFAULT)),
-    bambooLeftY: normalizeBambooY(read("bambooLeftY", BAMBOO_Y_DEFAULT)),
-    bambooRightX: normalizeBambooX(read("bambooRightX", BAMBOO_RIGHT_X_DEFAULT)),
-    bambooRightY: normalizeBambooY(read("bambooRightY", BAMBOO_Y_DEFAULT)),
+    overrides,
+    fontId: normalizeTanzakuFontId(read("fontId", fallback.tanzakuFontId ?? fallback.fontId ?? "mincho")),
+    fontSize: normalizeTanzakuFontSize(read("fontSize", fallback.fontSize ?? 100)),
+    typingCaretEnabled: read("typingCaretEnabled", fallback.typingCaretEnabled !== false) !== false,
+    oracleBoatSize: normalizeOracleBoatSize(read("oracleBoatSize", fallback.oracleBoatSize ?? 100)),
+    oracleBoatOffset: normalizeOracleBoatOffset(read("oracleBoatOffset", fallback.oracleBoatOffset ?? 0)),
+    perspectiveBoxX: normalizePerspectiveBoxCoordinate(
+      read("perspectiveBoxX", fallback.perspectiveBoxX ?? PERSPECTIVE_BOX_WALL_X_DEFAULT)
+    ),
+    perspectiveBoxY: normalizePerspectiveBoxCoordinate(
+      read("perspectiveBoxY", fallback.perspectiveBoxY ?? PERSPECTIVE_BOX_WALL_Y_DEFAULT)
+    ),
+    bambooLeftX: normalizeBambooX(read("bambooLeftX", fallback.bambooLeftX ?? BAMBOO_LEFT_X_DEFAULT)),
+    bambooLeftY: normalizeBambooY(read("bambooLeftY", fallback.bambooLeftY ?? BAMBOO_Y_DEFAULT)),
+    bambooRightX: normalizeBambooX(read("bambooRightX", fallback.bambooRightX ?? BAMBOO_RIGHT_X_DEFAULT)),
+    bambooRightY: normalizeBambooY(read("bambooRightY", fallback.bambooRightY ?? BAMBOO_Y_DEFAULT)),
     parallaxViewerOffsetX: normalizeParallaxViewerOffsetX(read("parallaxViewerOffsetX", fallback.parallaxViewerOffsetX ?? 0)),
     parallaxViewerOffsetY: normalizeParallaxViewerOffsetY(read("parallaxViewerOffsetY", fallback.parallaxViewerOffsetY ?? 0)),
     parallaxViewerDistance: normalizeParallaxViewerDistance(read("parallaxViewerDistance", fallback.parallaxViewerDistance ?? 2.5)),
@@ -374,6 +575,13 @@ function normalizeAppearanceSettings(settings = {}) {
       read("parallaxVanishingPointY", fallback.parallaxVanishingPointY ?? 0),
       "y"
     ),
+    parallaxCameraTargetExplicit: hasExplicitCameraTarget,
+    parallaxCameraTargetX: hasExplicitCameraTarget
+      ? normalizeParallaxCameraTarget(read("parallaxCameraTargetX", fallback.parallaxCameraTargetX ?? null), "x")
+      : null,
+    parallaxCameraTargetY: hasExplicitCameraTarget
+      ? normalizeParallaxCameraTarget(read("parallaxCameraTargetY", fallback.parallaxCameraTargetY ?? null), "y")
+      : null,
     experimentalParallaxEnabled: read("experimentalParallaxEnabled", fallback.experimentalParallaxEnabled === true) === true,
     parallaxMarkerEnabled: read("parallaxMarkerEnabled", fallback.parallaxMarkerEnabled === true) === true,
     parallaxMotionMode: normalizeParallaxMotionMode(read("parallaxMotionMode", fallback.parallaxMotionMode ?? "mapping")),
@@ -401,10 +609,37 @@ function normalizeOracleBoatOffset(value) {
   return Math.max(-60, Math.min(180, Math.round(offset / 5) * 5));
 }
 
-function normalizePerspectiveBoxCoordinate(value) {
+function getPerspectiveBoxMovementBounds() {
+  const bounds = parallaxScene?.getPerspectiveBoxViewportBounds?.();
+  const fallback = {
+    minX: PERSPECTIVE_BOX_WALL_MIN,
+    maxX: PERSPECTIVE_BOX_WALL_MAX,
+    minY: PERSPECTIVE_BOX_WALL_MIN,
+    maxY: PERSPECTIVE_BOX_WALL_MAX
+  };
+  if (!bounds) return fallback;
+
+  const minX = Number.isFinite(bounds.minX) ? bounds.minX : fallback.minX;
+  const maxX = Number.isFinite(bounds.maxX) ? bounds.maxX : fallback.maxX;
+  const minY = Number.isFinite(bounds.minY) ? bounds.minY : fallback.minY;
+  const maxY = Number.isFinite(bounds.maxY) ? bounds.maxY : fallback.maxY;
+  return {
+    minX: Math.max(PERSPECTIVE_BOX_WALL_MIN, Math.min(PERSPECTIVE_BOX_WALL_MAX, minX)),
+    maxX: Math.max(PERSPECTIVE_BOX_WALL_MIN, Math.min(PERSPECTIVE_BOX_WALL_MAX, maxX)),
+    minY: Math.max(PERSPECTIVE_BOX_WALL_MIN, Math.min(PERSPECTIVE_BOX_WALL_MAX, minY)),
+    maxY: Math.max(PERSPECTIVE_BOX_WALL_MIN, Math.min(PERSPECTIVE_BOX_WALL_MAX, maxY))
+  };
+}
+
+function normalizePerspectiveBoxCoordinate(value, axis = null, bounds = null) {
   const coordinate = Number(value);
   if (!Number.isFinite(coordinate)) return 0;
-  return Number(Math.max(PERSPECTIVE_BOX_WALL_MIN, Math.min(PERSPECTIVE_BOX_WALL_MAX, coordinate)).toFixed(2));
+  const axisKey = axis === "y" ? "Y" : axis === "x" ? "X" : null;
+  const min = axisKey && bounds ? bounds[`min${axisKey}`] : PERSPECTIVE_BOX_WALL_MIN;
+  const max = axisKey && bounds ? bounds[`max${axisKey}`] : PERSPECTIVE_BOX_WALL_MAX;
+  const safeMin = Number.isFinite(min) ? min : PERSPECTIVE_BOX_WALL_MIN;
+  const safeMax = Number.isFinite(max) ? max : PERSPECTIVE_BOX_WALL_MAX;
+  return Number(Math.max(safeMin, Math.min(safeMax, coordinate)).toFixed(2));
 }
 
 function normalizeBambooX(value) {
@@ -423,6 +658,13 @@ function normalizeParallaxVanishingPoint(value, axis) {
   const point = Number(value);
   if (!Number.isFinite(point)) return 0;
   return Number(clampVanishingPointForMargin(point, projectionSettings.viewportMargin, axis).toFixed(4));
+}
+
+function normalizeParallaxCameraTarget(value, axis, margin = projectionSettings.viewportMargin) {
+  if (value === null || value === undefined || value === "") return null;
+  const point = Number(value);
+  if (!Number.isFinite(point)) return null;
+  return Number(clampVanishingPointForMargin(point, margin, axis).toFixed(4));
 }
 
 function normalizeParallaxViewerOffsetX(value) {
@@ -492,11 +734,15 @@ function getTanzakuFontFamily(font, colorEmojiFontEnabled) {
 }
 
 function applyLocalProjectionSettings(settings) {
+  projectionSettings.perspectiveBoxX = settings.perspectiveBoxX;
+  projectionSettings.perspectiveBoxY = settings.perspectiveBoxY;
   projectionSettings.parallaxViewerOffsetX = settings.parallaxViewerOffsetX;
   projectionSettings.parallaxViewerOffsetY = settings.parallaxViewerOffsetY;
   projectionSettings.parallaxViewerDistance = settings.parallaxViewerDistance;
   projectionSettings.parallaxVanishingPointX = settings.parallaxVanishingPointX;
   projectionSettings.parallaxVanishingPointY = settings.parallaxVanishingPointY;
+  projectionSettings.parallaxCameraTargetX = settings.parallaxCameraTargetX;
+  projectionSettings.parallaxCameraTargetY = settings.parallaxCameraTargetY;
   projectionSettings.experimentalParallaxEnabled = settings.experimentalParallaxEnabled;
   projectionSettings.parallaxMarkerEnabled = settings.parallaxMarkerEnabled;
   projectionSettings.parallaxMotionMode = settings.parallaxMotionMode;
@@ -522,6 +768,10 @@ function getServerBackedAppearanceDefaults() {
     parallaxViewerDistance: baseline.parallaxViewerDistance ?? 2.5,
     parallaxVanishingPointX: baseline.parallaxVanishingPointX ?? 0,
     parallaxVanishingPointY: baseline.parallaxVanishingPointY ?? 0,
+    parallaxCameraTargetExplicit: baseline.parallaxCameraTargetX != null ||
+      baseline.parallaxCameraTargetY != null,
+    parallaxCameraTargetX: baseline.parallaxCameraTargetX ?? null,
+    parallaxCameraTargetY: baseline.parallaxCameraTargetY ?? null,
     experimentalParallaxEnabled: baseline.experimentalParallaxEnabled === true,
     parallaxMarkerEnabled: baseline.parallaxMarkerEnabled === true,
     parallaxMotionMode: baseline.parallaxMotionMode ?? "mapping",
@@ -545,11 +795,110 @@ function syncParallaxSceneFromProjectionSettings(settings = loadAppearanceSettin
     projectionSettings.parallaxVanishingPointX,
     projectionSettings.parallaxVanishingPointY
   );
+  parallaxScene.setCameraTarget(
+    projectionSettings.parallaxCameraTargetX,
+    projectionSettings.parallaxCameraTargetY
+  );
   parallaxScene.setPopoutStrength(projectionSettings.parallaxPopoutStrength);
-  parallaxScene.setPerspectiveBoxPosition(settings.perspectiveBoxX, settings.perspectiveBoxY);
+  parallaxScene.setPerspectiveBoxPosition(projectionSettings.perspectiveBoxX, projectionSettings.perspectiveBoxY);
   parallaxScene.setMotionTiming(settings.oracleMotionSpeed, settings.oracleMotionDirection);
   parallaxScene.setMarkerEnabled(projectionSettings.parallaxMarkerEnabled);
   parallaxScene.setEnabled(projectionSettings.experimentalParallaxEnabled);
+}
+
+function getAppearanceControlEntries() {
+  return [
+    [tanzakuFontSelect, "fontId"],
+    [tanzakuFontSizeInput, "fontSize"],
+    [tanzakuTypingCaretEnabledInput, "typingCaretEnabled"],
+    [oracleBoatSizeInput, "oracleBoatSize"],
+    [oracleBoatOffsetInput, "oracleBoatOffset"],
+    [perspectiveBoxXInput, "perspectiveBoxX"],
+    [perspectiveBoxYInput, "perspectiveBoxY"],
+    [bambooLeftXInput, "bambooLeftX"],
+    [bambooLeftYInput, "bambooLeftY"],
+    [bambooRightXInput, "bambooRightX"],
+    [bambooRightYInput, "bambooRightY"],
+    [layoutParallaxViewerXInput, "parallaxViewerOffsetX"],
+    [layoutParallaxViewerYInput, "parallaxViewerOffsetY"],
+    [layoutParallaxViewerZInput, "parallaxViewerDistance"],
+    [layoutParallaxVanishingXInput, "parallaxVanishingPointX"],
+    [layoutParallaxVanishingYInput, "parallaxVanishingPointY"],
+    [layoutParallaxCameraTargetXInput, "parallaxCameraTargetX"],
+    [layoutParallaxCameraTargetYInput, "parallaxCameraTargetY"],
+    [layoutParallaxEnabledInput, "experimentalParallaxEnabled"],
+    [layoutParallaxMarkerEnabledInput, "parallaxMarkerEnabled"],
+    [layoutParallaxMotionModeInput, "parallaxMotionMode"],
+    [layoutOracleMotionSpeedInput, "oracleMotionSpeed"],
+    [layoutOracleMotionDirectionInput, "oracleMotionDirection"],
+    [layoutParallaxStrengthInput, "parallaxStrength"],
+    [layoutParallaxPopoutInput, "parallaxPopoutStrength"]
+  ];
+}
+
+function getAppearanceOverrideKeysForTarget(target) {
+  const entry = getAppearanceControlEntries().find(([input]) => input && input === target);
+  if (!entry) return [];
+  const key = entry[1];
+  return isLayoutCameraTargetInput(target)
+    ? [key, "parallaxCameraTargetExplicit"]
+    : [key];
+}
+
+function updateAppearanceOverrideIndicators(overrides = layoutAppearanceOverrides) {
+  const normalizedOverrides = normalizeAppearanceOverrides(overrides);
+  getAppearanceControlEntries().forEach(([input, key]) => {
+    const wrapper = input?.closest(".projection-layout-control, .projection-layout-toggle");
+    wrapper?.classList.toggle("is-local-override", normalizedOverrides[key] === true);
+  });
+}
+
+function syncPerspectiveBoxInputRanges(bounds = getPerspectiveBoxMovementBounds()) {
+  if (perspectiveBoxXInput) {
+    perspectiveBoxXInput.min = String(bounds.minX.toFixed(2));
+    perspectiveBoxXInput.max = String(bounds.maxX.toFixed(2));
+  }
+  if (perspectiveBoxYInput) {
+    perspectiveBoxYInput.min = String(bounds.minY.toFixed(2));
+    perspectiveBoxYInput.max = String(bounds.maxY.toFixed(2));
+  }
+}
+
+function buildAppearanceSettingsFromControls(overrides = layoutAppearanceOverrides) {
+  const perspectiveBoxBounds = getPerspectiveBoxMovementBounds();
+  return {
+    overrides: normalizeAppearanceOverrides(overrides),
+    fontId: normalizeTanzakuFontId(tanzakuFontSelect?.value),
+    fontSize: normalizeTanzakuFontSize(tanzakuFontSizeInput?.value),
+    typingCaretEnabled: tanzakuTypingCaretEnabledInput?.checked !== false,
+    oracleBoatSize: normalizeOracleBoatSize(oracleBoatSizeInput?.value),
+    oracleBoatOffset: normalizeOracleBoatOffset(oracleBoatOffsetInput?.value),
+    perspectiveBoxX: normalizePerspectiveBoxCoordinate(perspectiveBoxXInput?.value, "x", perspectiveBoxBounds),
+    perspectiveBoxY: normalizePerspectiveBoxCoordinate(perspectiveBoxYInput?.value, "y", perspectiveBoxBounds),
+    bambooLeftX: normalizeBambooX(bambooLeftXInput?.value),
+    bambooLeftY: normalizeBambooY(bambooLeftYInput?.value),
+    bambooRightX: normalizeBambooX(bambooRightXInput?.value),
+    bambooRightY: normalizeBambooY(bambooRightYInput?.value),
+    parallaxViewerOffsetX: normalizeParallaxViewerOffsetX(layoutParallaxViewerXInput?.value),
+    parallaxViewerOffsetY: normalizeParallaxViewerOffsetY(layoutParallaxViewerYInput?.value),
+    parallaxViewerDistance: normalizeParallaxViewerDistance(layoutParallaxViewerZInput?.value),
+    parallaxVanishingPointX: viewerScaleToVanishingPoint(layoutParallaxVanishingXInput?.value, "x"),
+    parallaxVanishingPointY: viewerScaleToVanishingPoint(layoutParallaxVanishingYInput?.value, "y"),
+    parallaxCameraTargetExplicit: layoutCameraTargetExplicit,
+    parallaxCameraTargetX: layoutCameraTargetExplicit
+      ? viewerScaleToVanishingPoint(layoutParallaxCameraTargetXInput?.value, "x")
+      : null,
+    parallaxCameraTargetY: layoutCameraTargetExplicit
+      ? viewerScaleToVanishingPoint(layoutParallaxCameraTargetYInput?.value, "y")
+      : null,
+    experimentalParallaxEnabled: layoutParallaxEnabledInput?.checked === true,
+    parallaxMarkerEnabled: layoutParallaxMarkerEnabledInput?.checked === true,
+    parallaxMotionMode: normalizeParallaxMotionMode(layoutParallaxMotionModeInput?.value),
+    oracleMotionSpeed: normalizeOracleMotionSpeed(layoutOracleMotionSpeedInput?.value),
+    oracleMotionDirection: normalizeOracleMotionDirection(layoutOracleMotionDirectionInput?.value),
+    parallaxStrength: normalizeParallaxStrength(layoutParallaxStrengthInput?.value),
+    parallaxPopoutStrength: normalizeParallaxPopoutStrength(layoutParallaxPopoutInput?.value)
+  };
 }
 
 function ensureTanzakuFontStylesheet(fontId) {
@@ -568,12 +917,17 @@ function ensureTanzakuFontStylesheet(fontId) {
 }
 
 function applyAppearanceSettings(settings = loadAppearanceSettings()) {
-  const normalizedSettings = normalizeAppearanceSettings(settings);
+  const normalizedSettings = normalizeAppearanceSettings(filterAppearanceSettingsToOverrides(settings));
   currentAppearanceSettings = normalizedSettings;
+  layoutAppearanceOverrides = normalizedSettings.overrides;
+  layoutCameraTargetExplicit = normalizedSettings.parallaxCameraTargetExplicit === true;
   const fontId = normalizedSettings.fontId;
   const fontSize = normalizedSettings.fontSize;
+  const typingCaretEnabled = normalizedSettings.typingCaretEnabled !== false;
   const oracleBoatSize = normalizedSettings.oracleBoatSize;
   const oracleBoatOffset = normalizedSettings.oracleBoatOffset;
+  const perspectiveBoxX = normalizedSettings.perspectiveBoxX;
+  const perspectiveBoxY = normalizedSettings.perspectiveBoxY;
   const font = getTanzakuFontOption(fontId);
   const colorEmojiFontEnabled = projectionSettings.colorEmojiFontEnabled === true;
   const fontFamily = getTanzakuFontFamily(font, colorEmojiFontEnabled);
@@ -586,6 +940,7 @@ function applyAppearanceSettings(settings = loadAppearanceSettings()) {
   document.documentElement.style.setProperty("--projection-tanzaku-font-family", fontFamily);
   document.documentElement.style.setProperty("--projection-layout-font-family", fontFamily);
   document.documentElement.style.setProperty("--projection-tanzaku-font-scale", (fontSize / 100).toFixed(2));
+  document.documentElement.classList.toggle("projection-typing-caret-disabled", !typingCaretEnabled);
   currentOracleBoatScale = oracleBoatSize / 100;
   currentOracleBoatBottomOffset = oracleBoatOffset;
   projectionStage.style.setProperty("--oracle-boat-size", (oracleBoatSize / 100).toFixed(2));
@@ -596,6 +951,7 @@ function applyAppearanceSettings(settings = loadAppearanceSettings()) {
   projectionStage.style.setProperty("--bamboo-right-y", `${normalizedSettings.bambooRightY.toFixed(1)}vh`);
   applyLocalProjectionSettings(normalizedSettings);
   syncParallaxSceneFromProjectionSettings(normalizedSettings);
+  syncPerspectiveBoxInputRanges();
 
   if (tanzakuFontSelect) {
     tanzakuFontSelect.value = fontId;
@@ -605,6 +961,9 @@ function applyAppearanceSettings(settings = loadAppearanceSettings()) {
   }
   if (tanzakuFontSizeValue) {
     tanzakuFontSizeValue.textContent = `${fontSize}%`;
+  }
+  if (tanzakuTypingCaretEnabledInput) {
+    tanzakuTypingCaretEnabledInput.checked = typingCaretEnabled;
   }
   if (oracleBoatSizeInput) {
     oracleBoatSizeInput.value = String(oracleBoatSize);
@@ -619,16 +978,16 @@ function applyAppearanceSettings(settings = loadAppearanceSettings()) {
     oracleBoatOffsetValue.textContent = `${oracleBoatOffset}px`;
   }
   if (perspectiveBoxXInput) {
-    perspectiveBoxXInput.value = String(normalizedSettings.perspectiveBoxX);
+    perspectiveBoxXInput.value = String(perspectiveBoxX);
   }
   if (perspectiveBoxXValue) {
-    perspectiveBoxXValue.textContent = normalizedSettings.perspectiveBoxX.toFixed(2);
+    perspectiveBoxXValue.textContent = perspectiveBoxX.toFixed(2);
   }
   if (perspectiveBoxYInput) {
-    perspectiveBoxYInput.value = String(normalizedSettings.perspectiveBoxY);
+    perspectiveBoxYInput.value = String(perspectiveBoxY);
   }
   if (perspectiveBoxYValue) {
-    perspectiveBoxYValue.textContent = normalizedSettings.perspectiveBoxY.toFixed(2);
+    perspectiveBoxYValue.textContent = perspectiveBoxY.toFixed(2);
   }
   if (bambooLeftXInput) {
     bambooLeftXInput.value = String(normalizedSettings.bambooLeftX);
@@ -674,6 +1033,10 @@ function applyAppearanceSettings(settings = loadAppearanceSettings()) {
   }
   const vanishingPointX = vanishingPointToViewerScale(normalizedSettings.parallaxVanishingPointX, "x");
   const vanishingPointY = vanishingPointToViewerScale(normalizedSettings.parallaxVanishingPointY, "y");
+  const effectiveCameraTargetX = normalizedSettings.parallaxCameraTargetX ?? normalizedSettings.parallaxVanishingPointX;
+  const effectiveCameraTargetY = normalizedSettings.parallaxCameraTargetY ?? normalizedSettings.parallaxVanishingPointY;
+  const cameraTargetX = vanishingPointToViewerScale(effectiveCameraTargetX, "x");
+  const cameraTargetY = vanishingPointToViewerScale(effectiveCameraTargetY, "y");
   if (layoutParallaxVanishingXInput) {
     layoutParallaxVanishingXInput.value = String(vanishingPointX);
   }
@@ -685,6 +1048,18 @@ function applyAppearanceSettings(settings = loadAppearanceSettings()) {
   }
   if (layoutParallaxVanishingYValue) {
     layoutParallaxVanishingYValue.textContent = vanishingPointY.toFixed(2);
+  }
+  if (layoutParallaxCameraTargetXInput) {
+    layoutParallaxCameraTargetXInput.value = String(cameraTargetX);
+  }
+  if (layoutParallaxCameraTargetXValue) {
+    layoutParallaxCameraTargetXValue.textContent = cameraTargetX.toFixed(2);
+  }
+  if (layoutParallaxCameraTargetYInput) {
+    layoutParallaxCameraTargetYInput.value = String(cameraTargetY);
+  }
+  if (layoutParallaxCameraTargetYValue) {
+    layoutParallaxCameraTargetYValue.textContent = cameraTargetY.toFixed(2);
   }
   if (layoutParallaxEnabledInput) {
     layoutParallaxEnabledInput.checked = normalizedSettings.experimentalParallaxEnabled;
@@ -717,36 +1092,107 @@ function applyAppearanceSettings(settings = loadAppearanceSettings()) {
   if (layoutParallaxPopoutValue) {
     layoutParallaxPopoutValue.textContent = normalizedSettings.parallaxPopoutStrength.toFixed(2);
   }
+  updateAppearanceOverrideIndicators(normalizedSettings.overrides);
 }
 
-function syncAppearanceSettingsFromControls() {
-  const nextSettings = normalizeAppearanceSettings({
-    fontId: normalizeTanzakuFontId(tanzakuFontSelect?.value),
-    fontSize: normalizeTanzakuFontSize(tanzakuFontSizeInput?.value),
-    oracleBoatSize: normalizeOracleBoatSize(oracleBoatSizeInput?.value),
-    oracleBoatOffset: normalizeOracleBoatOffset(oracleBoatOffsetInput?.value),
-    perspectiveBoxX: normalizePerspectiveBoxCoordinate(perspectiveBoxXInput?.value),
-    perspectiveBoxY: normalizePerspectiveBoxCoordinate(perspectiveBoxYInput?.value),
-    bambooLeftX: normalizeBambooX(bambooLeftXInput?.value),
-    bambooLeftY: normalizeBambooY(bambooLeftYInput?.value),
-    bambooRightX: normalizeBambooX(bambooRightXInput?.value),
-    bambooRightY: normalizeBambooY(bambooRightYInput?.value),
-    parallaxViewerOffsetX: normalizeParallaxViewerOffsetX(layoutParallaxViewerXInput?.value),
-    parallaxViewerOffsetY: normalizeParallaxViewerOffsetY(layoutParallaxViewerYInput?.value),
-    parallaxViewerDistance: normalizeParallaxViewerDistance(layoutParallaxViewerZInput?.value),
-    parallaxVanishingPointX: viewerScaleToVanishingPoint(layoutParallaxVanishingXInput?.value, "x"),
-    parallaxVanishingPointY: viewerScaleToVanishingPoint(layoutParallaxVanishingYInput?.value, "y"),
-    experimentalParallaxEnabled: layoutParallaxEnabledInput?.checked === true,
-    parallaxMarkerEnabled: layoutParallaxMarkerEnabledInput?.checked === true,
-    parallaxMotionMode: normalizeParallaxMotionMode(layoutParallaxMotionModeInput?.value),
-    oracleMotionSpeed: normalizeOracleMotionSpeed(layoutOracleMotionSpeedInput?.value),
-    oracleMotionDirection: normalizeOracleMotionDirection(layoutOracleMotionDirectionInput?.value),
-    parallaxStrength: normalizeParallaxStrength(layoutParallaxStrengthInput?.value),
-    parallaxPopoutStrength: normalizeParallaxPopoutStrength(layoutParallaxPopoutInput?.value)
-  });
+function isLayoutCameraTargetInput(target) {
+  return target === layoutParallaxCameraTargetXInput ||
+    target === layoutParallaxCameraTargetYInput;
+}
+
+function syncAppearanceSettingsFromControls(event) {
+  const changedKeys = getAppearanceOverrideKeysForTarget(event?.target);
+  markAppearanceOverrides(changedKeys);
+  if (isLayoutCameraTargetInput(event?.target)) {
+    layoutCameraTargetExplicit = true;
+  }
+  const nextSettings = normalizeAppearanceSettings(filterAppearanceSettingsToOverrides(
+    buildAppearanceSettingsFromControls(layoutAppearanceOverrides)
+  ));
   applyAppearanceSettings(nextSettings);
+  const patchPayload = {};
+  if (changedKeys.includes("perspectiveBoxX")) {
+    patchPayload.projectionPerspectiveBoxX = projectionSettings.perspectiveBoxX;
+  }
+  if (changedKeys.includes("perspectiveBoxY")) {
+    patchPayload.projectionPerspectiveBoxY = projectionSettings.perspectiveBoxY;
+  }
+  if (changedKeys.includes("parallaxCameraTargetX")) {
+    patchPayload.projectionParallaxCameraTargetX = projectionSettings.parallaxCameraTargetX;
+  }
+  if (changedKeys.includes("parallaxCameraTargetY")) {
+    patchPayload.projectionParallaxCameraTargetY = projectionSettings.parallaxCameraTargetY;
+  }
+  scheduleProjectionControlSettingsPatch(patchPayload);
   saveAppearanceSettings(nextSettings);
   slots.forEach((slot) => syncSlotRenderPosition(slot, { force: true }));
+}
+
+function getFineRangeSensitivity(deltaY) {
+  const distance = Math.abs(deltaY);
+  if (distance > 110) return 0.06;
+  if (distance > 72) return 0.12;
+  if (distance > 38) return 0.28;
+  return 1;
+}
+
+function roundRangeValue(value, step) {
+  const safeStep = Number(step);
+  if (!Number.isFinite(safeStep) || safeStep <= 0) return value;
+  const decimals = Math.max(0, (String(step).split(".")[1] || "").length);
+  return Number((Math.round(value / safeStep) * safeStep).toFixed(decimals));
+}
+
+function setFineRangeValue(input, value) {
+  const min = Number(input.min);
+  const max = Number(input.max);
+  const clamped = Math.max(min, Math.min(max, value));
+  const rounded = roundRangeValue(clamped, input.step);
+  if (String(input.value) === String(rounded)) return;
+  input.value = String(rounded);
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+function getRangeValuePerPixel(input) {
+  const min = Number(input.min);
+  const max = Number(input.max);
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return 0;
+  return (max - min) / Math.max(96, input.getBoundingClientRect().width);
+}
+
+function beginLayoutRangeDrag(event) {
+  const input = event.target.closest('input[type="range"]');
+  if (!input || !layoutMenu?.contains(input)) return;
+
+  event.preventDefault();
+  input.focus({ preventScroll: true });
+  activeLayoutRangeDrag = {
+    input,
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    startValue: Number(input.value),
+    valuePerPixel: getRangeValuePerPixel(input)
+  };
+  input.classList.add("is-fine-dragging");
+  input.setPointerCapture?.(event.pointerId);
+}
+
+function updateLayoutRangeDrag(event) {
+  if (!activeLayoutRangeDrag || event.pointerId !== activeLayoutRangeDrag.pointerId) return;
+  event.preventDefault();
+  const { input, startX, startY, startValue, valuePerPixel } = activeLayoutRangeDrag;
+  const sensitivity = getFineRangeSensitivity(event.clientY - startY);
+  setFineRangeValue(input, startValue + ((event.clientX - startX) * valuePerPixel * sensitivity));
+}
+
+function endLayoutRangeDrag(event) {
+  if (!activeLayoutRangeDrag || event.pointerId !== activeLayoutRangeDrag.pointerId) return;
+  const { input } = activeLayoutRangeDrag;
+  input.classList.remove("is-fine-dragging");
+  input.releasePointerCapture?.(event.pointerId);
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+  activeLayoutRangeDrag = null;
 }
 
 function setupAppearanceControls() {
@@ -775,6 +1221,10 @@ function setupAppearanceControls() {
     tanzakuFontSizeInput.addEventListener("change", syncAppearanceSettingsFromControls);
   }
 
+  if (tanzakuTypingCaretEnabledInput) {
+    tanzakuTypingCaretEnabledInput.addEventListener("change", syncAppearanceSettingsFromControls);
+  }
+
   [
     perspectiveBoxXInput,
     perspectiveBoxYInput,
@@ -787,6 +1237,8 @@ function setupAppearanceControls() {
     layoutParallaxViewerZInput,
     layoutParallaxVanishingXInput,
     layoutParallaxVanishingYInput,
+    layoutParallaxCameraTargetXInput,
+    layoutParallaxCameraTargetYInput,
     layoutOracleMotionSpeedInput,
     layoutParallaxStrengthInput,
     layoutParallaxPopoutInput
@@ -824,31 +1276,15 @@ function getCurrentLayoutPreset() {
   }));
 }
 
-function getCurrentAppearanceSettings() {
-  return normalizeAppearanceSettings({
-    fontId: tanzakuFontSelect?.value,
-    fontSize: tanzakuFontSizeInput?.value,
-    oracleBoatSize: oracleBoatSizeInput?.value,
-    oracleBoatOffset: oracleBoatOffsetInput?.value,
-    perspectiveBoxX: perspectiveBoxXInput?.value,
-    perspectiveBoxY: perspectiveBoxYInput?.value,
-    bambooLeftX: bambooLeftXInput?.value,
-    bambooLeftY: bambooLeftYInput?.value,
-    bambooRightX: bambooRightXInput?.value,
-    bambooRightY: bambooRightYInput?.value,
-    parallaxViewerOffsetX: layoutParallaxViewerXInput?.value,
-    parallaxViewerOffsetY: layoutParallaxViewerYInput?.value,
-    parallaxViewerDistance: layoutParallaxViewerZInput?.value,
-    parallaxVanishingPointX: viewerScaleToVanishingPoint(layoutParallaxVanishingXInput?.value, "x"),
-    parallaxVanishingPointY: viewerScaleToVanishingPoint(layoutParallaxVanishingYInput?.value, "y"),
-    experimentalParallaxEnabled: layoutParallaxEnabledInput?.checked === true,
-    parallaxMarkerEnabled: layoutParallaxMarkerEnabledInput?.checked === true,
-    parallaxMotionMode: layoutParallaxMotionModeInput?.value,
-    oracleMotionSpeed: layoutOracleMotionSpeedInput?.value,
-    oracleMotionDirection: layoutOracleMotionDirectionInput?.value,
-    parallaxStrength: layoutParallaxStrengthInput?.value,
-    parallaxPopoutStrength: layoutParallaxPopoutInput?.value
-  });
+function getCurrentAppearanceSettings({ markAllOverrides: shouldMarkAllOverrides = false } = {}) {
+  const rawSettings = buildAppearanceSettingsFromControls(
+    shouldMarkAllOverrides
+      ? markAllAppearanceOverrides(currentAppearanceSettings).overrides
+      : layoutAppearanceOverrides
+  );
+  return normalizeAppearanceSettings(filterAppearanceSettingsToOverrides(
+    shouldMarkAllOverrides ? markAllAppearanceOverrides(rawSettings) : rawSettings
+  ));
 }
 
 function saveLayout() {
@@ -872,7 +1308,9 @@ function loadLayoutPreset() {
     }
     return {
       ...parsed,
-      appearance: parsed.appearance ? normalizeAppearanceSettings(parsed.appearance) : null
+      appearance: parsed.appearance
+        ? normalizeAppearanceSettings(filterAppearanceSettingsToOverrides(markAllAppearanceOverrides(parsed.appearance)))
+        : null
     };
   } catch {
     return null;
@@ -914,7 +1352,7 @@ function saveLayoutPreset() {
       savedAt: new Date().toISOString(),
       slotCount: getSlotCount(),
       layout: getCurrentLayoutPreset(),
-      appearance: getCurrentAppearanceSettings()
+      appearance: getCurrentAppearanceSettings({ markAllOverrides: true })
     };
     localStorage.setItem(LAYOUT_PRESET_STORAGE_KEY, JSON.stringify(preset));
     updateLayoutMenuState("配置と調整を保存しました");
@@ -927,7 +1365,11 @@ function clearLayoutPresetValues() {
   try {
     localStorage.removeItem(LAYOUT_PRESET_STORAGE_KEY);
     localStorage.removeItem(APPEARANCE_STORAGE_KEY);
-    applyAppearanceSettings(getServerBackedAppearanceDefaults());
+    layoutAppearanceOverrides = {};
+    layoutCameraTargetExplicit = false;
+    const serverDefaults = getServerBackedAppearanceDefaults();
+    applyLocalProjectionSettings(serverDefaults);
+    applyAppearanceSettings(serverDefaults);
     updateLayoutMenuState("保存値をクリアしました");
   } catch {
     updateLayoutMenuState("保存値をクリアできませんでした");
@@ -940,22 +1382,55 @@ function isFullscreenActive() {
 
 function updateFullscreenButton() {
   if (!layoutFullscreenButton) return;
-  const fullscreenSupported = Boolean(document.fullscreenEnabled && projectionStage?.requestFullscreen);
+  const fullscreenSupported = Boolean(document.fullscreenEnabled && document.documentElement?.requestFullscreen);
   layoutFullscreenButton.disabled = !fullscreenSupported;
   layoutFullscreenButton.textContent = isFullscreenActive() ? "全画面解除" : "全画面";
 }
 
 async function toggleProjectionFullscreen() {
-  if (!layoutFullscreenButton || !projectionStage?.requestFullscreen) return;
+  if (!layoutFullscreenButton || !document.documentElement?.requestFullscreen) return;
   try {
     if (document.fullscreenElement) {
       await document.exitFullscreen?.();
     } else {
-      await projectionStage.requestFullscreen();
+      await document.documentElement.requestFullscreen();
     }
     updateFullscreenButton();
   } catch {
     updateLayoutMenuState("全画面に切り替えできませんでした");
+  }
+}
+
+function getCenteredSlotPosition(slot) {
+  const bounds = getSlotBounds(slot);
+  return getSafeSlotPosition(slot, {
+    x: 50 - (bounds.width / 2),
+    y: 50 - (bounds.height / 2)
+  }, {
+    includeMargin: true,
+    allowPartial: false,
+    includeParallaxReach: false
+  });
+}
+
+function centerAlignVisibleTanzaku() {
+  if (activeDrag) {
+    endDrag();
+  }
+
+  let alignedCount = 0;
+  getDisplaySlots().forEach((slot) => {
+    if (!slot.wish || slot.state === "leaving") return;
+    const position = getCenteredSlotPosition(slot);
+    updateSlotPosition(slot, position.x, position.y, { persist: false });
+    alignedCount += 1;
+  });
+
+  if (alignedCount > 0) {
+    saveLayout();
+    updateLayoutMenuState(`${alignedCount}枚の短冊を中央整列しました`);
+  } else {
+    updateLayoutMenuState("中央整列できる短冊がありません");
   }
 }
 
@@ -983,6 +1458,12 @@ function applyLayoutPreset() {
   if (preset.appearance) {
     applyAppearanceSettings(preset.appearance);
     saveAppearanceSettings(preset.appearance);
+    scheduleProjectionControlSettingsPatch({
+      projectionPerspectiveBoxX: projectionSettings.perspectiveBoxX,
+      projectionPerspectiveBoxY: projectionSettings.perspectiveBoxY,
+      projectionParallaxCameraTargetX: projectionSettings.parallaxCameraTargetX,
+      projectionParallaxCameraTargetY: projectionSettings.parallaxCameraTargetY
+    }, { immediate: true });
   }
   saveLayout();
   updateLayoutMenuState(`${appliedCount}スロットの配置と調整を呼び出しました`);
@@ -990,11 +1471,20 @@ function applyLayoutPreset() {
 
 function setLayoutMenuOpen(open) {
   if (!layoutMenu || !layoutMenuTrigger) return;
+  const wasOpen = isLayoutMenuOpen();
   layoutMenu.classList.toggle("is-open", open);
   layoutMenu.setAttribute("aria-hidden", open ? "false" : "true");
   layoutMenuTrigger.setAttribute("aria-expanded", open ? "true" : "false");
+  projectionStage?.classList.toggle("projection-stage--layout-menu-open", open);
+  effectsScene.setStarfieldSuspended(open);
   if (open) {
     updateLayoutMenuState();
+  }
+  if (open !== wasOpen) {
+    if (!open) {
+      clearTanzakuRenderSuspension();
+    }
+    parallaxScene.refresh();
   }
 }
 
@@ -1023,6 +1513,10 @@ function normalizeProjectionSettings(settings = {}) {
   const nextMoveCount = Number.isInteger(moveCount) && moveCount > 0 ? moveCount : DEFAULT_MOVE_COUNT;
   const typingIntervalMs = Number(settings.projectionTypingIntervalMs);
   const nextTypingIntervalMs = Number.isInteger(typingIntervalMs) && typingIntervalMs > 0 ? typingIntervalMs : DEFAULT_TYPING_INTERVAL_MS;
+  const tanzakuGlowMs = Number(settings.projectionTanzakuGlowMs);
+  const nextTanzakuGlowMs = Number.isInteger(tanzakuGlowMs)
+    ? Math.max(500, Math.min(12000, tanzakuGlowMs))
+    : DEFAULT_TANZAKU_GLOW_MS;
   const rotateIntervalMs = Number(settings.projectionRotateIntervalMs);
   const nextRotateIntervalMs = Number.isInteger(rotateIntervalMs) && rotateIntervalMs > 0 ? rotateIntervalMs : DEFAULT_ROTATE_INTERVAL_MS;
   const tanzakuFontId = normalizeTanzakuFontId(settings.projectionTanzakuFontId);
@@ -1112,6 +1606,22 @@ function normalizeProjectionSettings(settings = {}) {
   const nextParallaxVanishingPointY = Number.isFinite(parallaxVanishingPointY)
     ? clampVanishingPointForMargin(parallaxVanishingPointY, nextViewportMargin, "y")
     : 0;
+  const nextParallaxCameraTargetX = settings.projectionParallaxCameraTargetX === null ||
+    settings.projectionParallaxCameraTargetX === undefined
+    ? null
+    : normalizeParallaxCameraTarget(settings.projectionParallaxCameraTargetX, "x", nextViewportMargin);
+  const nextParallaxCameraTargetY = settings.projectionParallaxCameraTargetY === null ||
+    settings.projectionParallaxCameraTargetY === undefined
+    ? null
+    : normalizeParallaxCameraTarget(settings.projectionParallaxCameraTargetY, "y", nextViewportMargin);
+  const perspectiveBoxX = Number(settings.projectionPerspectiveBoxX);
+  const nextPerspectiveBoxX = Number.isFinite(perspectiveBoxX)
+    ? normalizePerspectiveBoxCoordinate(perspectiveBoxX)
+    : PERSPECTIVE_BOX_WALL_X_DEFAULT;
+  const perspectiveBoxY = Number(settings.projectionPerspectiveBoxY);
+  const nextPerspectiveBoxY = Number.isFinite(perspectiveBoxY)
+    ? normalizePerspectiveBoxCoordinate(perspectiveBoxY)
+    : PERSPECTIVE_BOX_WALL_Y_DEFAULT;
   const parallaxMarkerEnabled = settings.projectionParallaxMarkerEnabled === true;
   const parallaxPopoutStrength = Number(settings.projectionParallaxPopoutStrength);
   const nextParallaxPopoutStrength = Number.isFinite(parallaxPopoutStrength)
@@ -1134,7 +1644,7 @@ function normalizeProjectionSettings(settings = {}) {
     : 2.5;
   const parallaxDepthMultiplier = Number(settings.projectionParallaxDepthMultiplier);
   const nextParallaxDepthMultiplier = Number.isFinite(parallaxDepthMultiplier)
-    ? Math.max(0, Math.min(3, parallaxDepthMultiplier))
+    ? Math.max(0, Math.min(8, parallaxDepthMultiplier))
     : 1;
   const parallaxDepthReferenceIndex = Number(settings.projectionParallaxDepthReferenceIndex);
   const nextParallaxDepthReferenceIndex = Number.isInteger(parallaxDepthReferenceIndex)
@@ -1146,6 +1656,7 @@ function normalizeProjectionSettings(settings = {}) {
     slotCount: nextSlotCount,
     moveCount: Math.min(nextMoveCount, nextDisplayCount),
     typingIntervalMs: nextTypingIntervalMs,
+    tanzakuGlowMs: nextTanzakuGlowMs,
     rotateIntervalMs: nextRotateIntervalMs,
     tanzakuFontId,
     colorEmojiFontEnabled,
@@ -1175,6 +1686,10 @@ function normalizeProjectionSettings(settings = {}) {
     parallaxStrength: nextParallaxStrength,
     parallaxVanishingPointX: nextParallaxVanishingPointX,
     parallaxVanishingPointY: nextParallaxVanishingPointY,
+    parallaxCameraTargetX: nextParallaxCameraTargetX,
+    parallaxCameraTargetY: nextParallaxCameraTargetY,
+    perspectiveBoxX: nextPerspectiveBoxX,
+    perspectiveBoxY: nextPerspectiveBoxY,
     parallaxMarkerEnabled,
     parallaxPopoutStrength: nextParallaxPopoutStrength,
     parallaxMotionMode,
@@ -1347,6 +1862,7 @@ function getProjectionSettingsSignature(settings) {
     slotCount: settings.slotCount,
     moveCount: settings.moveCount,
     typingIntervalMs: settings.typingIntervalMs,
+    tanzakuGlowMs: settings.tanzakuGlowMs,
     rotateIntervalMs: settings.rotateIntervalMs,
     tanzakuFontId: settings.tanzakuFontId,
     colorEmojiFontEnabled: settings.colorEmojiFontEnabled,
@@ -1375,6 +1891,10 @@ function getProjectionSettingsSignature(settings) {
     parallaxStrength: settings.parallaxStrength,
     parallaxVanishingPointX: settings.parallaxVanishingPointX,
     parallaxVanishingPointY: settings.parallaxVanishingPointY,
+    parallaxCameraTargetX: settings.parallaxCameraTargetX,
+    parallaxCameraTargetY: settings.parallaxCameraTargetY,
+    perspectiveBoxX: settings.perspectiveBoxX,
+    perspectiveBoxY: settings.perspectiveBoxY,
     parallaxMarkerEnabled: settings.parallaxMarkerEnabled,
     parallaxPopoutStrength: settings.parallaxPopoutStrength,
     parallaxDepthMultiplier: settings.parallaxDepthMultiplier,
@@ -1431,6 +1951,8 @@ function createParallaxScene() {
     strength: 1,
     vanishingPointX: 0,
     vanishingPointY: 0,
+    cameraTargetX: null,
+    cameraTargetY: null,
     popoutStrength: 0,
     motionMode: "mapping",
     viewerOffsetX: 0,
@@ -1474,25 +1996,55 @@ function createParallaxScene() {
     scene.viewerZ = from.z + ((to.z - from.z) * progress);
   }
 
-  function getLayerZ(depth) {
-    return PARALLAX_FAR_Z - ((PARALLAX_FAR_Z - PARALLAX_NEAR_Z) * getProjectionDepth(depth));
+  function vectorAdd(a, b) {
+    return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
+  }
+
+  function vectorSubtract(a, b) {
+    return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+  }
+
+  function vectorScale(vector, scale) {
+    return { x: vector.x * scale, y: vector.y * scale, z: vector.z * scale };
+  }
+
+  function vectorDot(a, b) {
+    return (a.x * b.x) + (a.y * b.y) + (a.z * b.z);
+  }
+
+  function vectorCross(a, b) {
+    return {
+      x: (a.y * b.z) - (a.z * b.y),
+      y: (a.z * b.x) - (a.x * b.z),
+      z: (a.x * b.y) - (a.y * b.x)
+    };
+  }
+
+  function vectorNormalize(vector, fallback = { x: 0, y: 0, z: 1 }) {
+    const length = Math.hypot(vector.x, vector.y, vector.z);
+    if (!Number.isFinite(length) || length < 0.0001) return fallback;
+    return {
+      x: vector.x / length,
+      y: vector.y / length,
+      z: vector.z / length
+    };
   }
 
   function getProjectionDepth(depth) {
     const safeDepth = Number.isFinite(depth) ? depth : 0.5;
     if (safeDepth < 0) {
       const extra = -safeDepth;
-      return -(extra / (1 + (extra * 0.65))) * TANZAKU_DEPTH_FAR_EXTENSION;
+      return -Math.sqrt(extra) * TANZAKU_DEPTH_FAR_EXTENSION;
     }
     if (safeDepth > 1) {
       const extra = safeDepth - 1;
-      return 1 + ((extra / (1 + (extra * 0.28))) * TANZAKU_DEPTH_NEAR_EXTENSION);
+      return 1 + (Math.sqrt(extra) * TANZAKU_DEPTH_NEAR_EXTENSION);
     }
     return safeDepth;
   }
 
   function getViewerDistancePerspective() {
-    return Math.max(0.3, Math.min(2.6, 2.5 / scene.viewerDistance));
+    return Math.max(0.3, Math.min(2.6, PARALLAX_CAMERA_BASE_DISTANCE / scene.viewerDistance));
   }
 
   function getDistanceAdjustedDepth(depth, referenceDepth) {
@@ -1510,9 +2062,18 @@ function createParallaxScene() {
     return clampVanishingPointForMargin(Number(value), scene.viewportMargin, axis);
   }
 
+  function clampSceneCameraTarget(value, axis) {
+    if (value === null || value === undefined || value === "") return null;
+    const number = Number(value);
+    if (!Number.isFinite(number)) return null;
+    return clampVanishingPointForMargin(number, scene.viewportMargin, axis);
+  }
+
   function clampSceneVanishingPoints() {
     scene.vanishingPointX = clampSceneVanishingPoint(scene.vanishingPointX, "x");
     scene.vanishingPointY = clampSceneVanishingPoint(scene.vanishingPointY, "y");
+    scene.cameraTargetX = clampSceneCameraTarget(scene.cameraTargetX, "x");
+    scene.cameraTargetY = clampSceneCameraTarget(scene.cameraTargetY, "y");
   }
 
   function drawAreaPointToInnerPlane(value, axis, plane) {
@@ -1529,6 +2090,36 @@ function createParallaxScene() {
     };
   }
 
+  function getCameraTargetPoint() {
+    return {
+      x: scene.cameraTargetX == null ? scene.vanishingPointX : scene.cameraTargetX,
+      y: scene.cameraTargetY == null ? scene.vanishingPointY : scene.cameraTargetY
+    };
+  }
+
+  function getInnerPlaneCameraTarget(plane) {
+    const target = getCameraTargetPoint();
+    return {
+      x: drawAreaPointToInnerPlane(target.x, "x", plane),
+      y: drawAreaPointToInnerPlane(target.y, "y", plane)
+    };
+  }
+
+  function innerPlanePointToViewport(point, plane) {
+    return {
+      x: plane.marginPx + (((point.x + 1) / 2) * plane.width),
+      y: plane.marginPx + (((point.y + 1) / 2) * plane.height)
+    };
+  }
+
+  function innerPlanePointToDrawArea(point, plane) {
+    const viewport = innerPlanePointToViewport(point, plane);
+    return {
+      x: ((viewport.x / plane.viewportWidth) * 2) - 1,
+      y: ((viewport.y / plane.viewportHeight) * 2) - 1
+    };
+  }
+
   function usesDisplayPlaneMotion(mode) {
     return mode === "display" || mode === "camera-display";
   }
@@ -1537,22 +2128,18 @@ function createParallaxScene() {
     return mode === "mapping" || mode === "camera";
   }
 
-  function usesCameraViewCompensation(mode) {
+  function usesRealCameraProjection(mode) {
     return mode === "camera" || mode === "camera-display";
   }
 
   function getCameraProjectionMotion(gain = 1) {
-    const distanceFactor = 2.5 / scene.viewerDistance;
-    const offsetDistanceFactor = Math.max(
-      PARALLAX_VIEWER_OFFSET_DISTANCE_MIN,
-      Math.min(PARALLAX_VIEWER_OFFSET_DISTANCE_MAX, Math.sqrt(distanceFactor))
-    );
-    const cameraX = (scene.viewerOffsetX * PARALLAX_VIEWER_OFFSET_CAMERA_X * offsetDistanceFactor) +
+    const distanceFactor = PARALLAX_CAMERA_BASE_DISTANCE / scene.viewerDistance;
+    const cameraX = (scene.viewerOffsetX / PARALLAX_VANISHING_POINT_VIEWER_SCALE) +
       (scene.viewerX * PARALLAX_CAMERA_X * scene.strength * distanceFactor);
     const dynamicCameraY = usesDisplayPlaneMotion(scene.motionMode)
       ? scene.viewerY * PARALLAX_CAMERA_Y * scene.popoutStrength
       : 0;
-    const cameraY = (scene.viewerOffsetY * PARALLAX_VIEWER_OFFSET_CAMERA_Y * offsetDistanceFactor) +
+    const cameraY = (scene.viewerOffsetY / PARALLAX_VANISHING_POINT_VIEWER_SCALE) +
       (dynamicCameraY * distanceFactor);
     const cameraZ = usesCameraDepthMotion(scene.motionMode)
       ? scene.viewerZ * PARALLAX_CAMERA_Z * scene.popoutStrength * distanceFactor
@@ -1564,45 +2151,97 @@ function createParallaxScene() {
     };
   }
 
+  function getCameraPosition() {
+    const motion = getCameraProjectionMotion();
+    return {
+      x: motion.x,
+      y: motion.y,
+      z: -scene.viewerDistance + motion.z
+    };
+  }
+
+  function getCameraModel(plane = getProjectionPlaneMetrics()) {
+    const position = getCameraPosition();
+    const targetPoint = getInnerPlaneCameraTarget(plane);
+    const target = { x: targetPoint.x, y: targetPoint.y, z: 0 };
+    const forward = vectorNormalize(vectorSubtract(target, position), { x: 0, y: 0, z: 1 });
+    const worldDown = { x: 0, y: 1, z: 0 };
+    const right = vectorNormalize(vectorCross(worldDown, forward), { x: 1, y: 0, z: 0 });
+    const down = vectorNormalize(vectorCross(forward, right), worldDown);
+    return {
+      plane,
+      position,
+      target,
+      forward,
+      right,
+      down,
+      focalLength: PARALLAX_CAMERA_BASE_DISTANCE
+    };
+  }
+
+  function getWorldDepthDirection(model = getCameraModel()) {
+    const vanishingPoint = getInnerPlaneVanishingPoint(model.plane);
+    return vectorNormalize({
+      x: vanishingPoint.x / model.focalLength,
+      y: vanishingPoint.y / model.focalLength,
+      z: 1
+    });
+  }
+
+  function getDepthOffset(depth, referenceDepth) {
+    const adjustedDepth = getProjectionDepth(getDistanceAdjustedDepth(depth, referenceDepth));
+    return (TANZAKU_DEPTH_REFERENCE_NEUTRAL - adjustedDepth) * PARALLAX_WORLD_DEPTH_SCALE;
+  }
+
+  function getApparentVanishingPoint() {
+    const model = getCameraModel();
+    const depthDirection = getWorldDepthDirection(model);
+    if (usesRealCameraProjection(scene.motionMode)) {
+      const projected = projectWorldPoint(vectorScale(depthDirection, model.focalLength * 1000), model);
+      return {
+        x: clampSceneVanishingPoint(((projected.x / model.plane.viewportWidth) * 2) - 1, "x"),
+        y: clampSceneVanishingPoint(((projected.y / model.plane.viewportHeight) * 2) - 1, "y")
+      };
+    }
+    const viewZ = vectorDot(depthDirection, model.forward);
+    const safeZ = Math.abs(viewZ) < 0.001 ? (viewZ < 0 ? -0.001 : 0.001) : viewZ;
+    const innerPoint = {
+      x: model.focalLength * vectorDot(depthDirection, model.right) / safeZ,
+      y: model.focalLength * vectorDot(depthDirection, model.down) / safeZ
+    };
+    const drawPoint = innerPlanePointToDrawArea(innerPoint, model.plane);
+    return {
+      x: clampSceneVanishingPoint(drawPoint.x, "x"),
+      y: clampSceneVanishingPoint(drawPoint.y, "y")
+    };
+  }
+
   function projectLayer(baseX, baseY, depth, referenceDepth = depth) {
-    const plane = getProjectionPlaneMetrics();
-    const vanishingPoint = getInnerPlaneVanishingPoint(plane);
-    const layerZ = getLayerZ(getDistanceAdjustedDepth(depth, referenceDepth));
-    const referenceLayerZ = getLayerZ(referenceDepth);
-    const camera = getCameraProjectionMotion();
-    const relativeZ = layerZ - camera.z;
-    const safeZ = Math.max(PARALLAX_CAMERA_NEAR_CLIP_Z, relativeZ);
-    const planeZ = PARALLAX_FAR_Z;
-    const planeSafeZ = Math.max(PARALLAX_CAMERA_NEAR_CLIP_Z, planeZ - camera.z);
-    const cameraViewCompensation = usesCameraViewCompensation(scene.motionMode) ? (planeSafeZ / planeZ) : 1;
-    const worldX = (baseX - vanishingPoint.x) * referenceLayerZ / PARALLAX_FOCAL_LENGTH;
-    const worldY = (baseY - vanishingPoint.y) * referenceLayerZ / PARALLAX_FOCAL_LENGTH;
-    const projectedX = vanishingPoint.x + ((worldX - camera.x) * PARALLAX_FOCAL_LENGTH / safeZ);
-    const projectedY = vanishingPoint.y + ((worldY - camera.y) * PARALLAX_FOCAL_LENGTH / safeZ);
-    const shiftedX = vanishingPoint.x + ((projectedX - vanishingPoint.x) * cameraViewCompensation);
-    const shiftedY = vanishingPoint.y + ((projectedY - vanishingPoint.y) * cameraViewCompensation);
+    const model = getCameraModel();
+    const worldPoint = getWorldPointForTanzakuDepth(baseX, baseY, depth, referenceDepth, model);
+    const projectedPoint = projectWorldPoint(worldPoint, model);
     const distancePerspective = getViewerDistancePerspective();
     const scaleResponse = Math.max(0.1, Math.min(0.42, PARALLAX_SCALE_RESPONSE * distancePerspective));
-    const neutralLayerZ = getLayerZ(TANZAKU_DEPTH_REFERENCE_NEUTRAL);
-    const rawPerspectiveScale = (neutralLayerZ / safeZ) * cameraViewCompensation;
+    const safeZ = Math.max(PARALLAX_CAMERA_NEAR_CLIP_Z, projectedPoint.viewZ);
+    const rawPerspectiveScale = usesRealCameraProjection(scene.motionMode) ? 1 : model.focalLength / safeZ;
     const scale = Math.max(
       PARALLAX_SCALE_MIN,
       Math.min(PARALLAX_SCALE_MAX, 1 + ((rawPerspectiveScale - 1) * scaleResponse))
     );
     return {
-      offsetXPx: (shiftedX - baseX) * plane.width * 0.5,
-      offsetYPx: (shiftedY - baseY) * plane.height * 0.5,
+      offsetXPx: (projectedPoint.innerX - baseX) * model.plane.width * 0.5,
+      offsetYPx: (projectedPoint.innerY - baseY) * model.plane.height * 0.5,
       scale,
       depthScaleWeight: Math.max(0.25, Math.min(1, distancePerspective)),
-      visible: relativeZ > 0
+      visible: projectedPoint.viewZ > PARALLAX_CAMERA_NEAR_CLIP_Z
     };
   }
 
   function getRenderOrderRelativeZ(depth, referenceDepth = depth) {
     if (!scene.enabled) return null;
-    const layerZ = getLayerZ(getDistanceAdjustedDepth(depth, referenceDepth));
-    const camera = getCameraProjectionMotion();
-    return layerZ - camera.z;
+    const model = getCameraModel();
+    const worldPoint = getWorldPointForTanzakuDepth(0, 0, depth, referenceDepth, model);
+    return projectWorldPoint(worldPoint, model).viewZ;
   }
 
   function projectPoint(baseX, baseY, depth, referenceDepth = depth) {
@@ -1614,47 +2253,115 @@ function createParallaxScene() {
     };
   }
 
-  function getWorldPointForTanzakuDepth(baseX, baseY, depth, referenceDepth = TANZAKU_DEPTH_REFERENCE_NEUTRAL) {
-    const plane = getProjectionPlaneMetrics();
-    const vanishingPoint = getInnerPlaneVanishingPoint(plane);
-    const layerZ = getLayerZ(getDistanceAdjustedDepth(depth, referenceDepth));
-    const referenceLayerZ = getLayerZ(referenceDepth);
+  function getWorldPointForTanzakuDepth(baseX, baseY, depth, referenceDepth = TANZAKU_DEPTH_REFERENCE_NEUTRAL, model = getCameraModel()) {
+    const depthDirection = getWorldDepthDirection(model);
+    const depthOffset = getDepthOffset(depth, referenceDepth);
+    return vectorAdd(
+      { x: baseX, y: baseY, z: 0 },
+      vectorScale(depthDirection, depthOffset)
+    );
+  }
+
+  function projectWorldPoint(worldPoint, model = getCameraModel()) {
+    if (usesRealCameraProjection(scene.motionMode)) {
+      return projectWorldPointToProjectionPlane(worldPoint, model);
+    }
+    return projectWorldPointToCameraView(worldPoint, model);
+  }
+
+  function projectWorldPointToCameraView(worldPoint, model) {
+    const relative = vectorSubtract(worldPoint, model.position);
+    const viewX = vectorDot(relative, model.right);
+    const viewY = vectorDot(relative, model.down);
+    const viewZ = vectorDot(relative, model.forward);
+    const safeZ = Math.max(PARALLAX_CAMERA_NEAR_CLIP_Z, viewZ);
+    const innerX = model.focalLength * viewX / safeZ;
+    const innerY = model.focalLength * viewY / safeZ;
+    const viewport = innerPlanePointToViewport({ x: innerX, y: innerY }, model.plane);
     return {
-      x: (baseX - vanishingPoint.x) * referenceLayerZ / PARALLAX_FOCAL_LENGTH,
-      y: (baseY - vanishingPoint.y) * referenceLayerZ / PARALLAX_FOCAL_LENGTH,
-      z: layerZ
+      x: viewport.x,
+      y: viewport.y,
+      innerX,
+      innerY,
+      viewZ
     };
   }
 
-  function projectWorldPoint(worldPoint, camera = getCameraProjectionMotion()) {
-    const plane = getProjectionPlaneMetrics();
-    const vanishingPoint = getInnerPlaneVanishingPoint(plane);
-    const relativeZ = worldPoint.z - camera.z;
-    const safeZ = Math.max(PARALLAX_CAMERA_NEAR_CLIP_Z, relativeZ);
-    const planeZ = PARALLAX_FAR_Z;
-    const planeSafeZ = Math.max(PARALLAX_CAMERA_NEAR_CLIP_Z, planeZ - camera.z);
-    const cameraViewCompensation = usesCameraViewCompensation(scene.motionMode) ? (planeSafeZ / planeZ) : 1;
-    const projectedX = vanishingPoint.x + ((worldPoint.x - camera.x) * PARALLAX_FOCAL_LENGTH / safeZ);
-    const projectedY = vanishingPoint.y + ((worldPoint.y - camera.y) * PARALLAX_FOCAL_LENGTH / safeZ);
-    const shiftedX = vanishingPoint.x + ((projectedX - vanishingPoint.x) * cameraViewCompensation);
-    const shiftedY = vanishingPoint.y + ((projectedY - vanishingPoint.y) * cameraViewCompensation);
+  function projectWorldPointToProjectionPlane(worldPoint, model) {
+    const relative = vectorSubtract(worldPoint, model.position);
+    const viewZ = vectorDot(relative, model.forward);
+    if (Math.abs(relative.z) < 0.0001) {
+      return projectWorldPointToCameraView(worldPoint, model);
+    }
+    const distance = -model.position.z / relative.z;
+    const intersection = vectorAdd(model.position, vectorScale(relative, distance));
+    const viewport = innerPlanePointToViewport({
+      x: intersection.x,
+      y: intersection.y
+    }, model.plane);
     return {
-      x: plane.marginPx + (((shiftedX + 1) / 2) * plane.width),
-      y: plane.marginPx + (((shiftedY + 1) / 2) * plane.height)
+      x: viewport.x,
+      y: viewport.y,
+      innerX: intersection.x,
+      innerY: intersection.y,
+      viewZ
+    };
+  }
+
+  function viewportPointToWorldBasePoint(viewportX, viewportY, depth, referenceDepth = TANZAKU_DEPTH_REFERENCE_NEUTRAL) {
+    const model = getCameraModel();
+    const clampedViewportX = Math.max(0, Math.min(model.plane.viewportWidth, viewportX));
+    const clampedViewportY = Math.max(0, Math.min(model.plane.viewportHeight, viewportY));
+    const innerX = (((clampedViewportX - model.plane.marginPx) / model.plane.width) * 2) - 1;
+    const innerY = (((clampedViewportY - model.plane.marginPx) / model.plane.height) * 2) - 1;
+    const rayDirection = usesRealCameraProjection(scene.motionMode)
+      ? vectorNormalize(vectorSubtract({ x: innerX, y: innerY, z: 0 }, model.position), model.forward)
+      : vectorNormalize(vectorAdd(
+        model.forward,
+        vectorAdd(
+          vectorScale(model.right, innerX / model.focalLength),
+          vectorScale(model.down, innerY / model.focalLength)
+        )
+      ), model.forward);
+    const depthDirection = getWorldDepthDirection(model);
+    const depthOffset = getDepthOffset(depth, referenceDepth);
+    const targetZ = depthDirection.z * depthOffset;
+    if (Math.abs(rayDirection.z) < 0.0001) {
+      return { x: scene.perspectiveBoxX, y: scene.perspectiveBoxY };
+    }
+    const distance = (targetZ - model.position.z) / rayDirection.z;
+    const intersection = vectorAdd(model.position, vectorScale(rayDirection, distance));
+    return {
+      x: intersection.x - (depthDirection.x * depthOffset),
+      y: intersection.y - (depthDirection.y * depthOffset)
+    };
+  }
+
+  function getPerspectiveBoxViewportBounds() {
+    const plane = getProjectionPlaneMetrics();
+    const points = [
+      viewportPointToWorldBasePoint(0, 0, PERSPECTIVE_BOX_FRONT_DEPTH),
+      viewportPointToWorldBasePoint(plane.viewportWidth, 0, PERSPECTIVE_BOX_FRONT_DEPTH),
+      viewportPointToWorldBasePoint(0, plane.viewportHeight, PERSPECTIVE_BOX_FRONT_DEPTH),
+      viewportPointToWorldBasePoint(plane.viewportWidth, plane.viewportHeight, PERSPECTIVE_BOX_FRONT_DEPTH)
+    ];
+    const xs = points.map((point) => point.x).filter(Number.isFinite);
+    const ys = points.map((point) => point.y).filter(Number.isFinite);
+    if (!xs.length || !ys.length) return null;
+    return {
+      minX: Math.min(...xs),
+      maxX: Math.max(...xs),
+      minY: Math.min(...ys),
+      maxY: Math.max(...ys)
     };
   }
 
   function getViewerGuidePoint() {
-    const plane = getProjectionPlaneMetrics();
-    const vanishingPoint = getInnerPlaneVanishingPoint(plane);
-    const camera = getCameraProjectionMotion();
-    const guideZ = Math.max(PARALLAX_CAMERA_NEAR_CLIP_Z, PARALLAX_FAR_Z - camera.z);
-    const viewerPlaneX = vanishingPoint.x + ((camera.x * PARALLAX_FOCAL_LENGTH) / guideZ);
-    const viewerPlaneY = vanishingPoint.y + ((camera.y * PARALLAX_FOCAL_LENGTH) / guideZ);
-    return {
-      x: plane.marginPx + (((viewerPlaneX + 1) / 2) * plane.width),
-      y: plane.marginPx + (((viewerPlaneY + 1) / 2) * plane.height)
-    };
+    const model = getCameraModel();
+    return innerPlanePointToViewport({
+      x: model.position.x,
+      y: model.position.y
+    }, model.plane);
   }
 
   function getPerspectiveBoxAnchor() {
@@ -1686,13 +2393,9 @@ function createParallaxScene() {
   }
 
   function applyVanishingPointMarker() {
-    if (!vanishingPointMarker) return;
-    const plane = getProjectionPlaneMetrics();
-    const x = ((scene.vanishingPointX + 1) / 2) * plane.viewportWidth;
-    const y = ((scene.vanishingPointY + 1) / 2) * plane.viewportHeight;
-    setStylePropertyIfChanged(vanishingPointMarker, "--vanishing-point-marker-left", `${x.toFixed(2)}px`);
-    setStylePropertyIfChanged(vanishingPointMarker, "--vanishing-point-marker-top", `${y.toFixed(2)}px`);
-    vanishingPointMarker.hidden = !isMarkerModeVisible();
+    if (vanishingPointMarker) {
+      vanishingPointMarker.hidden = true;
+    }
     applyMarkerModeState();
   }
 
@@ -1744,35 +2447,46 @@ function createParallaxScene() {
 
     const plane = getProjectionPlaneMetrics();
     setAttributeIfChanged(parallaxPerspectiveBox, "viewBox", `0 0 ${plane.viewportWidth} ${plane.viewportHeight}`);
+    const vanishingPoint = getApparentVanishingPoint();
+    const targetX = quantizePixel(((vanishingPoint.x + 1) / 2) * plane.viewportWidth);
+    const targetY = quantizePixel(((vanishingPoint.y + 1) / 2) * plane.viewportHeight);
+    const targetRadius = 23;
+    const targetCrossLength = 37;
+    const targetCrossPath = [
+      `M ${(targetX - targetCrossLength).toFixed(1)} ${targetY.toFixed(1)}`,
+      `L ${(targetX + targetCrossLength).toFixed(1)} ${targetY.toFixed(1)}`,
+      `M ${targetX.toFixed(1)} ${(targetY - targetCrossLength).toFixed(1)}`,
+      `L ${targetX.toFixed(1)} ${(targetY + targetCrossLength).toFixed(1)}`
+    ].join(" ");
     const anchor = getPerspectiveBoxAnchor();
     const frontDepth = anchor.frontDepth;
     const rearDepth = frontDepth + PERSPECTIVE_BOX_BUILDING_DEPTH;
-    const halfWidth = 0.26;
-    const halfHeight = 0.33;
+    const halfWidth = PERSPECTIVE_BOX_HALF_WIDTH;
+    const halfHeight = PERSPECTIVE_BOX_HALF_HEIGHT;
     const baseCorners = [
       { x: anchor.x - halfWidth, y: anchor.y - halfHeight },
       { x: anchor.x + halfWidth, y: anchor.y - halfHeight },
       { x: anchor.x + halfWidth, y: anchor.y + halfHeight },
       { x: anchor.x - halfWidth, y: anchor.y + halfHeight }
     ];
+    const model = getCameraModel(plane);
     const frontWorld = baseCorners.map((point) => (
-      getWorldPointForTanzakuDepth(point.x, point.y, frontDepth, TANZAKU_DEPTH_REFERENCE_NEUTRAL)
+      getWorldPointForTanzakuDepth(point.x, point.y, frontDepth, TANZAKU_DEPTH_REFERENCE_NEUTRAL, model)
     ));
     const rearWorld = baseCorners.map((point) => (
-      getWorldPointForTanzakuDepth(point.x, point.y, rearDepth, TANZAKU_DEPTH_REFERENCE_NEUTRAL)
+      getWorldPointForTanzakuDepth(point.x, point.y, rearDepth, TANZAKU_DEPTH_REFERENCE_NEUTRAL, model)
     ));
-    const camera = getCameraProjectionMotion();
     const front = [
-      projectWorldPoint(frontWorld[0], camera),
-      projectWorldPoint(frontWorld[1], camera),
-      projectWorldPoint(frontWorld[2], camera),
-      projectWorldPoint(frontWorld[3], camera)
+      projectWorldPoint(frontWorld[0], model),
+      projectWorldPoint(frontWorld[1], model),
+      projectWorldPoint(frontWorld[2], model),
+      projectWorldPoint(frontWorld[3], model)
     ];
     const rear = [
-      projectWorldPoint(rearWorld[0], camera),
-      projectWorldPoint(rearWorld[1], camera),
-      projectWorldPoint(rearWorld[2], camera),
-      projectWorldPoint(rearWorld[3], camera)
+      projectWorldPoint(rearWorld[0], model),
+      projectWorldPoint(rearWorld[1], model),
+      projectWorldPoint(rearWorld[2], model),
+      projectWorldPoint(rearWorld[3], model)
     ];
     const viewerGuidePoint = getViewerGuidePoint();
     const pointCommand = (point) => `${quantizePixel(point.x).toFixed(1)} ${quantizePixel(point.y).toFixed(1)}`;
@@ -1800,23 +2514,30 @@ function createParallaxScene() {
       circle.setAttribute("class", className);
       return circle;
     };
-    const expectedChildren = 6;
+    const expectedChildren = 8;
     if (parallaxPerspectiveBox.children.length !== expectedChildren) {
       parallaxPerspectiveBox.replaceChildren(
         createPath("parallax-box-front"),
         createPath("parallax-box-rear"),
         createPath("parallax-box-depth"),
         createPath("parallax-box-perspective"),
+        createCircle("parallax-target-marker-ring"),
+        createPath("parallax-target-marker-cross"),
         createCircle("parallax-box-handle-hit"),
         createCircle("parallax-box-handle")
       );
     }
 
-    const paths = parallaxPerspectiveBox.querySelectorAll("path");
-    setAttributeIfChanged(paths[0], "d", closedPath(front));
-    setAttributeIfChanged(paths[1], "d", closedPath(rear));
-    setAttributeIfChanged(paths[2], "d", connectorPath);
-    setAttributeIfChanged(paths[3], "d", perspectivePath);
+    setAttributeIfChanged(parallaxPerspectiveBox.querySelector(".parallax-box-front"), "d", closedPath(front));
+    setAttributeIfChanged(parallaxPerspectiveBox.querySelector(".parallax-box-rear"), "d", closedPath(rear));
+    setAttributeIfChanged(parallaxPerspectiveBox.querySelector(".parallax-box-depth"), "d", connectorPath);
+    setAttributeIfChanged(parallaxPerspectiveBox.querySelector(".parallax-box-perspective"), "d", perspectivePath);
+    const targetRing = parallaxPerspectiveBox.querySelector(".parallax-target-marker-ring");
+    const targetCross = parallaxPerspectiveBox.querySelector(".parallax-target-marker-cross");
+    setAttributeIfChanged(targetRing, "cx", targetX.toFixed(1));
+    setAttributeIfChanged(targetRing, "cy", targetY.toFixed(1));
+    setAttributeIfChanged(targetRing, "r", String(targetRadius));
+    setAttributeIfChanged(targetCross, "d", targetCrossPath);
     const handleHit = parallaxPerspectiveBox.querySelector(".parallax-box-handle-hit");
     const handle = parallaxPerspectiveBox.querySelector(".parallax-box-handle");
     [handleHit, handle].forEach((element) => {
@@ -1839,39 +2560,29 @@ function createParallaxScene() {
     }
 
     const participants = slots.filter(isSlotDepthParticipant);
-    const camera = getCameraProjectionMotion();
+    const model = getCameraModel();
     const slotMetrics = participants.map((slot) => {
       const depth = getSlotDepth(slot, referenceDepth, orderedSlots);
-      const layerZ = getLayerZ(getDistanceAdjustedDepth(depth, TANZAKU_DEPTH_REFERENCE_NEUTRAL));
-      const relativeZ = layerZ - camera.z;
+      const worldPoint = getWorldPointForTanzakuDepth(0, 0, depth, TANZAKU_DEPTH_REFERENCE_NEUTRAL, model);
+      const relativeZ = worldPoint.z - model.position.z;
       const visualPosition = getSlotVisualPosition(slot);
       return { slot, relativeZ, x: visualPosition.x };
     });
-    const positiveZ = slotMetrics
-      .map((metric) => metric.relativeZ)
-      .filter((relativeZ) => Number.isFinite(relativeZ) && relativeZ > 0);
-    const negativeZ = slotMetrics
-      .map((metric) => metric.relativeZ)
-      .filter((relativeZ) => Number.isFinite(relativeZ) && relativeZ < 0);
-    const maxAhead = Math.max(1, PARALLAX_FAR_Z - camera.z, ...positiveZ);
-    const maxBehind = Math.max(0.5, ...negativeZ.map((relativeZ) => Math.abs(relativeZ)));
-    const viewerY = 84;
+    const getDepthMapY = (relativeZ) => Math.max(
+      PARALLAX_DEPTH_MAP_MIN_Y,
+      Math.min(PARALLAX_DEPTH_MAP_MAX_Y, PARALLAX_DEPTH_MAP_VIEWER_Y - (relativeZ * PARALLAX_DEPTH_MAP_SCALE))
+    );
     const dots = [
       {
         className: "parallax-depth-map-dot parallax-depth-map-dot--viewer",
         x: 50,
-        y: viewerY
+        y: PARALLAX_DEPTH_MAP_VIEWER_Y
       },
       ...slotMetrics.map((metric) => {
-        const aheadRatio = Math.max(0, Math.min(1, metric.relativeZ / maxAhead));
-        const behindRatio = Math.max(0, Math.min(1, Math.abs(Math.min(0, metric.relativeZ)) / maxBehind));
-        const y = metric.relativeZ >= 0
-          ? viewerY - (aheadRatio * 74)
-          : viewerY + (behindRatio * 10);
         return {
           className: `parallax-depth-map-dot parallax-depth-map-dot--tanzaku parallax-depth-map-dot--${colors[metric.slot.index % colors.length]}${metric.relativeZ <= 0 ? " parallax-depth-map-dot--behind" : ""}`,
           x: Math.max(18, Math.min(82, metric.x)),
-          y
+          y: getDepthMapY(metric.relativeZ)
         };
       })
     ];
@@ -1897,10 +2608,19 @@ function createParallaxScene() {
     const baseY = (visualPosition.y - 50) / 50;
     const projected = projectLayer(baseX, baseY, depth, TANZAKU_DEPTH_REFERENCE_NEUTRAL);
     slot.element.classList.toggle("tanzaku--behind-viewer", !projected.visible);
-    slot.element.style.visibility = projected.visible ? "visible" : "hidden";
+    if (!projected.visible) {
+      setSlotRenderSuspended(slot, false);
+      slot.element.style.visibility = "hidden";
+      return;
+    }
     const depthScale = getSlotDepthScale(slot, depth);
     const adjustedDepthScale = 1 + ((depthScale - 1) * projected.depthScaleWeight);
     const combinedScale = Math.min(TANZAKU_COMBINED_SCALE_MAX, adjustedDepthScale * projected.scale);
+    const visibleRatio = estimateSlotVisibleRatio(slot, visualPosition, projected, combinedScale);
+    const renderSuspended = shouldSuspendSlotRender(slot, visibleRatio);
+    setSlotRenderSuspended(slot, renderSuspended);
+    slot.element.style.visibility = renderSuspended ? "hidden" : "visible";
+    if (renderSuspended) return;
     setStylePropertyIfChanged(slot.element, "--parallax-x", formatPixel(projected.offsetXPx));
     setStylePropertyIfChanged(slot.element, "--parallax-y", formatPixel(projected.offsetYPx));
     setStylePropertyIfChanged(slot.element, "--depth-scale", formatScale(Math.max(0.82, combinedScale)));
@@ -2006,6 +2726,7 @@ function createParallaxScene() {
       setStylePropertyIfChanged(slot.element, "--parallax-x", "0px");
       setStylePropertyIfChanged(slot.element, "--parallax-y", "0px");
       slot.element.classList.remove("tanzaku--behind-viewer");
+      setSlotRenderSuspended(slot, false);
       slot.element.style.visibility = "visible";
       updateSlotDepth(slot, referenceDepth, depthOrderedSlots);
     });
@@ -2054,6 +2775,11 @@ function createParallaxScene() {
       scene.vanishingPointY = clampSceneVanishingPoint(y, "y");
       this.refresh();
     },
+    setCameraTarget(x, y) {
+      scene.cameraTargetX = clampSceneCameraTarget(x, "x");
+      scene.cameraTargetY = clampSceneCameraTarget(y, "y");
+      this.refresh();
+    },
     setPopoutStrength(strength) {
       scene.popoutStrength = Math.max(0, Math.min(3, Number.isFinite(strength) ? strength : 0));
       this.refresh();
@@ -2078,6 +2804,10 @@ function createParallaxScene() {
         this.refresh();
       }
     },
+    getPerspectiveBoxAnchorFromViewportPoint(viewportX, viewportY) {
+      return viewportPointToWorldBasePoint(viewportX, viewportY, PERSPECTIVE_BOX_FRONT_DEPTH);
+    },
+    getPerspectiveBoxViewportBounds,
     setMotionTiming(speed, direction) {
       const nextSpeed = normalizeOracleMotionSpeed(speed);
       const nextDirection = normalizeOracleMotionDirection(direction);
@@ -2449,6 +3179,7 @@ function createEffectsScene(canvas) {
     return {
       resize() {},
       setMeteorShowerActive() {},
+      setStarfieldSuspended() {},
       setMilkyWayGain() {},
       setMilkyWayParams() {},
       burstAtSlot() {}
@@ -2460,6 +3191,7 @@ function createEffectsScene(canvas) {
     return {
       resize() {},
       setMeteorShowerActive() {},
+      setStarfieldSuspended() {},
       setMilkyWayGain() {},
       setMilkyWayParams() {},
       burstAtSlot() {}
@@ -2536,6 +3268,8 @@ function createEffectsScene(canvas) {
     tanabataStarResponsePhaseDeg: 166,
     tanabataStarResponsePeriodSeconds: 35,
     meteorShowerActive: false,
+    starfieldSuspended: false,
+    suspendedCanvasCleared: false,
     particles: [],
     meteors: [],
     ambientStars: Array.from({ length: 170 }, (_, index) => {
@@ -2598,15 +3332,16 @@ function createEffectsScene(canvas) {
     });
   }
 
-  function burstAtSlot(slot) {
+  function burstAtSlot(slot, { intensity = 1 } = {}) {
     if (!slot?.element) return;
     const rect = slot.element.getBoundingClientRect();
     const x = rect.left + rect.width / 2;
     const y = rect.top + rect.height * 0.22;
-    const count = 16;
+    const burstIntensity = Math.max(0.35, Math.min(1, Number.isFinite(intensity) ? intensity : 1));
+    const count = Math.max(6, Math.round(16 * burstIntensity));
     for (let index = 0; index < count; index += 1) {
       const angle = (Math.PI * 2 * index) / count;
-      const speed = 0.32 + (index % 5) * 0.1;
+      const speed = (0.32 + (index % 5) * 0.1) * (0.82 + burstIntensity * 0.18);
       scene.particles.push({
         x,
         y,
@@ -2614,7 +3349,7 @@ function createEffectsScene(canvas) {
         vy: Math.sin(angle) * speed - 0.24,
         bornAt: performance.now(),
         duration: 1500 + (index % 4) * 180,
-        radius: 1.2 + (index % 3) * 0.55,
+        radius: (1.2 + (index % 3) * 0.55) * (0.72 + burstIntensity * 0.28),
         hue: index % 2 ? "255, 244, 180" : "116, 227, 255"
       });
     }
@@ -2811,6 +3546,15 @@ function createEffectsScene(canvas) {
   }
 
   function frame(now) {
+    if (scene.starfieldSuspended) {
+      if (!scene.suspendedCanvasCleared) {
+        context.clearRect(0, 0, scene.width, scene.height);
+        scene.suspendedCanvasCleared = true;
+      }
+      window.requestAnimationFrame(frame);
+      return;
+    }
+    scene.suspendedCanvasCleared = false;
     context.clearRect(0, 0, scene.width, scene.height);
     drawAmbientStars(now);
     drawMilkyWay(now);
@@ -2827,6 +3571,12 @@ function createEffectsScene(canvas) {
     resize,
     setMeteorShowerActive(active) {
       scene.meteorShowerActive = active;
+    },
+    setStarfieldSuspended(suspended) {
+      scene.starfieldSuspended = suspended === true;
+      if (!scene.starfieldSuspended) {
+        scene.suspendedCanvasCleared = false;
+      }
     },
     setMilkyWayGain(value) {
       const gain = Number(value);
@@ -2918,6 +3668,18 @@ function getTypingIntervalMs(wishText, maxIntervalMs) {
   );
 }
 
+function getTypingChunkSize(wishText) {
+  const length = [...String(wishText || "")].length;
+  if (length <= TYPE_CHUNK_LENGTH_STEP) return 1;
+  return Math.min(TYPE_CHUNK_MAX, Math.max(1, Math.ceil(length / TYPE_CHUNK_LENGTH_STEP)));
+}
+
+function getTypingDurationMs(wishText) {
+  const length = [...String(wishText || "")].length;
+  if (!length) return 0;
+  return Math.ceil(length / getTypingChunkSize(wishText)) * getTypingIntervalMs(wishText, projectionSettings.typingIntervalMs);
+}
+
 function clearSlotTimers(slot) {
   if (slot.typingTimer) {
     clearInterval(slot.typingTimer);
@@ -2997,7 +3759,7 @@ function updateSlotPosition(slot, x, y, { persist = true } = {}) {
   }
 }
 
-function syncSlotDomOrder() {
+function syncSlotDomOrder({ allowDuringRotation = false, replaceDom = true } = {}) {
   const depthOrderedSlots = getDepthOrderedSlots();
   const referenceDepth = getDepthReferenceBaseDepth(depthOrderedSlots);
   const metrics = new Map();
@@ -3038,9 +3800,19 @@ function syncSlotDomOrder() {
   const alreadyOrdered =
     currentElements.length === orderedElements.length &&
     orderedElements.every((element, index) => currentElements[index] === element);
+  if (alreadyOrdered) {
+    if (allowDuringRotation) {
+      pendingSlotDomOrderSync = false;
+    }
+    return;
+  }
   if (!alreadyOrdered) {
-    if (rotationInProgress) {
+    if (rotationInProgress && !allowDuringRotation) {
       pendingSlotDomOrderSync = true;
+      return;
+    }
+    if (!replaceDom) {
+      pendingSlotDomOrderSync = false;
       return;
     }
     stage.replaceChildren(...orderedElements);
@@ -3126,12 +3898,14 @@ function captureSlotMotionState(slot) {
   };
 }
 
-function setSlotMotionState(slot, state) {
+function setSlotMotionState(slot, state, { includeBrightness = true } = {}) {
   if (!slot?.element || !state) return;
   setStylePropertyIfChanged(slot.element, "--parallax-x", formatPixel(state.parallaxX));
   setStylePropertyIfChanged(slot.element, "--parallax-y", formatPixel(state.parallaxY));
   setStylePropertyIfChanged(slot.element, "--depth-scale", formatScale(state.depthScale));
-  setStylePropertyIfChanged(slot.element, "--depth-brightness", state.brightness.toFixed(3));
+  if (includeBrightness) {
+    setStylePropertyIfChanged(slot.element, "--depth-brightness", state.brightness.toFixed(3));
+  }
 }
 
 function interpolateSlotMotionState(from, to, progress) {
@@ -3146,6 +3920,9 @@ function interpolateSlotMotionState(from, to, progress) {
 function animateSlotDepthReflow(animatedSlots, updateLayout) {
   const targets = animatedSlots.filter((slot) => slot?.element && slot.wish && slot.mode === "display");
   const before = new Map(targets.map((slot) => [slot, captureSlotMotionState(slot)]));
+  targets.forEach((slot) => {
+    slot.element.classList.add("tanzaku--depth-reflowing");
+  });
 
   updateLayout();
 
@@ -3161,13 +3938,21 @@ function animateSlotDepthReflow(animatedSlots, updateLayout) {
 
   return new Promise((resolve) => {
     const startedAt = performance.now();
+    let lastFrameAt = 0;
     const tick = (now) => {
       const linearProgress = Math.min(1, Math.max(0, (now - startedAt) / TANZAKU_DEPTH_REFLOW_MS));
+      const shouldRender = linearProgress >= 1 || now - lastFrameAt >= TANZAKU_DEPTH_REFLOW_FRAME_MS;
+      if (!shouldRender) {
+        window.requestAnimationFrame(tick);
+        return;
+      }
+      lastFrameAt = now;
       const progress = 0.5 - (Math.cos(Math.PI * linearProgress) / 2);
       targets.forEach((slot) => {
         setSlotMotionState(
           slot,
-          interpolateSlotMotionState(before.get(slot), after.get(slot), progress)
+          interpolateSlotMotionState(before.get(slot), after.get(slot), progress),
+          { includeBrightness: false }
         );
       });
 
@@ -3179,6 +3964,7 @@ function animateSlotDepthReflow(animatedSlots, updateLayout) {
       targets.forEach((slot) => {
         slot.depthReflowActive = false;
         setSlotMotionState(slot, after.get(slot));
+        slot.element.classList.remove("tanzaku--depth-reflowing");
       });
       parallaxScene.refresh();
       resolve();
@@ -3188,24 +3974,66 @@ function animateSlotDepthReflow(animatedSlots, updateLayout) {
   });
 }
 
-function glowSlot(slot) {
+function getTanzakuGlowStaggerMs(count) {
+  const safeCount = Math.max(1, Number.isFinite(count) ? Math.floor(count) : 1);
+  if (safeCount <= 1) return 0;
+  return Math.min(
+    TANZAKU_GLOW_STAGGER_MAX_MS,
+    TANZAKU_GLOW_STAGGER_BASE_MS + ((safeCount - 1) * TANZAKU_GLOW_STAGGER_STEP_MS)
+  );
+}
+
+function glowSlot(slot, { order = 0, count = 1, batchHoldMs = 0 } = {}) {
   if (!slot?.element) return;
   if (slot.glowTimer) {
     clearTimeout(slot.glowTimer);
     slot.glowTimer = null;
   }
+  const glowCount = Math.max(1, Number.isFinite(count) ? Math.floor(count) : 1);
+  const staggerIndex = Math.max(0, Number.isFinite(order) ? Math.floor(order) : 0);
+  const staggerMs = getTanzakuGlowStaggerMs(glowCount);
+  const glowMs = Math.max(500, Math.min(12000, Number(projectionSettings.tanzakuGlowMs) || DEFAULT_TANZAKU_GLOW_MS));
+  const batchHold = Math.max(0, Number.isFinite(batchHoldMs) ? Math.round(batchHoldMs) : 0);
+  const totalGlowMs = glowMs + batchHold + (staggerIndex * staggerMs);
+  setStylePropertyIfChanged(slot.element, "--tanzaku-glow-duration", `${totalGlowMs}ms`);
+  slot.element.classList.remove("tanzaku--glowing");
+  void slot.element.offsetWidth;
   slot.element.classList.add("tanzaku--glowing");
-  effectsScene.burstAtSlot(slot);
+  effectsScene.burstAtSlot(slot, { intensity: Math.max(0.88, 1 / Math.sqrt(glowCount)) });
   slot.glowTimer = setTimeout(() => {
     slot.glowTimer = null;
     if (slot.element) {
       slot.element.classList.remove("tanzaku--glowing");
     }
-  }, TANZAKU_GLOW_MS);
+  }, totalGlowMs);
 }
 
 function getCurrentProjectionPlaneMetrics() {
   return getProjectionPlaneMetricsForMargin(projectionSettings.viewportMargin);
+}
+
+function updateSlotRenderSizeCache(slot) {
+  if (!slot?.element) return null;
+  const rect = slot.element.getBoundingClientRect();
+  if (rect.width > 0 && rect.height > 0) {
+    slot.renderSizePx = {
+      width: rect.width,
+      height: rect.height
+    };
+  }
+  return slot.renderSizePx || null;
+}
+
+function getSlotRenderSizePx(slot) {
+  const cachedSize = slot?.renderSizePx;
+  if (cachedSize?.width > 0 && cachedSize?.height > 0) {
+    return cachedSize;
+  }
+  const plane = getCurrentProjectionPlaneMetrics();
+  return {
+    width: (DEFAULT_TANZAKU_BOUNDS.width / 100) * plane.width,
+    height: (DEFAULT_TANZAKU_BOUNDS.height / 100) * plane.height
+  };
 }
 
 function getSlotBounds(slot, position = slot.meta) {
@@ -3219,6 +4047,12 @@ function getSlotBounds(slot, position = slot.meta) {
   }
 
   const rect = slot.element.getBoundingClientRect();
+  if (rect.width > 0 && rect.height > 0) {
+    slot.renderSizePx = {
+      width: rect.width,
+      height: rect.height
+    };
+  }
   const plane = getCurrentProjectionPlaneMetrics();
   return {
     x: position.x,
@@ -3241,8 +4075,8 @@ function usesParallaxDisplayPlaneMotion(mode) {
   return mode === "display" || mode === "camera-display";
 }
 
-function usesParallaxCameraDepthMotion(mode) {
-  return mode === "mapping" || mode === "camera";
+function usesParallaxRenderedCameraDepthMotion(mode) {
+  return mode === "mapping";
 }
 
 function getParallaxPlacementReachPercent() {
@@ -3251,22 +4085,18 @@ function getParallaxPlacementReachPercent() {
   }
 
   const viewerDistance = Math.max(0.5, Math.min(PARALLAX_VIEWER_DISTANCE_MAX, projectionSettings.parallaxViewerDistance || 2.5));
-  const distanceFactor = 2.5 / viewerDistance;
-  const offsetDistanceFactor = Math.max(
-    PARALLAX_VIEWER_OFFSET_DISTANCE_MIN,
-    Math.min(PARALLAX_VIEWER_OFFSET_DISTANCE_MAX, Math.sqrt(distanceFactor))
-  );
-  const fixedCameraX = projectionSettings.parallaxViewerOffsetX * PARALLAX_VIEWER_OFFSET_CAMERA_X * offsetDistanceFactor;
-  const fixedCameraY = projectionSettings.parallaxViewerOffsetY * PARALLAX_VIEWER_OFFSET_CAMERA_Y * offsetDistanceFactor;
+  const distanceFactor = PARALLAX_CAMERA_BASE_DISTANCE / viewerDistance;
+  const fixedCameraX = projectionSettings.parallaxViewerOffsetX / PARALLAX_VANISHING_POINT_VIEWER_SCALE;
+  const fixedCameraY = projectionSettings.parallaxViewerOffsetY / PARALLAX_VANISHING_POINT_VIEWER_SCALE;
   const dynamicCameraX = PARALLAX_CAMERA_X * projectionSettings.parallaxStrength * distanceFactor;
   const dynamicCameraY = usesParallaxDisplayPlaneMotion(projectionSettings.parallaxMotionMode)
     ? PARALLAX_CAMERA_Y * projectionSettings.parallaxPopoutStrength * distanceFactor
     : 0;
-  const dynamicCameraZ = usesParallaxCameraDepthMotion(projectionSettings.parallaxMotionMode)
+  const dynamicCameraZ = usesParallaxRenderedCameraDepthMotion(projectionSettings.parallaxMotionMode)
     ? PARALLAX_CAMERA_Z * projectionSettings.parallaxPopoutStrength * distanceFactor
     : 0;
-  const safeZ = Math.max(PARALLAX_CAMERA_NEAR_CLIP_Z, PARALLAX_NEAR_Z - dynamicCameraZ);
-  const shiftFactor = (PARALLAX_FOCAL_LENGTH / safeZ) * 50;
+  const safeZ = Math.max(PARALLAX_CAMERA_NEAR_CLIP_Z, viewerDistance - dynamicCameraZ);
+  const shiftFactor = (PARALLAX_CAMERA_BASE_DISTANCE / safeZ) * 50;
   const minCameraX = fixedCameraX - dynamicCameraX;
   const maxCameraX = fixedCameraX + dynamicCameraX;
   const minCameraY = fixedCameraY - dynamicCameraY;
@@ -3287,7 +4117,7 @@ function getSlotPlacementLimits(
   slot,
   bounds = getSlotBounds(slot),
   stringHeight = getSlotStringHeightPercent(slot),
-  { includeMargin = true, allowPartial = true, includeParallaxReach = true } = {}
+  { includeMargin = true, allowPartial = true, includeParallaxReach = false } = {}
 ) {
   const plane = getCurrentProjectionPlaneMetrics();
   const marginX = includeMargin ? (plane.marginPx / plane.width) * 100 : 0;
@@ -3330,6 +4160,86 @@ function syncSlotRenderPosition(slot, { force = false } = {}) {
 
 function getSlotVisualPosition(slot) {
   return slot.renderPosition || getSafeSlotPosition(slot);
+}
+
+function getViewportIntersectionRatio(bounds, viewport) {
+  const left = Math.max(0, bounds.left);
+  const top = Math.max(0, bounds.top);
+  const right = Math.min(viewport.width, bounds.right);
+  const bottom = Math.min(viewport.height, bounds.bottom);
+  const width = Math.max(0, right - left);
+  const height = Math.max(0, bottom - top);
+  const area = Math.max(1, (bounds.right - bounds.left) * (bounds.bottom - bounds.top));
+  return (width * height) / area;
+}
+
+function estimateSlotVisibleRatio(slot, visualPosition, projected, scale) {
+  const plane = getCurrentProjectionPlaneMetrics();
+  const size = getSlotRenderSizePx(slot);
+  const safeScale = Math.max(0.1, Number.isFinite(scale) ? scale : 1);
+  const width = size.width * safeScale;
+  const height = size.height * safeScale;
+  const baseLeft = plane.marginPx + ((visualPosition.x / 100) * plane.width) + projected.offsetXPx;
+  const baseTop = plane.marginPx + ((visualPosition.y / 100) * plane.height) + projected.offsetYPx;
+  const centerX = baseLeft + (size.width / 2);
+  const centerY = baseTop + (size.height / 2);
+  const rotationCushion = Math.min(96, Math.max(width, height) * 0.22);
+  const edgeCushion = TANZAKU_RENDER_SUSPEND_EDGE_CUSHION_PX + rotationCushion;
+  return getViewportIntersectionRatio({
+    left: centerX - (width / 2) - edgeCushion,
+    top: centerY - (height / 2) - edgeCushion,
+    right: centerX + (width / 2) + edgeCushion,
+    bottom: centerY + (height / 2) + edgeCushion
+  }, {
+    width: plane.viewportWidth,
+    height: plane.viewportHeight
+  });
+}
+
+function canSuspendSlotRender(slot) {
+  return Boolean(
+    EXPERIMENTAL_TANZAKU_RENDER_SUSPEND &&
+    isLayoutMenuOpen() &&
+    !projectionSettings.parallaxMarkerEnabled &&
+    slot?.element &&
+    slot.wish &&
+    slot.mode === "display" &&
+    !slot.dragging &&
+    slot.state !== "typing" &&
+    slot.state !== "leaving" &&
+    slot.state !== "pending-enter" &&
+    !slot.depthReflowActive &&
+    !slot.element.classList.contains("tanzaku--glowing")
+  );
+}
+
+function setSlotRenderSuspended(slot, suspended) {
+  if (!slot?.element) return;
+  slot.renderSuspended = suspended === true;
+  slot.element.classList.toggle("tanzaku--render-suspended", slot.renderSuspended);
+}
+
+function clearTanzakuRenderSuspension() {
+  slots.forEach((slot) => {
+    if (!slot?.element || !slot.renderSuspended) return;
+    setSlotRenderSuspended(slot, false);
+    const hidden =
+      !slot.wish ||
+      (slot.mode === "waiting" && slot.state !== "leaving") ||
+      slot.state === "pending-enter" ||
+      slot.element.classList.contains("tanzaku--behind-viewer");
+    if (!hidden) {
+      slot.element.style.visibility = "visible";
+    }
+  });
+}
+
+function shouldSuspendSlotRender(slot, visibleRatio) {
+  if (!canSuspendSlotRender(slot)) return false;
+  const threshold = slot.renderSuspended
+    ? TANZAKU_RENDER_SUSPEND_EXIT_RATIO
+    : TANZAKU_RENDER_SUSPEND_ENTER_RATIO;
+  return visibleRatio < threshold;
 }
 
 function getOverlapArea(a, b) {
@@ -3448,6 +4358,12 @@ function refreshSlot(slot) {
   slot.element.classList.toggle("tanzaku--pending-enter", slot.state === "pending-enter");
   slot.element.classList.toggle("tanzaku--dragging", slot.dragging);
   slot.element.classList.toggle("tanzaku--empty", !hasWish);
+  if (!canSuspendSlotRender(slot)) {
+    setSlotRenderSuspended(slot, false);
+    if (!hidden && hasWish && !slot.element.classList.contains("tanzaku--behind-viewer")) {
+      slot.element.style.visibility = "visible";
+    }
+  }
   slot.element.style.opacity = hidden || !hasWish ? "0" : "1";
   slot.element.style.pointerEvents = hidden ? "none" : "auto";
   setStylePropertyIfChanged(slot.element, "--x", `${slot.meta.x}`);
@@ -3466,6 +4382,7 @@ function refreshSlot(slot) {
     slot.textNode.textContent = slot.wish.text;
   }
   slot.textNode.dataset.lines = String(getLineCount(slot.wish));
+  updateSlotRenderSizeCache(slot);
 }
 
 function getSlotTiltValue(slot) {
@@ -3631,6 +4548,13 @@ function renderSlots() {
   parallaxScene.refresh();
 }
 
+function settleRotationFrame() {
+  // The rotation path already reorders while replacement cards are still hidden.
+  // Reordering after the last typing animation is visible causes a perceptible
+  // blink/warp on slower projection devices, so completion only clears the flag.
+  pendingSlotDomOrderSync = false;
+}
+
 function mount() {
   syncSlotDomOrder();
   renderSlots();
@@ -3664,9 +4588,13 @@ function applyProjectionSettings(settings, wishes = []) {
     nextSettings.parallaxMotionMode !== projectionSettings.parallaxMotionMode ||
     nextSettings.parallaxStrength !== projectionSettings.parallaxStrength ||
     nextSettings.parallaxPopoutStrength !== projectionSettings.parallaxPopoutStrength ||
+    nextSettings.parallaxVanishingPointX !== projectionSettings.parallaxVanishingPointX ||
+    nextSettings.parallaxVanishingPointY !== projectionSettings.parallaxVanishingPointY ||
     nextSettings.parallaxViewerOffsetX !== projectionSettings.parallaxViewerOffsetX ||
     nextSettings.parallaxViewerOffsetY !== projectionSettings.parallaxViewerOffsetY ||
     nextSettings.parallaxViewerDistance !== projectionSettings.parallaxViewerDistance ||
+    nextSettings.parallaxCameraTargetX !== projectionSettings.parallaxCameraTargetX ||
+    nextSettings.parallaxCameraTargetY !== projectionSettings.parallaxCameraTargetY ||
     nextSettings.viewportMargin !== projectionSettings.viewportMargin;
   const addedDisplayStart = initialSeeded && nextSettings.displayCount > previousDisplayCount
     ? previousDisplayCount
@@ -3694,10 +4622,7 @@ function applyProjectionSettings(settings, wishes = []) {
     tanabataStarResponsePhaseDeg: projectionSettings.tanabataStarResponsePhaseDeg,
     tanabataStarResponsePeriodSeconds: projectionSettings.tanabataStarResponsePeriodSeconds
   });
-  applyAppearanceSettings({
-    ...loadAppearanceSettings(),
-    fontId: projectionSettings.tanzakuFontId
-  });
+  applyAppearanceSettings(loadAppearanceSettings());
   document.documentElement.style.setProperty(
     "--tanzaku-ambient-sway-strength",
     Number(projectionSettings.tanzakuAmbientSwayStrength || 0).toFixed(2)
@@ -3751,13 +4676,13 @@ function seedSlots(wishes, { addedDisplayStart = projectionSettings.displayCount
   saveLayout();
 }
 
-function startTyping(slot, wishText) {
+function startTyping(slot, wishText, { glowOrder = 0, glowCount = 1, glowBatchHoldMs = 0 } = {}) {
   clearSlotTimers(slot);
   slot.state = "typing";
   slot.textNode.textContent = "";
   slot.textNode.dataset.lines = String(wishText.split("\n").length);
   refreshSlot(slot);
-  glowSlot(slot);
+  glowSlot(slot, { order: glowOrder, count: glowCount, batchHoldMs: glowBatchHoldMs });
 
   const chars = [...wishText];
   if (!chars.length) {
@@ -3771,9 +4696,11 @@ function startTyping(slot, wishText) {
     let index = 0;
     let typedText = "";
     const typingIntervalMs = getTypingIntervalMs(wishText, projectionSettings.typingIntervalMs);
+    const typingChunkSize = getTypingChunkSize(wishText);
     slot.typingTimer = setInterval(() => {
-      typedText += chars[index] || "";
-      index += 1;
+      const nextIndex = Math.min(chars.length, index + typingChunkSize);
+      typedText += chars.slice(index, nextIndex).join("");
+      index = nextIndex;
       slot.textNode.textContent = typedText;
       if (index >= chars.length) {
         clearInterval(slot.typingTimer);
@@ -3815,7 +4742,7 @@ function startLeaving(slot, { finalize = true } = {}) {
   });
 }
 
-function assignWish(slot, wish, { animate = false } = {}) {
+function assignWish(slot, wish, { animate = false, glowOrder = 0, glowCount = 1, glowBatchHoldMs = 0 } = {}) {
   slot.wish = wish || null;
   if (!wish) {
     refreshSlot(slot);
@@ -3823,7 +4750,7 @@ function assignWish(slot, wish, { animate = false } = {}) {
   }
 
   if (animate && slot.mode === "display") {
-    return startTyping(slot, wish.text);
+    return startTyping(slot, wish.text, { glowOrder, glowCount, glowBatchHoldMs });
   }
 
   refreshSlot(slot);
@@ -3922,7 +4849,7 @@ function preparePendingEntry(slot, wish) {
   refreshSlot(slot);
 }
 
-function promoteWaitingSlotToDisplay(targetSlot, wish, { animate = true, foreground = false } = {}) {
+function promoteWaitingSlotToDisplay(targetSlot, wish, { animate = true, foreground = false, glowOrder = 0, glowCount = 1, glowBatchHoldMs = 0 } = {}) {
   if (!targetSlot) return Promise.resolve();
   targetSlot.mode = "display";
   targetSlot.state = null;
@@ -3935,7 +4862,7 @@ function promoteWaitingSlotToDisplay(targetSlot, wish, { animate = true, foregro
     placeSlotWhereVisible(targetSlot, { force: true });
   }
   bringSlotToFront(targetSlot);
-  return assignWish(targetSlot, wish, { animate });
+  return assignWish(targetSlot, wish, { animate, glowOrder, glowCount, glowBatchHoldMs });
 }
 
 function pullUniqueFromBacklog(excludedWishIds) {
@@ -3945,7 +4872,7 @@ function pullUniqueFromBacklog(excludedWishIds) {
   return wish;
 }
 
-async function introduceNewWish(wish) {
+async function introduceNewWish(wish, { glowOrder = 0, glowCount = 1, glowBatchHoldMs = 0 } = {}) {
   const target = getEmptyWaitingSlot() || getOldestWaitingSlot();
   const source = getOldestDisplaySlot();
 
@@ -3956,14 +4883,26 @@ async function introduceNewWish(wish) {
 
   if (!target || source === target) {
     await moveDisplaySlotToWaiting(source);
-    await promoteWaitingSlotToDisplay(source, wish, { animate: true, foreground: true });
+    await promoteWaitingSlotToDisplay(source, wish, {
+      animate: true,
+      foreground: true,
+      glowOrder,
+      glowCount,
+      glowBatchHoldMs
+    });
     return;
   }
 
   const displacedWish = target.wish;
   if (displacedWish) backlog.unshift(displacedWish);
   await moveDisplaySlotToWaiting(source);
-  await promoteWaitingSlotToDisplay(target, wish, { animate: true, foreground: true });
+  await promoteWaitingSlotToDisplay(target, wish, {
+    animate: true,
+    foreground: true,
+    glowOrder,
+    glowCount,
+    glowBatchHoldMs
+  });
 }
 
 async function rotateWindow() {
@@ -3992,7 +4931,7 @@ async function rotateWindow() {
 
 async function rotateWindows() {
   const sources = getBackmostDisplaySlots(projectionSettings.moveCount);
-  if (!sources.length) return;
+  if (!sources.length) return false;
 
   const visibleWishIds = new Set(
     getDisplaySlots()
@@ -4007,7 +4946,7 @@ async function rotateWindows() {
     }))
     .filter((pair) => pair.nextWish);
 
-  if (!pairs.length) return;
+  if (!pairs.length) return false;
 
   for (const pair of pairs) {
     await startLeaving(pair.slot, { finalize: false });
@@ -4021,13 +4960,25 @@ async function rotateWindows() {
       }
       preparePendingEntry(pair.slot, pair.nextWish);
     });
-    syncSlotDomOrder();
+    syncSlotDomOrder({ allowDuringRotation: true, replaceDom: false });
     parallaxScene.refresh();
   });
 
-  for (const pair of pairs) {
-    await startTyping(pair.slot, pair.nextWish.text);
+  const typingDurations = pairs.map((pair) => getTypingDurationMs(pair.nextWish.text));
+  const totalTypingDuration = typingDurations.reduce((sum, duration) => sum + duration, 0);
+  let elapsedTypingDuration = 0;
+
+  for (const [index, pair] of pairs.entries()) {
+    const typingDuration = typingDurations[index] || 0;
+    await startTyping(pair.slot, pair.nextWish.text, {
+      glowOrder: index,
+      glowCount: pairs.length,
+      glowBatchHoldMs: Math.max(0, totalTypingDuration - elapsedTypingDuration)
+    });
+    elapsedTypingDuration += typingDuration;
   }
+
+  return true;
 }
 
 function startRotationTimer() {
@@ -4042,10 +4993,15 @@ function startRotationTimer() {
     if (rotationInProgress) return;
     rotationInProgress = true;
     rotateWindows()
-      .catch(() => {})
-      .finally(() => {
+      .then((changed) => {
         rotationInProgress = false;
-        renderSlots();
+        if (changed) {
+          settleRotationFrame();
+        }
+      })
+      .catch(() => {
+        rotationInProgress = false;
+        settleRotationFrame();
       });
   }, rotationTimerIntervalMs);
 }
@@ -4060,15 +5016,27 @@ function stopRotationTimer() {
 async function reconcileApprovedWishes(wishes) {
   if (!initialSeeded && !slots.some((slot) => Boolean(slot.wish))) {
     seedSlots(wishes);
-    return;
+    return 0;
   }
 
-  for (const wish of wishes) {
-    if (!knownApprovedIds.has(wish.id)) {
-      await introduceNewWish(wish);
-      knownApprovedIds.add(wish.id);
-    }
+  const newWishes = wishes.filter((wish) => !knownApprovedIds.has(wish.id));
+  if (!newWishes.length) return 0;
+  const entryDurations = newWishes.map((wish) => LEAVE_ANIMATION_MS + getTypingDurationMs(wish.text));
+  const totalEntryDuration = entryDurations.reduce((sum, duration) => sum + duration, 0);
+  let elapsedEntryDuration = 0;
+
+  for (const [index, wish] of newWishes.entries()) {
+    const entryDuration = entryDurations[index] || 0;
+    await introduceNewWish(wish, {
+      glowOrder: index,
+      glowCount: newWishes.length,
+      glowBatchHoldMs: Math.max(0, totalEntryDuration - elapsedEntryDuration - LEAVE_ANIMATION_MS)
+    });
+    knownApprovedIds.add(wish.id);
+    elapsedEntryDuration += entryDuration;
   }
+
+  return newWishes.length;
 }
 
 function ensureRotationStarted(wishes) {
@@ -4271,9 +5239,13 @@ function onWindowPointerEnd(event) {
 }
 
 function updatePerspectiveBoxPositionDuringDrag(x, y) {
-  const nextX = normalizePerspectiveBoxCoordinate(x);
-  const nextY = normalizePerspectiveBoxCoordinate(y);
+  const bounds = getPerspectiveBoxMovementBounds();
+  const nextX = normalizePerspectiveBoxCoordinate(x, "x", bounds);
+  const nextY = normalizePerspectiveBoxCoordinate(y, "y", bounds);
+  projectionSettings.perspectiveBoxX = nextX;
+  projectionSettings.perspectiveBoxY = nextY;
   parallaxScene.setPerspectiveBoxPosition(nextX, nextY, { refresh: false });
+  syncPerspectiveBoxInputRanges(bounds);
   if (perspectiveBoxXInput) {
     perspectiveBoxXInput.value = String(nextX);
   }
@@ -4296,12 +5268,15 @@ function onPerspectiveBoxPointerDown(event) {
   event.preventDefault();
   event.stopPropagation();
   const settings = getCurrentAppearanceSettings();
+  const rect = projectionStage.getBoundingClientRect();
+  const pointerAnchor = parallaxScene.getPerspectiveBoxAnchorFromViewportPoint(
+    event.clientX - rect.left,
+    event.clientY - rect.top
+  );
   activePerspectiveBoxDrag = {
     pointerId: event.pointerId,
-    startClientX: event.clientX,
-    startClientY: event.clientY,
-    startX: settings.perspectiveBoxX,
-    startY: settings.perspectiveBoxY,
+    offsetX: settings.perspectiveBoxX - pointerAnchor.x,
+    offsetY: settings.perspectiveBoxY - pointerAnchor.y,
     currentX: settings.perspectiveBoxX,
     currentY: settings.perspectiveBoxY,
     handle
@@ -4318,9 +5293,13 @@ function onPerspectiveBoxPointerMove(event) {
   if (!activePerspectiveBoxDrag || event.pointerId !== activePerspectiveBoxDrag.pointerId) return;
 
   event.preventDefault();
-  const plane = getCurrentProjectionPlaneMetrics();
-  const nextX = activePerspectiveBoxDrag.startX + (((event.clientX - activePerspectiveBoxDrag.startClientX) / plane.width) * 2);
-  const nextY = activePerspectiveBoxDrag.startY + (((event.clientY - activePerspectiveBoxDrag.startClientY) / plane.height) * 2);
+  const rect = projectionStage.getBoundingClientRect();
+  const pointerAnchor = parallaxScene.getPerspectiveBoxAnchorFromViewportPoint(
+    event.clientX - rect.left,
+    event.clientY - rect.top
+  );
+  const nextX = pointerAnchor.x + activePerspectiveBoxDrag.offsetX;
+  const nextY = pointerAnchor.y + activePerspectiveBoxDrag.offsetY;
   const next = updatePerspectiveBoxPositionDuringDrag(nextX, nextY);
   activePerspectiveBoxDrag.currentX = next.x;
   activePerspectiveBoxDrag.currentY = next.y;
@@ -4330,12 +5309,19 @@ function onPerspectiveBoxPointerEnd(event) {
   if (!activePerspectiveBoxDrag || event.pointerId !== activePerspectiveBoxDrag.pointerId) return;
 
   const handle = activePerspectiveBoxDrag.handle;
+  markAppearanceOverrides(["perspectiveBoxX", "perspectiveBoxY"]);
   const nextSettings = {
     ...getCurrentAppearanceSettings(),
     perspectiveBoxX: activePerspectiveBoxDrag.currentX,
-    perspectiveBoxY: activePerspectiveBoxDrag.currentY
+    perspectiveBoxY: activePerspectiveBoxDrag.currentY,
+    overrides: layoutAppearanceOverrides
   };
-  saveAppearanceSettings(normalizeAppearanceSettings(nextSettings));
+  applyAppearanceSettings(nextSettings);
+  saveAppearanceSettings(nextSettings);
+  scheduleProjectionControlSettingsPatch({
+    projectionPerspectiveBoxX: projectionSettings.perspectiveBoxX,
+    projectionPerspectiveBoxY: projectionSettings.perspectiveBoxY
+  }, { immediate: true });
   activePerspectiveBoxDrag = null;
   parallaxPerspectiveBox?.classList.remove("is-dragging");
   handle?.classList.remove("is-dragging");
@@ -4351,6 +5337,7 @@ if (parallaxBoxDragHandle) {
 
 if (layoutMenuTrigger && layoutMenu) {
   layoutMenuTrigger.setAttribute("aria-haspopup", "menu");
+  layoutMenuTrigger.setAttribute("aria-controls", "layout-menu");
   layoutMenuTrigger.setAttribute("aria-expanded", "false");
 
   layoutMenuTrigger.addEventListener("pointerdown", (event) => {
@@ -4379,6 +5366,11 @@ if (layoutMenuTrigger && layoutMenu) {
   layoutMenu.addEventListener("click", (event) => {
     event.stopPropagation();
   });
+
+  layoutMenu.addEventListener("pointerdown", beginLayoutRangeDrag);
+  layoutMenu.addEventListener("pointermove", updateLayoutRangeDrag);
+  layoutMenu.addEventListener("pointerup", endLayoutRangeDrag);
+  layoutMenu.addEventListener("pointercancel", endLayoutRangeDrag);
 }
 
 if (layoutSaveButton) {
@@ -4397,6 +5389,10 @@ if (layoutFullscreenButton) {
   layoutFullscreenButton.addEventListener("click", toggleProjectionFullscreen);
   document.addEventListener("fullscreenchange", updateFullscreenButton);
   updateFullscreenButton();
+}
+
+if (layoutCenterButton) {
+  layoutCenterButton.addEventListener("click", centerAlignVisibleTanzaku);
 }
 
 setupAppearanceControls();
@@ -4441,9 +5437,11 @@ async function loadWishes() {
     return;
   }
 
-  await reconcileApprovedWishes(nextWishes);
+  const animatedNewWishCount = await reconcileApprovedWishes(nextWishes);
   approvedWishesSignature = nextWishesSignature;
-  renderSlots();
+  if (!animatedNewWishCount) {
+    renderSlots();
+  }
   ensureRotationStarted(nextWishes);
 }
 

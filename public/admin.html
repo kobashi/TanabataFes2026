@@ -184,6 +184,10 @@
                 <input id="projection-typing-interval-ms" type="number" min="60" max="1000" step="10" inputmode="numeric">
               </label>
               <label class="number-option">
+                <span>新短冊ハイライト</span>
+                <input id="projection-tanzaku-glow-ms" type="number" min="500" max="12000" step="100" inputmode="numeric">
+              </label>
+              <label class="number-option">
                 <span>ローテーション間隔</span>
                 <input id="projection-rotate-interval-ms" type="number" min="5000" max="120000" step="1000" inputmode="numeric">
               </label>
@@ -320,8 +324,8 @@
                 <span>視差立体感</span>
               </label>
               <label class="detail-toggle" for="projection-parallax-marker-enabled">
-                <input id="projection-parallax-marker-enabled" type="checkbox" role="switch" aria-label="消失点マーカーを表示">
-                <span>消失点マーカー</span>
+                <input id="projection-parallax-marker-enabled" type="checkbox" role="switch" aria-label="短冊目標マーカーを表示">
+                <span>短冊目標マーカー</span>
               </label>
               <label class="number-option">
                 <span>笹舟移動モード</span>
@@ -344,7 +348,7 @@
               </label>
               <label class="range-option">
                 <span class="range-option-label">短冊奥行</span>
-                <input id="projection-parallax-depth-multiplier" type="range" min="0" max="3" step="0.05">
+                <input id="projection-parallax-depth-multiplier" type="range" min="0" max="8" step="0.05">
                 <output id="projection-parallax-depth-multiplier-value" for="projection-parallax-depth-multiplier">1</output>
               </label>
               <label class="range-option">
@@ -352,6 +356,19 @@
                 <input id="projection-parallax-depth-reference-index" type="range" min="1" max="60" step="1">
                 <output id="projection-parallax-depth-reference-index-value" for="projection-parallax-depth-reference-index">奥1</output>
               </label>
+              <div class="range-pair" aria-label="3Dボックス">
+                <p class="range-pair-label">3Dボックス</p>
+                <label class="range-option">
+                  <span class="range-option-label">X</span>
+                  <input id="projection-perspective-box-x" type="range" min="-4" max="4" step="0.01">
+                  <output id="projection-perspective-box-x-value" for="projection-perspective-box-x">-0.52</output>
+                </label>
+                <label class="range-option">
+                  <span class="range-option-label">Y</span>
+                  <input id="projection-perspective-box-y" type="range" min="-4" max="4" step="0.01">
+                  <output id="projection-perspective-box-y-value" for="projection-perspective-box-y">-0.05</output>
+                </label>
+              </div>
               <div class="range-pair range-pair--viewer" aria-label="鑑賞地点">
                 <p class="range-pair-label">鑑賞地点</p>
                 <label class="range-option">
@@ -361,12 +378,12 @@
                 </label>
                 <label class="range-option">
                   <span class="range-option-label">Y</span>
-                  <input id="projection-parallax-viewer-offset-y" type="range" min="-8" max="16" step="0.05">
+                  <input id="projection-parallax-viewer-offset-y" type="range" min="-16" max="32" step="0.05">
                   <output id="projection-parallax-viewer-offset-y-value" for="projection-parallax-viewer-offset-y">0</output>
                 </label>
                 <label class="range-option">
                   <span class="range-option-label">距離</span>
-                  <input id="projection-parallax-viewer-distance" type="range" min="0.5" max="32" step="0.1">
+                  <input id="projection-parallax-viewer-distance" type="range" min="0.5" max="8" step="0.1">
                   <output id="projection-parallax-viewer-distance-value" for="projection-parallax-viewer-distance">2.5</output>
                 </label>
               </div>
@@ -375,17 +392,30 @@
                 <input id="projection-viewport-margin" type="range" min="0" max="24" step="0.5">
                 <output id="projection-viewport-margin-value" for="projection-viewport-margin">0</output>
               </label>
-              <div class="range-pair" aria-label="消失点">
-                <p class="range-pair-label">消失点</p>
+              <div class="range-pair" aria-label="短冊目標">
+                <p class="range-pair-label">短冊目標</p>
                 <label class="range-option">
                   <span class="range-option-label">X</span>
-                  <input id="projection-parallax-vanishing-point-x" type="range" min="-1" max="1" step="0.01">
+                  <input id="projection-parallax-vanishing-point-x" type="range" min="-8" max="8" step="0.05">
                   <output id="projection-parallax-vanishing-point-x-value" for="projection-parallax-vanishing-point-x">0</output>
                 </label>
                 <label class="range-option">
                   <span class="range-option-label">Y</span>
-                  <input id="projection-parallax-vanishing-point-y" type="range" min="-1" max="1" step="0.01">
+                  <input id="projection-parallax-vanishing-point-y" type="range" min="-8" max="40" step="0.05">
                   <output id="projection-parallax-vanishing-point-y-value" for="projection-parallax-vanishing-point-y">0</output>
+                </label>
+              </div>
+              <div class="range-pair" aria-label="カメラ注視点">
+                <p class="range-pair-label">カメラ注視点</p>
+                <label class="range-option">
+                  <span class="range-option-label">X</span>
+                  <input id="projection-parallax-camera-target-x" type="range" min="-8" max="8" step="0.05">
+                  <output id="projection-parallax-camera-target-x-value" for="projection-parallax-camera-target-x">0</output>
+                </label>
+                <label class="range-option">
+                  <span class="range-option-label">Y</span>
+                  <input id="projection-parallax-camera-target-y" type="range" min="-8" max="40" step="0.05">
+                  <output id="projection-parallax-camera-target-y-value" for="projection-parallax-camera-target-y">0</output>
                 </label>
               </div>
             </fieldset>

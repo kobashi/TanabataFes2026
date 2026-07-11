@@ -586,11 +586,16 @@ select:focus {
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  min-height: 32px;
+  min-height: 38px;
   padding: 0;
   border: 0;
   background: transparent;
   accent-color: var(--cyan);
+  touch-action: none;
+}
+
+.range-option input[type="range"].is-fine-dragging {
+  filter: brightness(1.22);
 }
 
 .range-pair {
@@ -996,6 +1001,15 @@ select:focus {
   opacity: 0.18;
 }
 
+.projection-stage--layout-menu-open .star-field,
+.projection-stage--layout-menu-open .meteor-field,
+.projection-stage--layout-menu-open .projection-effects-canvas,
+.projection-stage--layout-menu-open .projection-webgl-effects-canvas {
+  visibility: hidden;
+  opacity: 0;
+  animation-play-state: paused;
+}
+
 .projection-effects-canvas {
   position: absolute;
   inset: 0;
@@ -1045,7 +1059,7 @@ select:focus {
 .parallax-perspective-box {
   position: absolute;
   inset: 0;
-  z-index: 12;
+  z-index: 32;
   width: 100%;
   height: 100%;
   pointer-events: none;
@@ -1146,6 +1160,27 @@ select:focus {
   stroke-width: 1.8;
 }
 
+.parallax-perspective-box .parallax-target-marker-ring {
+  fill: none;
+  stroke: rgba(255, 247, 215, 0.92);
+  stroke-width: 4;
+  vector-effect: non-scaling-stroke;
+  filter:
+    drop-shadow(0 0 6px rgba(255, 220, 128, 0.44))
+    drop-shadow(0 0 14px rgba(255, 220, 128, 0.68))
+    drop-shadow(0 0 22px rgba(121, 231, 255, 0.42));
+  pointer-events: none;
+}
+
+.parallax-perspective-box .parallax-target-marker-cross {
+  stroke: rgba(255, 247, 215, 0.84);
+  stroke-width: 4;
+  filter:
+    drop-shadow(0 0 6px rgba(255, 220, 128, 0.44))
+    drop-shadow(0 0 14px rgba(255, 220, 128, 0.68))
+    drop-shadow(0 0 22px rgba(121, 231, 255, 0.42));
+}
+
 .parallax-depth-map {
   position: absolute;
   top: 8vh;
@@ -1174,8 +1209,9 @@ select:focus {
     180deg,
     rgba(255, 247, 215, 0),
     rgba(255, 247, 215, 0.5) 12%,
-    rgba(122, 232, 255, 0.5) 84%,
-    rgba(255, 111, 143, 0.42)
+    rgba(122, 232, 255, 0.5) 82%,
+    rgba(255, 111, 143, 0.42) 88%,
+    rgba(255, 111, 143, 0.18)
   );
   transform: translateX(-50%);
 }
@@ -1558,7 +1594,7 @@ select:focus {
   background: transparent;
   box-shadow: none;
   cursor: default;
-  z-index: 60;
+  z-index: 95;
   appearance: none;
   isolation: isolate;
   contain: paint;
@@ -1594,13 +1630,14 @@ select:focus {
 }
 
 .projection-layout-menu {
-  position: absolute;
-  top: calc(5vh + 13vmin);
+  position: fixed;
+  top: max(12px, calc(5vh + 13vmin));
   right: clamp(10px, 4vw, 6vw);
-  z-index: 61;
+  z-index: 12000;
   width: min(420px, calc(100vw - 20px));
-  max-height: min(78vh, 720px);
+  max-height: min(78dvh, 720px);
   overflow: auto;
+  overscroll-behavior: contain;
   padding: 12px;
   border: 1px solid rgba(255, 244, 190, 0.32);
   border-radius: 16px;
@@ -1613,17 +1650,12 @@ select:focus {
   color: #fff7d7;
   font-family: var(--projection-layout-font-family);
   isolation: isolate;
-  contain: paint;
-  transform: translateZ(0);
+  contain: layout style;
+  backface-visibility: hidden;
 }
 
 .projection-layout-menu:not(.is-open) {
   display: none;
-}
-
-.moon:focus + .projection-layout-menu,
-.projection-layout-menu:focus-within {
-  display: block;
 }
 
 .projection-layout-menu-title {
@@ -1696,6 +1728,29 @@ select:focus {
   text-align: right;
 }
 
+.projection-layout-control.is-local-override,
+.projection-layout-toggle.is-local-override {
+  border-radius: 8px;
+  background: rgba(255, 220, 128, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 220, 128, 0.26);
+}
+
+.projection-layout-control.is-local-override > span {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.projection-layout-control.is-local-override > span::after,
+.projection-layout-toggle.is-local-override > span::after {
+  content: "変更";
+  margin-left: 6px;
+  border-radius: 999px;
+  padding: 1px 5px;
+  background: rgba(255, 220, 128, 0.22);
+  color: #fff1af;
+  font-size: 0.58rem;
+  font-weight: 900;
+}
+
 .projection-layout-toggle {
   display: flex;
   align-items: center;
@@ -1739,9 +1794,14 @@ select:focus {
 }
 
 .projection-layout-control input[type="range"] {
-  min-height: 24px;
+  min-height: 34px;
   padding: 0;
   accent-color: #ffdf77;
+  touch-action: none;
+}
+
+.projection-layout-control input[type="range"].is-fine-dragging {
+  filter: brightness(1.22);
 }
 
 .projection-layout-menu-actions {
@@ -1856,7 +1916,7 @@ select:focus {
   animation: sway 5.8s ease-in-out infinite;
   animation-delay: var(--delay);
   overflow: visible;
-  transition: opacity 0.45s ease, filter 0.45s ease;
+  transition: opacity 0.45s ease, filter 0.45s ease, box-shadow 0.75s ease;
   cursor: grab;
   pointer-events: auto;
   user-select: none;
@@ -1935,6 +1995,19 @@ select:focus {
   pointer-events: none;
 }
 
+.tanzaku--render-suspended {
+  box-shadow: none;
+  animation-play-state: paused;
+  pointer-events: none;
+}
+
+.tanzaku--render-suspended::before,
+.tanzaku--render-suspended::after,
+.tanzaku--render-suspended .tanzaku-string,
+.tanzaku--render-suspended .tanzaku-text {
+  visibility: hidden;
+}
+
 .tanzaku--dragging {
   animation-play-state: paused;
   z-index: 10000;
@@ -1945,33 +2018,41 @@ select:focus {
   opacity: 1;
 }
 
+.tanzaku--depth-reflowing {
+  animation-play-state: paused;
+  transition: opacity 0.25s ease;
+}
+
 .tanzaku--pending-enter {
   opacity: 0;
   pointer-events: none;
 }
 
-.tanzaku--glowing {
+.tanzaku--glowing,
+.projection-stage--parallax-marker .tanzaku--glowing {
+  filter: brightness(1.08);
   box-shadow:
     0 18px 42px rgba(0, 0, 0, 0.35),
-    0 0 calc(16px + (18px * var(--depth, 0.5))) rgba(255, 244, 180, 0.72),
-    0 0 calc(32px + (28px * var(--depth, 0.5))) rgba(116, 227, 255, 0.34),
-    inset 0 0 24px rgba(255, 255, 255, 0.28);
+    0 0 28px rgba(255, 244, 180, 0.74),
+    0 0 58px rgba(116, 227, 255, 0.44),
+    inset 0 0 26px rgba(255, 255, 255, 0.28);
 }
 
-.tanzaku--glowing::after {
+.tanzaku--glowing::after,
+.projection-stage--parallax-marker .tanzaku--glowing::after {
   position: absolute;
   content: "";
   inset: -18px -12px;
   border-radius: 12px;
   background:
-    radial-gradient(circle at 50% 16%, rgba(255, 250, 190, 0.46), transparent 24%),
-    radial-gradient(circle at 28% 62%, rgba(116, 227, 255, 0.24), transparent 36%),
-    radial-gradient(circle at 72% 70%, rgba(255, 180, 221, 0.2), transparent 34%);
+    radial-gradient(circle at 50% 16%, rgba(255, 250, 190, 0.68), transparent 24%),
+    radial-gradient(circle at 28% 62%, rgba(116, 227, 255, 0.4), transparent 36%),
+    radial-gradient(circle at 72% 70%, rgba(255, 180, 221, 0.3), transparent 34%);
   filter: blur(6px);
   opacity: 0;
   pointer-events: none;
   z-index: -1;
-  animation: tanzaku-glow-pulse 2.8s ease-out forwards;
+  animation: tanzaku-glow-pulse var(--tanzaku-glow-duration, 3200ms) ease-out forwards;
 }
 
 .tanzaku--typing .tanzaku-text::after {
@@ -1983,6 +2064,10 @@ select:focus {
   background: currentColor;
   vertical-align: -0.08em;
   animation: typing-caret 0.85s steps(1) infinite;
+}
+
+.projection-typing-caret-disabled .tanzaku--typing .tanzaku-text::after {
+  display: none;
 }
 
 .tanzaku--leaving {
@@ -2141,11 +2226,16 @@ select:focus {
 
 @keyframes tanzaku-glow-pulse {
   0% {
-    opacity: 0;
-    transform: scale(0.92);
+    opacity: 0.62;
+    transform: scale(0.98);
   }
-  22% {
+  4% {
     opacity: 1;
+    transform: scale(1.02);
+  }
+  86% {
+    opacity: 0.76;
+    transform: scale(1.1);
   }
   100% {
     opacity: 0;
@@ -2333,6 +2423,7 @@ select:focus {
 
   .range-option input[type="range"] {
     width: 100%;
+    min-height: 44px;
   }
 
   .range-pair {

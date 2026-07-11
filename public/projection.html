@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>七夕願い事 投影</title>
-    <link rel="stylesheet" href="/styles.css?v=projection-admin-fonts-20260704-62">
-    <script src="/projection.js?v=projection-admin-fonts-20260704-62" defer></script>
+    <link rel="stylesheet" href="/styles.css?v=projection-admin-fonts-20260704-75">
+    <script src="/projection.js?v=projection-admin-fonts-20260704-84" defer></script>
   </head>
   <body class="projection-page">
     <main class="projection-stage" aria-label="七夕祭り投影画面">
@@ -34,6 +34,10 @@
             <span>文字サイズ <output id="tanzaku-font-size-value" for="tanzaku-font-size">100%</output></span>
             <input id="tanzaku-font-size" type="range" min="80" max="140" step="5">
           </label>
+          <label class="projection-layout-toggle" for="tanzaku-typing-caret-enabled">
+            <span>入力カーソル</span>
+            <input id="tanzaku-typing-caret-enabled" type="checkbox">
+          </label>
           <label class="projection-layout-control" for="oracle-boat-size">
             <span>笹舟サイズ <output id="oracle-boat-size-value" for="oracle-boat-size">100%</output></span>
             <input id="oracle-boat-size" type="range" min="70" max="160" step="5">
@@ -57,11 +61,11 @@
             <p>3Dボックス</p>
             <label class="projection-layout-control" for="perspective-box-x">
               <span>X <output id="perspective-box-x-value" for="perspective-box-x">-0.52</output></span>
-              <input id="perspective-box-x" type="range" min="-2" max="2" step="0.01">
+              <input id="perspective-box-x" type="range" min="-4" max="4" step="0.01">
             </label>
             <label class="projection-layout-control" for="perspective-box-y">
               <span>Y <output id="perspective-box-y-value" for="perspective-box-y">-0.05</output></span>
-              <input id="perspective-box-y" type="range" min="-2" max="2" step="0.01">
+              <input id="perspective-box-y" type="range" min="-4" max="4" step="0.01">
             </label>
           </div>
           <div class="projection-layout-control-group" aria-label="笹">
@@ -91,15 +95,15 @@
             </label>
             <label class="projection-layout-control" for="layout-parallax-viewer-y">
               <span>Y <output id="layout-parallax-viewer-y-value" for="layout-parallax-viewer-y">0</output></span>
-              <input id="layout-parallax-viewer-y" type="range" min="-8" max="16" step="0.05">
+              <input id="layout-parallax-viewer-y" type="range" min="-16" max="32" step="0.05">
             </label>
             <label class="projection-layout-control" for="layout-parallax-viewer-z">
               <span>Z <output id="layout-parallax-viewer-z-value" for="layout-parallax-viewer-z">2.5</output></span>
-              <input id="layout-parallax-viewer-z" type="range" min="0.5" max="32" step="0.1">
+              <input id="layout-parallax-viewer-z" type="range" min="0.5" max="8" step="0.1">
             </label>
           </div>
-          <div class="projection-layout-control-group" aria-label="消失点">
-            <p>消失点</p>
+          <div class="projection-layout-control-group" aria-label="短冊目標">
+            <p>短冊目標</p>
             <label class="projection-layout-control" for="layout-parallax-vanishing-x">
               <span>X <output id="layout-parallax-vanishing-x-value" for="layout-parallax-vanishing-x">0</output></span>
               <input id="layout-parallax-vanishing-x" type="range" min="-8" max="8" step="0.05">
@@ -107,6 +111,17 @@
             <label class="projection-layout-control" for="layout-parallax-vanishing-y">
               <span>Y <output id="layout-parallax-vanishing-y-value" for="layout-parallax-vanishing-y">0</output></span>
               <input id="layout-parallax-vanishing-y" type="range" min="-8" max="40" step="0.05">
+            </label>
+          </div>
+          <div class="projection-layout-control-group" aria-label="カメラ注視点">
+            <p>注視点</p>
+            <label class="projection-layout-control" for="layout-parallax-camera-target-x">
+              <span>X <output id="layout-parallax-camera-target-x-value" for="layout-parallax-camera-target-x">0</output></span>
+              <input id="layout-parallax-camera-target-x" type="range" min="-8" max="8" step="0.05">
+            </label>
+            <label class="projection-layout-control" for="layout-parallax-camera-target-y">
+              <span>Y <output id="layout-parallax-camera-target-y-value" for="layout-parallax-camera-target-y">0</output></span>
+              <input id="layout-parallax-camera-target-y" type="range" min="-8" max="40" step="0.05">
             </label>
           </div>
           <div class="projection-layout-control-group" aria-label="笹舟">
@@ -143,6 +158,7 @@
         </div>
         <div class="projection-layout-menu-actions">
           <button id="layout-fullscreen-button" type="button">全画面</button>
+          <button id="layout-center-button" type="button">短冊を中央整列</button>
           <button id="layout-save-button" type="button">配置と調整を保存</button>
           <button id="layout-load-button" type="button">配置と調整を呼び出し</button>
           <button id="layout-clear-button" type="button">保存値をクリア</button>

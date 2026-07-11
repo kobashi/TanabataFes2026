@@ -16,6 +16,8 @@ const MAX_PROJECTION_DISPLAY_COUNT = 30;
 const MAX_PROJECTION_SLOT_COUNT = 60;
 const MIN_PROJECTION_TYPING_INTERVAL_MS = 60;
 const MAX_PROJECTION_TYPING_INTERVAL_MS = 1000;
+const MIN_PROJECTION_TANZAKU_GLOW_MS = 500;
+const MAX_PROJECTION_TANZAKU_GLOW_MS = 12000;
 const MIN_PROJECTION_ROTATE_INTERVAL_MS = 5000;
 const MAX_PROJECTION_ROTATE_INTERVAL_MS = 120000;
 const MIN_PROJECTION_EFFECT_INTERVAL_MS = 60000;
@@ -62,18 +64,24 @@ const MIN_PROJECTION_PARALLAX_VANISHING_POINT_X = -1;
 const MAX_PROJECTION_PARALLAX_VANISHING_POINT_X = 1;
 const MIN_PROJECTION_PARALLAX_VANISHING_POINT_Y = -1;
 const MAX_PROJECTION_PARALLAX_VANISHING_POINT_Y = 5;
+const MIN_PROJECTION_PARALLAX_CAMERA_TARGET_X = -1;
+const MAX_PROJECTION_PARALLAX_CAMERA_TARGET_X = 1;
+const MIN_PROJECTION_PARALLAX_CAMERA_TARGET_Y = -1;
+const MAX_PROJECTION_PARALLAX_CAMERA_TARGET_Y = 5;
+const MIN_PROJECTION_PERSPECTIVE_BOX = -4;
+const MAX_PROJECTION_PERSPECTIVE_BOX = 4;
 const MIN_PROJECTION_PARALLAX_POPOUT_STRENGTH = 0;
 const MAX_PROJECTION_PARALLAX_POPOUT_STRENGTH = 3;
 const MIN_PROJECTION_PARALLAX_DEPTH_MULTIPLIER = 0;
-const MAX_PROJECTION_PARALLAX_DEPTH_MULTIPLIER = 3;
+const MAX_PROJECTION_PARALLAX_DEPTH_MULTIPLIER = 8;
 const MIN_PROJECTION_PARALLAX_DEPTH_REFERENCE_INDEX = 1;
 const MAX_PROJECTION_PARALLAX_DEPTH_REFERENCE_INDEX = 60;
 const MIN_PROJECTION_PARALLAX_VIEWER_OFFSET_X = -8;
 const MAX_PROJECTION_PARALLAX_VIEWER_OFFSET_X = 8;
-const MIN_PROJECTION_PARALLAX_VIEWER_OFFSET_Y = -8;
-const MAX_PROJECTION_PARALLAX_VIEWER_OFFSET_Y = 16;
+const MIN_PROJECTION_PARALLAX_VIEWER_OFFSET_Y = -16;
+const MAX_PROJECTION_PARALLAX_VIEWER_OFFSET_Y = 32;
 const MIN_PROJECTION_PARALLAX_VIEWER_DISTANCE = 0.5;
-const MAX_PROJECTION_PARALLAX_VIEWER_DISTANCE = 32;
+const MAX_PROJECTION_PARALLAX_VIEWER_DISTANCE = 8;
 const MIN_PROJECTION_VIEWPORT_MARGIN = 0;
 const MAX_PROJECTION_VIEWPORT_MARGIN = 24;
 const PROJECTION_PARALLAX_MOTION_MODES = new Set(["display", "mapping", "camera", "camera-display"]);
@@ -97,6 +105,7 @@ const DEFAULT_SETTINGS = {
   projectionSlotCount: 15,
   projectionMoveCount: 1,
   projectionTypingIntervalMs: 240,
+  projectionTanzakuGlowMs: 3200,
   projectionRotateIntervalMs: 18000,
   projectionEffectAutoEnabled: false,
   projectionEffectIntervalMs: 300000,
@@ -125,6 +134,10 @@ const DEFAULT_SETTINGS = {
   projectionParallaxStrength: 1,
   projectionParallaxVanishingPointX: 0,
   projectionParallaxVanishingPointY: 0,
+  projectionParallaxCameraTargetX: null,
+  projectionParallaxCameraTargetY: null,
+  projectionPerspectiveBoxX: -0.52,
+  projectionPerspectiveBoxY: -0.05,
   projectionParallaxMarkerEnabled: false,
   projectionParallaxPopoutStrength: 0,
   projectionParallaxDepthMultiplier: 1,
@@ -355,6 +368,12 @@ async function readSettings() {
       MIN_PROJECTION_TYPING_INTERVAL_MS,
       MAX_PROJECTION_TYPING_INTERVAL_MS
     );
+    const tanzakuGlowMs = normalizeInteger(
+      parsed.projectionTanzakuGlowMs,
+      DEFAULT_SETTINGS.projectionTanzakuGlowMs,
+      MIN_PROJECTION_TANZAKU_GLOW_MS,
+      MAX_PROJECTION_TANZAKU_GLOW_MS
+    );
     const rotateIntervalMs = normalizeInteger(
       parsed.projectionRotateIntervalMs,
       DEFAULT_SETTINGS.projectionRotateIntervalMs,
@@ -493,6 +512,30 @@ async function readSettings() {
       MIN_PROJECTION_PARALLAX_VANISHING_POINT_Y,
       MAX_PROJECTION_PARALLAX_VANISHING_POINT_Y
     );
+    const parallaxCameraTargetX = normalizeNullableNumber(
+      parsed.projectionParallaxCameraTargetX,
+      DEFAULT_SETTINGS.projectionParallaxCameraTargetX,
+      MIN_PROJECTION_PARALLAX_CAMERA_TARGET_X,
+      MAX_PROJECTION_PARALLAX_CAMERA_TARGET_X
+    );
+    const parallaxCameraTargetY = normalizeNullableNumber(
+      parsed.projectionParallaxCameraTargetY,
+      DEFAULT_SETTINGS.projectionParallaxCameraTargetY,
+      MIN_PROJECTION_PARALLAX_CAMERA_TARGET_Y,
+      MAX_PROJECTION_PARALLAX_CAMERA_TARGET_Y
+    );
+    const perspectiveBoxX = normalizeNumber(
+      parsed.projectionPerspectiveBoxX,
+      DEFAULT_SETTINGS.projectionPerspectiveBoxX,
+      MIN_PROJECTION_PERSPECTIVE_BOX,
+      MAX_PROJECTION_PERSPECTIVE_BOX
+    );
+    const perspectiveBoxY = normalizeNumber(
+      parsed.projectionPerspectiveBoxY,
+      DEFAULT_SETTINGS.projectionPerspectiveBoxY,
+      MIN_PROJECTION_PERSPECTIVE_BOX,
+      MAX_PROJECTION_PERSPECTIVE_BOX
+    );
     const parallaxPopoutStrength = normalizeNumber(
       parsed.projectionParallaxPopoutStrength,
       DEFAULT_SETTINGS.projectionParallaxPopoutStrength,
@@ -561,6 +604,7 @@ async function readSettings() {
       projectionSlotCount: slotCount,
       projectionMoveCount: moveCount,
       projectionTypingIntervalMs: typingIntervalMs,
+      projectionTanzakuGlowMs: tanzakuGlowMs,
       projectionRotateIntervalMs: rotateIntervalMs,
       projectionEffectAutoEnabled: parsed.projectionEffectAutoEnabled === true,
       projectionEffectIntervalMs: effectIntervalMs,
@@ -589,6 +633,10 @@ async function readSettings() {
       projectionParallaxStrength: parallaxStrength,
       projectionParallaxVanishingPointX: parallaxVanishingPointX,
       projectionParallaxVanishingPointY: parallaxVanishingPointY,
+      projectionParallaxCameraTargetX: parallaxCameraTargetX,
+      projectionParallaxCameraTargetY: parallaxCameraTargetY,
+      projectionPerspectiveBoxX: perspectiveBoxX,
+      projectionPerspectiveBoxY: perspectiveBoxY,
       projectionParallaxMarkerEnabled: parsed.projectionParallaxMarkerEnabled === true,
       projectionParallaxPopoutStrength: parallaxPopoutStrength,
       projectionParallaxDepthMultiplier: parallaxDepthMultiplier,
@@ -627,6 +675,13 @@ function normalizeNumber(value, fallback, min, max) {
   return Math.max(min, Math.min(max, number));
 }
 
+function normalizeNullableNumber(value, fallback, min, max) {
+  if (value === null || value === undefined || value === "") {
+    return fallback;
+  }
+  return normalizeNumber(value, fallback, min, max);
+}
+
 function normalizeRelativeNumber(value, fallback, min, max) {
   const number = Number(value);
   if (!Number.isFinite(number) || number < min || number > max) {
@@ -641,6 +696,7 @@ function projectionPresetFromSettings(settings) {
     projectionSlotCount: settings.projectionSlotCount,
     projectionMoveCount: settings.projectionMoveCount,
     projectionTypingIntervalMs: settings.projectionTypingIntervalMs,
+    projectionTanzakuGlowMs: settings.projectionTanzakuGlowMs,
     projectionRotateIntervalMs: settings.projectionRotateIntervalMs,
     projectionEffectAutoEnabled: settings.projectionEffectAutoEnabled === true,
     projectionEffectIntervalMs: settings.projectionEffectIntervalMs,
@@ -671,6 +727,10 @@ function projectionPresetFromSettings(settings) {
     projectionParallaxStrength: settings.projectionParallaxStrength,
     projectionParallaxVanishingPointX: settings.projectionParallaxVanishingPointX,
     projectionParallaxVanishingPointY: settings.projectionParallaxVanishingPointY,
+    projectionParallaxCameraTargetX: settings.projectionParallaxCameraTargetX,
+    projectionParallaxCameraTargetY: settings.projectionParallaxCameraTargetY,
+    projectionPerspectiveBoxX: settings.projectionPerspectiveBoxX,
+    projectionPerspectiveBoxY: settings.projectionPerspectiveBoxY,
     projectionParallaxMarkerEnabled: settings.projectionParallaxMarkerEnabled === true,
     projectionParallaxPopoutStrength: settings.projectionParallaxPopoutStrength,
     projectionParallaxDepthMultiplier: settings.projectionParallaxDepthMultiplier,
@@ -723,6 +783,12 @@ function normalizeProjectionPreset(rawPreset) {
         DEFAULT_SETTINGS.projectionTypingIntervalMs,
         MIN_PROJECTION_TYPING_INTERVAL_MS,
         MAX_PROJECTION_TYPING_INTERVAL_MS
+      ),
+      projectionTanzakuGlowMs: normalizeInteger(
+        source.projectionTanzakuGlowMs,
+        DEFAULT_SETTINGS.projectionTanzakuGlowMs,
+        MIN_PROJECTION_TANZAKU_GLOW_MS,
+        MAX_PROJECTION_TANZAKU_GLOW_MS
       ),
       projectionRotateIntervalMs: normalizeInteger(
         source.projectionRotateIntervalMs,
@@ -862,6 +928,30 @@ function normalizeProjectionPreset(rawPreset) {
         DEFAULT_SETTINGS.projectionParallaxVanishingPointY,
         MIN_PROJECTION_PARALLAX_VANISHING_POINT_Y,
         MAX_PROJECTION_PARALLAX_VANISHING_POINT_Y
+      ),
+      projectionParallaxCameraTargetX: normalizeNullableNumber(
+        source.projectionParallaxCameraTargetX,
+        DEFAULT_SETTINGS.projectionParallaxCameraTargetX,
+        MIN_PROJECTION_PARALLAX_CAMERA_TARGET_X,
+        MAX_PROJECTION_PARALLAX_CAMERA_TARGET_X
+      ),
+      projectionParallaxCameraTargetY: normalizeNullableNumber(
+        source.projectionParallaxCameraTargetY,
+        DEFAULT_SETTINGS.projectionParallaxCameraTargetY,
+        MIN_PROJECTION_PARALLAX_CAMERA_TARGET_Y,
+        MAX_PROJECTION_PARALLAX_CAMERA_TARGET_Y
+      ),
+      projectionPerspectiveBoxX: normalizeNumber(
+        source.projectionPerspectiveBoxX,
+        DEFAULT_SETTINGS.projectionPerspectiveBoxX,
+        MIN_PROJECTION_PERSPECTIVE_BOX,
+        MAX_PROJECTION_PERSPECTIVE_BOX
+      ),
+      projectionPerspectiveBoxY: normalizeNumber(
+        source.projectionPerspectiveBoxY,
+        DEFAULT_SETTINGS.projectionPerspectiveBoxY,
+        MIN_PROJECTION_PERSPECTIVE_BOX,
+        MAX_PROJECTION_PERSPECTIVE_BOX
       ),
       projectionParallaxMarkerEnabled: source.projectionParallaxMarkerEnabled === true,
       projectionParallaxPopoutStrength: normalizeNumber(
@@ -1062,6 +1152,7 @@ function publicSettings(settings) {
     projectionSlotCount: settings.projectionSlotCount,
     projectionMoveCount: settings.projectionMoveCount,
     projectionTypingIntervalMs: settings.projectionTypingIntervalMs,
+    projectionTanzakuGlowMs: settings.projectionTanzakuGlowMs,
     projectionRotateIntervalMs: settings.projectionRotateIntervalMs,
     projectionEffectAutoEnabled: settings.projectionEffectAutoEnabled,
     projectionEffectIntervalMs: settings.projectionEffectIntervalMs,
@@ -1092,6 +1183,10 @@ function publicSettings(settings) {
     projectionParallaxStrength: settings.projectionParallaxStrength,
     projectionParallaxVanishingPointX: settings.projectionParallaxVanishingPointX,
     projectionParallaxVanishingPointY: settings.projectionParallaxVanishingPointY,
+    projectionParallaxCameraTargetX: settings.projectionParallaxCameraTargetX,
+    projectionParallaxCameraTargetY: settings.projectionParallaxCameraTargetY,
+    projectionPerspectiveBoxX: settings.projectionPerspectiveBoxX,
+    projectionPerspectiveBoxY: settings.projectionPerspectiveBoxY,
     projectionParallaxMarkerEnabled: settings.projectionParallaxMarkerEnabled === true,
     projectionParallaxPopoutStrength: settings.projectionParallaxPopoutStrength,
     projectionParallaxDepthMultiplier: settings.projectionParallaxDepthMultiplier,
@@ -1111,6 +1206,8 @@ function publicSettings(settings) {
     projectionSlotCountMax: MAX_PROJECTION_SLOT_COUNT,
     projectionTypingIntervalMsMin: MIN_PROJECTION_TYPING_INTERVAL_MS,
     projectionTypingIntervalMsMax: MAX_PROJECTION_TYPING_INTERVAL_MS,
+    projectionTanzakuGlowMsMin: MIN_PROJECTION_TANZAKU_GLOW_MS,
+    projectionTanzakuGlowMsMax: MAX_PROJECTION_TANZAKU_GLOW_MS,
     projectionRotateIntervalMsMin: MIN_PROJECTION_ROTATE_INTERVAL_MS,
     projectionRotateIntervalMsMax: MAX_PROJECTION_ROTATE_INTERVAL_MS,
     projectionEffectIntervalMsMin: MIN_PROJECTION_EFFECT_INTERVAL_MS,
@@ -1160,6 +1257,12 @@ function publicSettings(settings) {
     projectionParallaxVanishingPointXMax: MAX_PROJECTION_PARALLAX_VANISHING_POINT_X,
     projectionParallaxVanishingPointYMin: MIN_PROJECTION_PARALLAX_VANISHING_POINT_Y,
     projectionParallaxVanishingPointYMax: MAX_PROJECTION_PARALLAX_VANISHING_POINT_Y,
+    projectionParallaxCameraTargetXMin: MIN_PROJECTION_PARALLAX_CAMERA_TARGET_X,
+    projectionParallaxCameraTargetXMax: MAX_PROJECTION_PARALLAX_CAMERA_TARGET_X,
+    projectionParallaxCameraTargetYMin: MIN_PROJECTION_PARALLAX_CAMERA_TARGET_Y,
+    projectionParallaxCameraTargetYMax: MAX_PROJECTION_PARALLAX_CAMERA_TARGET_Y,
+    projectionPerspectiveBoxMin: MIN_PROJECTION_PERSPECTIVE_BOX,
+    projectionPerspectiveBoxMax: MAX_PROJECTION_PERSPECTIVE_BOX,
     projectionParallaxPopoutStrengthMin: MIN_PROJECTION_PARALLAX_POPOUT_STRENGTH,
     projectionParallaxPopoutStrengthMax: MAX_PROJECTION_PARALLAX_POPOUT_STRENGTH,
     projectionParallaxDepthMultiplierMin: MIN_PROJECTION_PARALLAX_DEPTH_MULTIPLIER,
@@ -1440,6 +1543,19 @@ async function handleApi(req, res, url) {
         return;
       }
       nextSettings.projectionTypingIntervalMs = typingIntervalMs;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionTanzakuGlowMs")) {
+      const tanzakuGlowMs = Number(body.projectionTanzakuGlowMs);
+      if (
+        !Number.isInteger(tanzakuGlowMs) ||
+        tanzakuGlowMs < MIN_PROJECTION_TANZAKU_GLOW_MS ||
+        tanzakuGlowMs > MAX_PROJECTION_TANZAKU_GLOW_MS
+      ) {
+        sendError(res, 400, `新短冊ハイライト時間は${MIN_PROJECTION_TANZAKU_GLOW_MS}から${MAX_PROJECTION_TANZAKU_GLOW_MS}までです。`);
+        return;
+      }
+      nextSettings.projectionTanzakuGlowMs = tanzakuGlowMs;
     }
 
     if (Object.prototype.hasOwnProperty.call(body, "projectionRotateIntervalMs")) {
@@ -1803,7 +1919,7 @@ async function handleApi(req, res, url) {
         vanishingPointX < MIN_PROJECTION_PARALLAX_VANISHING_POINT_X ||
         vanishingPointX > MAX_PROJECTION_PARALLAX_VANISHING_POINT_X
       ) {
-        sendError(res, 400, `視差消失点Xは${MIN_PROJECTION_PARALLAX_VANISHING_POINT_X}から${MAX_PROJECTION_PARALLAX_VANISHING_POINT_X}までです。`);
+        sendError(res, 400, `短冊目標Xは${MIN_PROJECTION_PARALLAX_VANISHING_POINT_X}から${MAX_PROJECTION_PARALLAX_VANISHING_POINT_X}までです。`);
         return;
       }
       nextSettings.projectionParallaxVanishingPointX = vanishingPointX;
@@ -1816,14 +1932,74 @@ async function handleApi(req, res, url) {
         vanishingPointY < MIN_PROJECTION_PARALLAX_VANISHING_POINT_Y ||
         vanishingPointY > MAX_PROJECTION_PARALLAX_VANISHING_POINT_Y
       ) {
-        sendError(res, 400, `視差消失点Yは${MIN_PROJECTION_PARALLAX_VANISHING_POINT_Y}から${MAX_PROJECTION_PARALLAX_VANISHING_POINT_Y}までです。`);
+        sendError(res, 400, `短冊目標Yは${MIN_PROJECTION_PARALLAX_VANISHING_POINT_Y}から${MAX_PROJECTION_PARALLAX_VANISHING_POINT_Y}までです。`);
         return;
       }
       nextSettings.projectionParallaxVanishingPointY = vanishingPointY;
     }
 
+    if (Object.prototype.hasOwnProperty.call(body, "projectionParallaxCameraTargetX")) {
+      if (body.projectionParallaxCameraTargetX === null) {
+        nextSettings.projectionParallaxCameraTargetX = null;
+      } else {
+        const cameraTargetX = Number(body.projectionParallaxCameraTargetX);
+        if (
+          !Number.isFinite(cameraTargetX) ||
+          cameraTargetX < MIN_PROJECTION_PARALLAX_CAMERA_TARGET_X ||
+          cameraTargetX > MAX_PROJECTION_PARALLAX_CAMERA_TARGET_X
+        ) {
+          sendError(res, 400, `カメラ注視点Xは${MIN_PROJECTION_PARALLAX_CAMERA_TARGET_X}から${MAX_PROJECTION_PARALLAX_CAMERA_TARGET_X}までです。`);
+          return;
+        }
+        nextSettings.projectionParallaxCameraTargetX = cameraTargetX;
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionParallaxCameraTargetY")) {
+      if (body.projectionParallaxCameraTargetY === null) {
+        nextSettings.projectionParallaxCameraTargetY = null;
+      } else {
+        const cameraTargetY = Number(body.projectionParallaxCameraTargetY);
+        if (
+          !Number.isFinite(cameraTargetY) ||
+          cameraTargetY < MIN_PROJECTION_PARALLAX_CAMERA_TARGET_Y ||
+          cameraTargetY > MAX_PROJECTION_PARALLAX_CAMERA_TARGET_Y
+        ) {
+          sendError(res, 400, `カメラ注視点Yは${MIN_PROJECTION_PARALLAX_CAMERA_TARGET_Y}から${MAX_PROJECTION_PARALLAX_CAMERA_TARGET_Y}までです。`);
+          return;
+        }
+        nextSettings.projectionParallaxCameraTargetY = cameraTargetY;
+      }
+    }
+
     if (Object.prototype.hasOwnProperty.call(body, "projectionParallaxMarkerEnabled")) {
       nextSettings.projectionParallaxMarkerEnabled = body.projectionParallaxMarkerEnabled === true;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionPerspectiveBoxX")) {
+      const perspectiveBoxX = Number(body.projectionPerspectiveBoxX);
+      if (
+        !Number.isFinite(perspectiveBoxX) ||
+        perspectiveBoxX < MIN_PROJECTION_PERSPECTIVE_BOX ||
+        perspectiveBoxX > MAX_PROJECTION_PERSPECTIVE_BOX
+      ) {
+        sendError(res, 400, `3DボックスXは${MIN_PROJECTION_PERSPECTIVE_BOX}から${MAX_PROJECTION_PERSPECTIVE_BOX}までです。`);
+        return;
+      }
+      nextSettings.projectionPerspectiveBoxX = perspectiveBoxX;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionPerspectiveBoxY")) {
+      const perspectiveBoxY = Number(body.projectionPerspectiveBoxY);
+      if (
+        !Number.isFinite(perspectiveBoxY) ||
+        perspectiveBoxY < MIN_PROJECTION_PERSPECTIVE_BOX ||
+        perspectiveBoxY > MAX_PROJECTION_PERSPECTIVE_BOX
+      ) {
+        sendError(res, 400, `3DボックスYは${MIN_PROJECTION_PERSPECTIVE_BOX}から${MAX_PROJECTION_PERSPECTIVE_BOX}までです。`);
+        return;
+      }
+      nextSettings.projectionPerspectiveBoxY = perspectiveBoxY;
     }
 
     if (Object.prototype.hasOwnProperty.call(body, "projectionParallaxPopoutStrength")) {
