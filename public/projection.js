@@ -116,7 +116,6 @@ const PARALLAX_SCALE_STEP = 0.005;
 const PARALLAX_CAMERA_X = 0.16;
 const PARALLAX_CAMERA_Y = 0.14;
 const PARALLAX_CAMERA_Z = 0.34;
-const PARALLAX_CAMERA_BASE_DISTANCE = 2.5;
 const PARALLAX_WORLD_DEPTH_SCALE = 1.55;
 const PARALLAX_VIEWER_OFFSET_X_MIN = -8;
 const PARALLAX_VIEWER_OFFSET_X_MAX = 8;
@@ -2043,15 +2042,11 @@ function createParallaxScene() {
     return safeDepth;
   }
 
-  function getViewerDistancePerspective() {
-    return Math.max(0.3, Math.min(2.6, PARALLAX_CAMERA_BASE_DISTANCE / scene.viewerDistance));
-  }
-
-  function getDistanceAdjustedDepth(depth, referenceDepth) {
-    const safeDepth = Number.isFinite(depth) ? depth : 0.5;
-    const safeReferenceDepth = Number.isFinite(referenceDepth) ? referenceDepth : safeDepth;
-    const distancePerspective = getViewerDistancePerspective();
-    return safeReferenceDepth + ((safeDepth - safeReferenceDepth) * distancePerspective);
+  // 短冊の仮想世界での奥行きは、カメラをどこに置くかとは無関係に決まる。
+  // 以前はここで 2.5/viewerDistance を掛けており、壁面へ寄せるほど短冊が
+  // カメラより手前へ飛び出して消えていた。パースの強弱は focalLength === viewerDistance が担う。
+  function getDistanceAdjustedDepth(depth) {
+    return Number.isFinite(depth) ? depth : 0.5;
   }
 
   function getProjectionPlaneMetrics() {
@@ -2132,17 +2127,19 @@ function createParallaxScene() {
     return mode === "camera" || mode === "camera-display";
   }
 
+  // 仮想カメラの移動量は投影面の半幅を単位とする実カメラの移動量と一対一で対応させる。
+  // 実カメラの物理的な移動量は壁面からの距離を変えても変わらないので、
+  // ここで viewerDistance に依存する係数を掛けてはいけない。振幅の較正は parallaxStrength で行う。
   function getCameraProjectionMotion(gain = 1) {
-    const distanceFactor = PARALLAX_CAMERA_BASE_DISTANCE / scene.viewerDistance;
     const cameraX = (scene.viewerOffsetX / PARALLAX_VANISHING_POINT_VIEWER_SCALE) +
-      (scene.viewerX * PARALLAX_CAMERA_X * scene.strength * distanceFactor);
+      (scene.viewerX * PARALLAX_CAMERA_X * scene.strength);
     const dynamicCameraY = usesDisplayPlaneMotion(scene.motionMode)
       ? scene.viewerY * PARALLAX_CAMERA_Y * scene.popoutStrength
       : 0;
     const cameraY = (scene.viewerOffsetY / PARALLAX_VANISHING_POINT_VIEWER_SCALE) +
-      (dynamicCameraY * distanceFactor);
+      dynamicCameraY;
     const cameraZ = usesCameraDepthMotion(scene.motionMode)
-      ? scene.viewerZ * PARALLAX_CAMERA_Z * scene.popoutStrength * distanceFactor
+      ? scene.viewerZ * PARALLAX_CAMERA_Z * scene.popoutStrength
       : 0;
     return {
       x: cameraX * gain,
@@ -2175,7 +2172,10 @@ function createParallaxScene() {
       forward,
       right,
       down,
-      focalLength: PARALLAX_CAMERA_BASE_DISTANCE
+      // 焦点距離は壁面からのカメラ距離と一致させる。実カメラが壁面を撮る前提では
+      // f !== viewerDistance だと壁面像が f/viewerDistance 倍に誤スケールされ、
+      // 合成映像での手前/奥のコントラストが崩れる。
+      focalLength: scene.viewerDistance
     };
   }
 
@@ -2188,8 +2188,8 @@ function createParallaxScene() {
     });
   }
 
-  function getDepthOffset(depth, referenceDepth) {
-    const adjustedDepth = getProjectionDepth(getDistanceAdjustedDepth(depth, referenceDepth));
+  function getDepthOffset(depth) {
+    const adjustedDepth = getProjectionDepth(getDistanceAdjustedDepth(depth));
     return (TANZAKU_DEPTH_REFERENCE_NEUTRAL - adjustedDepth) * PARALLAX_WORLD_DEPTH_SCALE;
   }
 
@@ -2216,46 +2216,38 @@ function createParallaxScene() {
     };
   }
 
-  function projectLayer(baseX, baseY, depth, referenceDepth = depth) {
+  function projectLayer(baseX, baseY, depth) {
     const model = getCameraModel();
-    const worldPoint = getWorldPointForTanzakuDepth(baseX, baseY, depth, referenceDepth, model);
+    const worldPoint = getWorldPointForTanzakuDepth(baseX, baseY, depth, model);
     const projectedPoint = projectWorldPoint(worldPoint, model);
-    const distancePerspective = getViewerDistancePerspective();
-    const scaleResponse = Math.max(0.1, Math.min(0.42, PARALLAX_SCALE_RESPONSE * distancePerspective));
     const safeZ = Math.max(PARALLAX_CAMERA_NEAR_CLIP_Z, projectedPoint.viewZ);
-    const rawPerspectiveScale = usesRealCameraProjection(scene.motionMode) ? 1 : model.focalLength / safeZ;
+    // 壁投影モードでは壁面へ落ちる影の倍率、それ以外はピンホールの遠近倍率。
+    // focalLength === viewerDistance なので両者は実質同じ値になる。
+    const rawPerspectiveScale = Number.isFinite(projectedPoint.planeScale)
+      ? projectedPoint.planeScale
+      : model.focalLength / safeZ;
     const scale = Math.max(
       PARALLAX_SCALE_MIN,
-      Math.min(PARALLAX_SCALE_MAX, 1 + ((rawPerspectiveScale - 1) * scaleResponse))
+      Math.min(PARALLAX_SCALE_MAX, 1 + ((rawPerspectiveScale - 1) * PARALLAX_SCALE_RESPONSE))
     );
     return {
       offsetXPx: (projectedPoint.innerX - baseX) * model.plane.width * 0.5,
       offsetYPx: (projectedPoint.innerY - baseY) * model.plane.height * 0.5,
       scale,
-      depthScaleWeight: Math.max(0.25, Math.min(1, distancePerspective)),
       visible: projectedPoint.viewZ > PARALLAX_CAMERA_NEAR_CLIP_Z
     };
   }
 
-  function getRenderOrderRelativeZ(depth, referenceDepth = depth) {
+  function getRenderOrderRelativeZ(depth) {
     if (!scene.enabled) return null;
     const model = getCameraModel();
-    const worldPoint = getWorldPointForTanzakuDepth(0, 0, depth, referenceDepth, model);
+    const worldPoint = getWorldPointForTanzakuDepth(0, 0, depth, model);
     return projectWorldPoint(worldPoint, model).viewZ;
   }
 
-  function projectPoint(baseX, baseY, depth, referenceDepth = depth) {
-    const plane = getProjectionPlaneMetrics();
-    const projected = projectLayer(baseX, baseY, depth, referenceDepth);
-    return {
-      x: plane.marginPx + (((baseX + 1) / 2) * plane.width) + projected.offsetXPx,
-      y: plane.marginPx + (((baseY + 1) / 2) * plane.height) + projected.offsetYPx
-    };
-  }
-
-  function getWorldPointForTanzakuDepth(baseX, baseY, depth, referenceDepth = TANZAKU_DEPTH_REFERENCE_NEUTRAL, model = getCameraModel()) {
+  function getWorldPointForTanzakuDepth(baseX, baseY, depth, model = getCameraModel()) {
     const depthDirection = getWorldDepthDirection(model);
-    const depthOffset = getDepthOffset(depth, referenceDepth);
+    const depthOffset = getDepthOffset(depth);
     return vectorAdd(
       { x: baseX, y: baseY, z: 0 },
       vectorScale(depthDirection, depthOffset)
@@ -2304,11 +2296,13 @@ function createParallaxScene() {
       y: viewport.y,
       innerX: intersection.x,
       innerY: intersection.y,
+      // 壁面へ落ちる影の倍率。手前の短冊ほど 1 より大きくなる。
+      planeScale: distance,
       viewZ
     };
   }
 
-  function viewportPointToWorldBasePoint(viewportX, viewportY, depth, referenceDepth = TANZAKU_DEPTH_REFERENCE_NEUTRAL) {
+  function viewportPointToWorldBasePoint(viewportX, viewportY, depth) {
     const model = getCameraModel();
     const clampedViewportX = Math.max(0, Math.min(model.plane.viewportWidth, viewportX));
     const clampedViewportY = Math.max(0, Math.min(model.plane.viewportHeight, viewportY));
@@ -2324,7 +2318,7 @@ function createParallaxScene() {
         )
       ), model.forward);
     const depthDirection = getWorldDepthDirection(model);
-    const depthOffset = getDepthOffset(depth, referenceDepth);
+    const depthOffset = getDepthOffset(depth);
     const targetZ = depthDirection.z * depthOffset;
     if (Math.abs(rayDirection.z) < 0.0001) {
       return { x: scene.perspectiveBoxX, y: scene.perspectiveBoxY };
@@ -2471,10 +2465,10 @@ function createParallaxScene() {
     ];
     const model = getCameraModel(plane);
     const frontWorld = baseCorners.map((point) => (
-      getWorldPointForTanzakuDepth(point.x, point.y, frontDepth, TANZAKU_DEPTH_REFERENCE_NEUTRAL, model)
+      getWorldPointForTanzakuDepth(point.x, point.y, frontDepth, model)
     ));
     const rearWorld = baseCorners.map((point) => (
-      getWorldPointForTanzakuDepth(point.x, point.y, rearDepth, TANZAKU_DEPTH_REFERENCE_NEUTRAL, model)
+      getWorldPointForTanzakuDepth(point.x, point.y, rearDepth, model)
     ));
     const front = [
       projectWorldPoint(frontWorld[0], model),
@@ -2563,7 +2557,7 @@ function createParallaxScene() {
     const model = getCameraModel();
     const slotMetrics = participants.map((slot) => {
       const depth = getSlotDepth(slot, referenceDepth, orderedSlots);
-      const worldPoint = getWorldPointForTanzakuDepth(0, 0, depth, TANZAKU_DEPTH_REFERENCE_NEUTRAL, model);
+      const worldPoint = getWorldPointForTanzakuDepth(0, 0, depth, model);
       const relativeZ = worldPoint.z - model.position.z;
       const visualPosition = getSlotVisualPosition(slot);
       return { slot, relativeZ, x: visualPosition.x };
@@ -2606,7 +2600,7 @@ function createParallaxScene() {
     const visualPosition = getSlotVisualPosition(slot);
     const baseX = (visualPosition.x - 50) / 50;
     const baseY = (visualPosition.y - 50) / 50;
-    const projected = projectLayer(baseX, baseY, depth, TANZAKU_DEPTH_REFERENCE_NEUTRAL);
+    const projected = projectLayer(baseX, baseY, depth);
     slot.element.classList.toggle("tanzaku--behind-viewer", !projected.visible);
     if (!projected.visible) {
       setSlotRenderSuspended(slot, false);
@@ -2614,8 +2608,7 @@ function createParallaxScene() {
       return;
     }
     const depthScale = getSlotDepthScale(slot, depth);
-    const adjustedDepthScale = 1 + ((depthScale - 1) * projected.depthScaleWeight);
-    const combinedScale = Math.min(TANZAKU_COMBINED_SCALE_MAX, adjustedDepthScale * projected.scale);
+    const combinedScale = Math.min(TANZAKU_COMBINED_SCALE_MAX, depthScale * projected.scale);
     const visibleRatio = estimateSlotVisibleRatio(slot, visualPosition, projected, combinedScale);
     const renderSuspended = shouldSuspendSlotRender(slot, visibleRatio);
     setSlotRenderSuspended(slot, renderSuspended);
@@ -2647,14 +2640,12 @@ function createParallaxScene() {
     const leftProjected = projectLayer(
       bambooScreenPercentToPlaneX(settings.bambooLeftX, BAMBOO_LEFT_X_DEFAULT),
       bambooOffsetToPlaneY(settings.bambooLeftY, 0.16),
-      bambooDepth,
-      TANZAKU_DEPTH_REFERENCE_NEUTRAL
+      bambooDepth
     );
     const rightProjected = projectLayer(
       bambooScreenPercentToPlaneX(settings.bambooRightX, BAMBOO_RIGHT_X_DEFAULT),
       bambooOffsetToPlaneY(settings.bambooRightY, 0.12),
-      bambooDepth,
-      TANZAKU_DEPTH_REFERENCE_NEUTRAL
+      bambooDepth
     );
     setStylePropertyIfChanged(projectionStage, "--bamboo-left-parallax-x", formatPixel(leftProjected.offsetXPx));
     setStylePropertyIfChanged(projectionStage, "--bamboo-left-parallax-y", formatPixel(leftProjected.offsetYPx));
@@ -3766,7 +3757,7 @@ function syncSlotDomOrder({ allowDuringRotation = false, replaceDom = true } = {
   const getMetric = (slot) => {
     if (!metrics.has(slot)) {
       const depth = getSlotDepth(slot, referenceDepth, depthOrderedSlots);
-      const relativeZ = parallaxScene.getRenderOrderRelativeZ(depth, TANZAKU_DEPTH_REFERENCE_NEUTRAL);
+      const relativeZ = parallaxScene.getRenderOrderRelativeZ(depth);
       metrics.set(slot, {
         depth,
         relativeZ: Number.isFinite(relativeZ) ? relativeZ : null
@@ -4076,7 +4067,7 @@ function usesParallaxDisplayPlaneMotion(mode) {
 }
 
 function usesParallaxRenderedCameraDepthMotion(mode) {
-  return mode === "mapping";
+  return mode === "mapping" || mode === "camera";
 }
 
 function getParallaxPlacementReachPercent() {
@@ -4084,19 +4075,20 @@ function getParallaxPlacementReachPercent() {
     return { left: 0, right: 0, top: 0, bottom: 0 };
   }
 
+  // 振幅と焦点距離は parallaxScene 側の投影式と揃える。
+  // 振幅は viewerDistance に依存せず、焦点距離は viewerDistance と一致する。
   const viewerDistance = Math.max(0.5, Math.min(PARALLAX_VIEWER_DISTANCE_MAX, projectionSettings.parallaxViewerDistance || 2.5));
-  const distanceFactor = PARALLAX_CAMERA_BASE_DISTANCE / viewerDistance;
   const fixedCameraX = projectionSettings.parallaxViewerOffsetX / PARALLAX_VANISHING_POINT_VIEWER_SCALE;
   const fixedCameraY = projectionSettings.parallaxViewerOffsetY / PARALLAX_VANISHING_POINT_VIEWER_SCALE;
-  const dynamicCameraX = PARALLAX_CAMERA_X * projectionSettings.parallaxStrength * distanceFactor;
+  const dynamicCameraX = PARALLAX_CAMERA_X * projectionSettings.parallaxStrength;
   const dynamicCameraY = usesParallaxDisplayPlaneMotion(projectionSettings.parallaxMotionMode)
-    ? PARALLAX_CAMERA_Y * projectionSettings.parallaxPopoutStrength * distanceFactor
+    ? PARALLAX_CAMERA_Y * projectionSettings.parallaxPopoutStrength
     : 0;
   const dynamicCameraZ = usesParallaxRenderedCameraDepthMotion(projectionSettings.parallaxMotionMode)
-    ? PARALLAX_CAMERA_Z * projectionSettings.parallaxPopoutStrength * distanceFactor
+    ? PARALLAX_CAMERA_Z * projectionSettings.parallaxPopoutStrength
     : 0;
   const safeZ = Math.max(PARALLAX_CAMERA_NEAR_CLIP_Z, viewerDistance - dynamicCameraZ);
-  const shiftFactor = (PARALLAX_CAMERA_BASE_DISTANCE / safeZ) * 50;
+  const shiftFactor = (viewerDistance / safeZ) * 50;
   const minCameraX = fixedCameraX - dynamicCameraX;
   const maxCameraX = fixedCameraX + dynamicCameraX;
   const minCameraY = fixedCameraY - dynamicCameraY;
