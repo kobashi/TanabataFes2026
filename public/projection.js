@@ -2157,6 +2157,14 @@ function createParallaxScene() {
     };
   }
 
+  function getCameraBasePosition() {
+    return {
+      x: scene.viewerOffsetX / PARALLAX_VANISHING_POINT_VIEWER_SCALE,
+      y: scene.viewerOffsetY / PARALLAX_VANISHING_POINT_VIEWER_SCALE,
+      z: -scene.viewerDistance
+    };
+  }
+
   function getCameraModel(plane = getProjectionPlaneMetrics()) {
     const position = getCameraPosition();
     const targetPoint = getInnerPlaneCameraTarget(plane);
@@ -2181,6 +2189,15 @@ function createParallaxScene() {
 
   function getWorldDepthDirection(model = getCameraModel()) {
     const vanishingPoint = getInnerPlaneVanishingPoint(model.plane);
+    if (usesRealCameraProjection(scene.motionMode)) {
+      // 現場カメラの基準位置から短冊目標へ奥行軸を向ける。
+      // アニメーション中の位置を使うと仮想空間がカメラと一緒に回転して
+      // 本来の視差が消えるため、固定の基準位置を使う。
+      return vectorNormalize(
+        vectorSubtract({ x: vanishingPoint.x, y: vanishingPoint.y, z: 0 }, getCameraBasePosition()),
+        { x: 0, y: 0, z: 1 }
+      );
+    }
     return vectorNormalize({
       x: vanishingPoint.x / model.focalLength,
       y: vanishingPoint.y / model.focalLength,
