@@ -85,6 +85,9 @@ const MAX_PROJECTION_PARALLAX_VIEWER_DISTANCE = 8;
 const MIN_PROJECTION_VIEWPORT_MARGIN = 0;
 const MAX_PROJECTION_VIEWPORT_MARGIN = 24;
 const PROJECTION_PARALLAX_MOTION_MODES = new Set(["display", "mapping", "camera", "camera-display"]);
+const PROJECTION_PARALLAX_CAMERA_ORIENTATION_MODES = new Set(["target", "parallel"]);
+const MIN_PROJECTION_PARALLAX_CAMERA_DELAY_SECONDS = 0;
+const MAX_PROJECTION_PARALLAX_CAMERA_DELAY_SECONDS = 1;
 const MIN_PROJECTION_CLOUD_COUNT = 0;
 const MAX_PROJECTION_CLOUD_COUNT = 12;
 const MIN_PROJECTION_CLOUD_ORIGIN_Y = -1;
@@ -136,6 +139,8 @@ const DEFAULT_SETTINGS = {
   projectionParallaxVanishingPointY: 0,
   projectionParallaxCameraTargetX: null,
   projectionParallaxCameraTargetY: null,
+  projectionParallaxCameraOrientationMode: "target",
+  projectionParallaxCameraDelaySeconds: 0.5,
   projectionPerspectiveBoxX: -0.52,
   projectionPerspectiveBoxY: -0.05,
   projectionParallaxMarkerEnabled: false,
@@ -524,6 +529,17 @@ async function readSettings() {
       MIN_PROJECTION_PARALLAX_CAMERA_TARGET_Y,
       MAX_PROJECTION_PARALLAX_CAMERA_TARGET_Y
     );
+    const parallaxCameraOrientationMode = PROJECTION_PARALLAX_CAMERA_ORIENTATION_MODES.has(
+      parsed.projectionParallaxCameraOrientationMode
+    )
+      ? parsed.projectionParallaxCameraOrientationMode
+      : DEFAULT_SETTINGS.projectionParallaxCameraOrientationMode;
+    const parallaxCameraDelaySeconds = normalizeNumber(
+      parsed.projectionParallaxCameraDelaySeconds,
+      DEFAULT_SETTINGS.projectionParallaxCameraDelaySeconds,
+      MIN_PROJECTION_PARALLAX_CAMERA_DELAY_SECONDS,
+      MAX_PROJECTION_PARALLAX_CAMERA_DELAY_SECONDS
+    );
     const perspectiveBoxX = normalizeNumber(
       parsed.projectionPerspectiveBoxX,
       DEFAULT_SETTINGS.projectionPerspectiveBoxX,
@@ -635,6 +651,8 @@ async function readSettings() {
       projectionParallaxVanishingPointY: parallaxVanishingPointY,
       projectionParallaxCameraTargetX: parallaxCameraTargetX,
       projectionParallaxCameraTargetY: parallaxCameraTargetY,
+      projectionParallaxCameraOrientationMode: parallaxCameraOrientationMode,
+      projectionParallaxCameraDelaySeconds: parallaxCameraDelaySeconds,
       projectionPerspectiveBoxX: perspectiveBoxX,
       projectionPerspectiveBoxY: perspectiveBoxY,
       projectionParallaxMarkerEnabled: parsed.projectionParallaxMarkerEnabled === true,
@@ -729,6 +747,17 @@ function projectionPresetFromSettings(settings) {
     projectionParallaxVanishingPointY: settings.projectionParallaxVanishingPointY,
     projectionParallaxCameraTargetX: settings.projectionParallaxCameraTargetX,
     projectionParallaxCameraTargetY: settings.projectionParallaxCameraTargetY,
+    projectionParallaxCameraOrientationMode: PROJECTION_PARALLAX_CAMERA_ORIENTATION_MODES.has(
+      settings.projectionParallaxCameraOrientationMode
+    )
+      ? settings.projectionParallaxCameraOrientationMode
+      : DEFAULT_SETTINGS.projectionParallaxCameraOrientationMode,
+    projectionParallaxCameraDelaySeconds: normalizeNumber(
+      settings.projectionParallaxCameraDelaySeconds,
+      DEFAULT_SETTINGS.projectionParallaxCameraDelaySeconds,
+      MIN_PROJECTION_PARALLAX_CAMERA_DELAY_SECONDS,
+      MAX_PROJECTION_PARALLAX_CAMERA_DELAY_SECONDS
+    ),
     projectionPerspectiveBoxX: settings.projectionPerspectiveBoxX,
     projectionPerspectiveBoxY: settings.projectionPerspectiveBoxY,
     projectionParallaxMarkerEnabled: settings.projectionParallaxMarkerEnabled === true,
@@ -940,6 +969,17 @@ function normalizeProjectionPreset(rawPreset) {
         DEFAULT_SETTINGS.projectionParallaxCameraTargetY,
         MIN_PROJECTION_PARALLAX_CAMERA_TARGET_Y,
         MAX_PROJECTION_PARALLAX_CAMERA_TARGET_Y
+      ),
+      projectionParallaxCameraOrientationMode: PROJECTION_PARALLAX_CAMERA_ORIENTATION_MODES.has(
+        source.projectionParallaxCameraOrientationMode
+      )
+        ? source.projectionParallaxCameraOrientationMode
+        : DEFAULT_SETTINGS.projectionParallaxCameraOrientationMode,
+      projectionParallaxCameraDelaySeconds: normalizeNumber(
+        source.projectionParallaxCameraDelaySeconds,
+        DEFAULT_SETTINGS.projectionParallaxCameraDelaySeconds,
+        MIN_PROJECTION_PARALLAX_CAMERA_DELAY_SECONDS,
+        MAX_PROJECTION_PARALLAX_CAMERA_DELAY_SECONDS
       ),
       projectionPerspectiveBoxX: normalizeNumber(
         source.projectionPerspectiveBoxX,
@@ -1185,6 +1225,17 @@ function publicSettings(settings) {
     projectionParallaxVanishingPointY: settings.projectionParallaxVanishingPointY,
     projectionParallaxCameraTargetX: settings.projectionParallaxCameraTargetX,
     projectionParallaxCameraTargetY: settings.projectionParallaxCameraTargetY,
+    projectionParallaxCameraOrientationMode: PROJECTION_PARALLAX_CAMERA_ORIENTATION_MODES.has(
+      settings.projectionParallaxCameraOrientationMode
+    )
+      ? settings.projectionParallaxCameraOrientationMode
+      : DEFAULT_SETTINGS.projectionParallaxCameraOrientationMode,
+    projectionParallaxCameraDelaySeconds: normalizeNumber(
+      settings.projectionParallaxCameraDelaySeconds,
+      DEFAULT_SETTINGS.projectionParallaxCameraDelaySeconds,
+      MIN_PROJECTION_PARALLAX_CAMERA_DELAY_SECONDS,
+      MAX_PROJECTION_PARALLAX_CAMERA_DELAY_SECONDS
+    ),
     projectionPerspectiveBoxX: settings.projectionPerspectiveBoxX,
     projectionPerspectiveBoxY: settings.projectionPerspectiveBoxY,
     projectionParallaxMarkerEnabled: settings.projectionParallaxMarkerEnabled === true,
@@ -2048,6 +2099,28 @@ async function handleApi(req, res, url) {
         return;
       }
       nextSettings.projectionParallaxMotionMode = motionMode;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionParallaxCameraOrientationMode")) {
+      const orientationMode = String(body.projectionParallaxCameraOrientationMode || "");
+      if (!PROJECTION_PARALLAX_CAMERA_ORIENTATION_MODES.has(orientationMode)) {
+        sendError(res, 400, "カメラ方向モードは target / parallel のいずれかです。");
+        return;
+      }
+      nextSettings.projectionParallaxCameraOrientationMode = orientationMode;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "projectionParallaxCameraDelaySeconds")) {
+      const cameraDelaySeconds = Number(body.projectionParallaxCameraDelaySeconds);
+      if (
+        !Number.isFinite(cameraDelaySeconds) ||
+        cameraDelaySeconds < MIN_PROJECTION_PARALLAX_CAMERA_DELAY_SECONDS ||
+        cameraDelaySeconds > MAX_PROJECTION_PARALLAX_CAMERA_DELAY_SECONDS
+      ) {
+        sendError(res, 400, "カメラ遅延は0.0秒から1.0秒までです。");
+        return;
+      }
+      nextSettings.projectionParallaxCameraDelaySeconds = cameraDelaySeconds;
     }
 
     if (Object.prototype.hasOwnProperty.call(body, "projectionParallaxViewerOffsetX")) {

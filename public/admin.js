@@ -51,6 +51,8 @@ const projectionCloudSeedInput = document.querySelector("#projection-cloud-seed"
 const projectionExperimentalParallaxInput = document.querySelector("#projection-experimental-parallax-enabled");
 const projectionParallaxMarkerInput = document.querySelector("#projection-parallax-marker-enabled");
 const projectionParallaxMotionModeInput = document.querySelector("#projection-parallax-motion-mode");
+const projectionParallaxCameraOrientationModeInput = document.querySelector("#projection-parallax-camera-orientation-mode");
+const projectionParallaxCameraDelaySecondsInput = document.querySelector("#projection-parallax-camera-delay-seconds");
 const projectionParallaxStrengthInput = document.querySelector("#projection-parallax-strength");
 const projectionParallaxPopoutStrengthInput = document.querySelector("#projection-parallax-popout-strength");
 const projectionParallaxDepthMultiplierInput = document.querySelector("#projection-parallax-depth-multiplier");
@@ -99,6 +101,7 @@ const projectionParallaxVanishingPointXValue = document.querySelector("#projecti
 const projectionParallaxVanishingPointYValue = document.querySelector("#projection-parallax-vanishing-point-y-value");
 const projectionParallaxCameraTargetXValue = document.querySelector("#projection-parallax-camera-target-x-value");
 const projectionParallaxCameraTargetYValue = document.querySelector("#projection-parallax-camera-target-y-value");
+const projectionParallaxCameraDelaySecondsValue = document.querySelector("#projection-parallax-camera-delay-seconds-value");
 const projectionEffectsForm = document.querySelector("#projection-effects-form");
 const projectionEffectsState = document.querySelector("#projection-effects-state");
 const projectionPresetCards = document.querySelectorAll("[data-projection-preset]");
@@ -259,6 +262,16 @@ function syncProjectionCameraTargetRanges() {
   ));
 }
 
+function syncProjectionCameraOrientationInputs() {
+  const targetDisabled = projectionParallaxCameraOrientationModeInput?.value === "parallel";
+  if (projectionParallaxCameraTargetXInput) {
+    projectionParallaxCameraTargetXInput.disabled = targetDisabled;
+  }
+  if (projectionParallaxCameraTargetYInput) {
+    projectionParallaxCameraTargetYInput.disabled = targetDisabled;
+  }
+}
+
 function syncProjectionSliderOutputs() {
   syncProjectionVanishingPointRanges();
   syncProjectionCameraTargetRanges();
@@ -368,6 +381,9 @@ function syncProjectionSliderOutputs() {
   if (projectionParallaxCameraTargetYValue && projectionParallaxCameraTargetYInput) {
     projectionParallaxCameraTargetYValue.textContent = formatSliderValue(projectionParallaxCameraTargetYInput.value);
   }
+  if (projectionParallaxCameraDelaySecondsValue && projectionParallaxCameraDelaySecondsInput) {
+    projectionParallaxCameraDelaySecondsValue.textContent = `${Number(projectionParallaxCameraDelaySecondsInput.value).toFixed(1)}秒`;
+  }
 }
 
 function setProjectionEffectsState(text) {
@@ -386,12 +402,14 @@ function presetSummary(preset) {
     mapping: "壁投影"
   };
   const motionMode = motionModeLabels[settings.projectionParallaxMotionMode] || motionModeLabels.mapping;
+  const cameraOrientation = settings.projectionParallaxCameraOrientationMode === "parallel" ? "壁平行" : "注視点ロック";
+  const cameraDelaySeconds = Number(settings.projectionParallaxCameraDelaySeconds ?? 0.5).toFixed(1);
   const fontLabel = PROJECTION_TANZAKU_FONT_LABELS[settings.projectionTanzakuFontId] || PROJECTION_TANZAKU_FONT_LABELS.mincho;
   const targetX = toProjectionTargetDisplayValue(settings.projectionParallaxVanishingPointX ?? 0);
   const targetY = toProjectionTargetDisplayValue(settings.projectionParallaxVanishingPointY ?? 0);
   const cameraTargetX = toProjectionTargetDisplayValue(settings.projectionParallaxCameraTargetX ?? settings.projectionParallaxVanishingPointX ?? 0);
   const cameraTargetY = toProjectionTargetDisplayValue(settings.projectionParallaxCameraTargetY ?? settings.projectionParallaxVanishingPointY ?? 0);
-  return `スロット ${settings.projectionSlotCount} / 表示 ${settings.projectionDisplayCount} / 移動 ${settings.projectionMoveCount} / フォント ${fontLabel} / 絵文字 ${settings.projectionColorEmojiFontEnabled ? "ON" : "OFF"} / 文字 ${settings.projectionTypingIntervalMs}ms / ハイライト ${settings.projectionTanzakuGlowMs ?? 3200}ms / 間隔 ${settings.projectionRotateIntervalMs}ms / 天の川 ${settings.projectionMilkyWayGain} / 雲 ${settings.projectionCloudCount} / 視差 ${settings.projectionExperimentalParallaxEnabled ? "ON" : "OFF"} / 笹舟 ${motionMode} / 左右 ${settings.projectionParallaxStrength} / 前後/上下 ${settings.projectionParallaxPopoutStrength ?? 0} / 鑑賞 ${settings.projectionParallaxViewerOffsetX ?? 0},${settings.projectionParallaxViewerOffsetY ?? 0},${settings.projectionParallaxViewerDistance ?? 2.5} / 3D箱 ${settings.projectionPerspectiveBoxX ?? -0.52},${settings.projectionPerspectiveBoxY ?? -0.05} / 余白 ${settings.projectionViewportMargin ?? 0} / 短冊目標 ${targetX},${targetY} / 注視点 ${cameraTargetX},${cameraTargetY}`;
+  return `スロット ${settings.projectionSlotCount} / 表示 ${settings.projectionDisplayCount} / 移動 ${settings.projectionMoveCount} / フォント ${fontLabel} / 絵文字 ${settings.projectionColorEmojiFontEnabled ? "ON" : "OFF"} / 文字 ${settings.projectionTypingIntervalMs}ms / ハイライト ${settings.projectionTanzakuGlowMs ?? 3200}ms / 間隔 ${settings.projectionRotateIntervalMs}ms / 天の川 ${settings.projectionMilkyWayGain} / 雲 ${settings.projectionCloudCount} / 視差 ${settings.projectionExperimentalParallaxEnabled ? "ON" : "OFF"} / 笹舟 ${motionMode} / カメラ ${cameraOrientation},遅延${cameraDelaySeconds}秒 / 左右 ${settings.projectionParallaxStrength} / 前後/上下 ${settings.projectionParallaxPopoutStrength ?? 0} / 鑑賞 ${settings.projectionParallaxViewerOffsetX ?? 0},${settings.projectionParallaxViewerOffsetY ?? 0},${settings.projectionParallaxViewerDistance ?? 2.5} / 3D箱 ${settings.projectionPerspectiveBoxX ?? -0.52},${settings.projectionPerspectiveBoxY ?? -0.05} / 余白 ${settings.projectionViewportMargin ?? 0} / 短冊目標 ${targetX},${targetY} / 注視点 ${cameraTargetX},${cameraTargetY}`;
 }
 
 function renderProjectionPresets(presets = []) {
@@ -738,6 +756,8 @@ function renderProjectionSettings(settings, { force = false } = {}) {
     !projectionExperimentalParallaxInput ||
     !projectionParallaxMarkerInput ||
     !projectionParallaxMotionModeInput ||
+    !projectionParallaxCameraOrientationModeInput ||
+    !projectionParallaxCameraDelaySecondsInput ||
     !projectionParallaxStrengthInput ||
     !projectionParallaxPopoutStrengthInput ||
     !projectionPerspectiveBoxXInput ||
@@ -800,6 +820,10 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   const parallaxMotionMode = ["display", "mapping", "camera", "camera-display"].includes(settings.projectionParallaxMotionMode)
     ? settings.projectionParallaxMotionMode
     : "mapping";
+  const parallaxCameraOrientationMode = settings.projectionParallaxCameraOrientationMode === "parallel"
+    ? "parallel"
+    : "target";
+  const parallaxCameraDelaySeconds = Math.max(0, Math.min(1, Number(settings.projectionParallaxCameraDelaySeconds ?? 0.5)));
   const parallaxMotionModeLabels = {
     display: "ディスプレイ",
     camera: "実カメラ",
@@ -987,6 +1011,9 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   projectionExperimentalParallaxInput.checked = experimentalParallaxEnabled;
   projectionParallaxMarkerInput.checked = parallaxMarkerEnabled;
   projectionParallaxMotionModeInput.value = parallaxMotionMode;
+  projectionParallaxCameraOrientationModeInput.value = parallaxCameraOrientationMode;
+  projectionParallaxCameraDelaySecondsInput.value = String(parallaxCameraDelaySeconds);
+  syncProjectionCameraOrientationInputs();
   projectionParallaxStrengthInput.value = String(parallaxStrength);
   projectionParallaxStrengthInput.min = String(parallaxStrengthMin);
   projectionParallaxStrengthInput.max = String(parallaxStrengthMax);
@@ -1061,7 +1088,7 @@ function renderProjectionSettings(settings, { force = false } = {}) {
   projectionMoveCountInput.value = String(moveCount);
   projectionMoveCountInput.max = String(displayCount);
   syncProjectionCountInputs();
-  setProjectionSettingsState(`フォント ${tanzakuFontLabel} / 絵文字 ${colorEmojiFontEnabled ? "ON" : "OFF"} / 文字 ${typingIntervalMs}ms / ハイライト ${tanzakuGlowMs}ms / 間隔 ${rotateIntervalMs}ms / 自動 ${effectAutoEnabled ? "ON" : "OFF"} / イベント ${effectIntervalMs}ms / 短冊 連動揺れ ${tanzakuSwayStrength}, ゆらぎ ${tanzakuAmbientSwayStrength}, 押し流し ${windGustStrength}, ${formatSliderValue(windGustCycleMs / 1000)}秒+${windGustCycleJitterSeconds}秒 / 天の川 ${milkyWayGain},${milkyWayTwinkle},${milkyWaySparkle},${milkyWaySpeed},${milkyWayParticleCount},${milkyWaySparkleRatio},${milkyWaySparklePeriodVariance},${milkyWaySparkleIntensityVariance},${milkyWaySparklePeriodSeconds}秒,${Math.round(milkyWaySparkleDutyRatio * 100)}% / 星呼応 ${tanabataStarResponseIntensity},${tanabataStarResponsePhaseDeg},${tanabataStarResponsePeriodSeconds} / 雲 ${cloudCount} / 高さ ${cloudOriginY} / 視差 ${experimentalParallaxEnabled ? "ON" : "OFF"} / マーカー ${parallaxMarkerEnabled ? "ON" : "OFF"} / 笹舟 ${parallaxMotionModeLabel} / 左右 ${parallaxStrength} / 前後/上下 ${parallaxPopoutStrength} / 奥行 ${parallaxDepthMultiplier},基準${parallaxDepthReferenceIndex} / 3D箱 ${perspectiveBoxX},${perspectiveBoxY} / 鑑賞 ${parallaxViewerOffsetX},${parallaxViewerOffsetY},${parallaxViewerDistance} / 余白 ${viewportMargin} / 短冊目標 ${parallaxVanishingPointDisplayX},${parallaxVanishingPointDisplayY} / 注視点 ${parallaxCameraTargetDisplayX},${parallaxCameraTargetDisplayY} / スロット ${slotCount} / 表示 ${displayCount} / 入替 ${moveCount}`);
+  setProjectionSettingsState(`フォント ${tanzakuFontLabel} / 絵文字 ${colorEmojiFontEnabled ? "ON" : "OFF"} / 文字 ${typingIntervalMs}ms / ハイライト ${tanzakuGlowMs}ms / 間隔 ${rotateIntervalMs}ms / 自動 ${effectAutoEnabled ? "ON" : "OFF"} / イベント ${effectIntervalMs}ms / 短冊 連動揺れ ${tanzakuSwayStrength}, ゆらぎ ${tanzakuAmbientSwayStrength}, 押し流し ${windGustStrength}, ${formatSliderValue(windGustCycleMs / 1000)}秒+${windGustCycleJitterSeconds}秒 / 天の川 ${milkyWayGain},${milkyWayTwinkle},${milkyWaySparkle},${milkyWaySpeed},${milkyWayParticleCount},${milkyWaySparkleRatio},${milkyWaySparklePeriodVariance},${milkyWaySparkleIntensityVariance},${milkyWaySparklePeriodSeconds}秒,${Math.round(milkyWaySparkleDutyRatio * 100)}% / 星呼応 ${tanabataStarResponseIntensity},${tanabataStarResponsePhaseDeg},${tanabataStarResponsePeriodSeconds} / 雲 ${cloudCount} / 高さ ${cloudOriginY} / 視差 ${experimentalParallaxEnabled ? "ON" : "OFF"} / マーカー ${parallaxMarkerEnabled ? "ON" : "OFF"} / 笹舟 ${parallaxMotionModeLabel} / カメラ ${parallaxCameraOrientationMode === "parallel" ? "壁平行" : "注視点ロック"},遅延${parallaxCameraDelaySeconds.toFixed(1)}秒 / 左右 ${parallaxStrength} / 前後/上下 ${parallaxPopoutStrength} / 奥行 ${parallaxDepthMultiplier},基準${parallaxDepthReferenceIndex} / 3D箱 ${perspectiveBoxX},${perspectiveBoxY} / 鑑賞 ${parallaxViewerOffsetX},${parallaxViewerOffsetY},${parallaxViewerDistance} / 余白 ${viewportMargin} / 短冊目標 ${parallaxVanishingPointDisplayX},${parallaxVanishingPointDisplayY} / 注視点 ${parallaxCameraTargetDisplayX},${parallaxCameraTargetDisplayY} / スロット ${slotCount} / 表示 ${displayCount} / 入替 ${moveCount}`);
 }
 
 function setLiveState(text) {
@@ -1284,6 +1311,8 @@ function isProjectionParallaxPreviewInput(target) {
     projectionExperimentalParallaxInput,
     projectionParallaxMarkerInput,
     projectionParallaxMotionModeInput,
+    projectionParallaxCameraOrientationModeInput,
+    projectionParallaxCameraDelaySecondsInput,
     projectionParallaxStrengthInput,
     projectionParallaxPopoutStrengthInput,
     projectionParallaxDepthMultiplierInput,
@@ -1317,6 +1346,8 @@ function currentProjectionParallaxPayload() {
     projectionExperimentalParallaxEnabled: projectionExperimentalParallaxInput.checked,
     projectionParallaxMarkerEnabled: projectionParallaxMarkerInput.checked,
     projectionParallaxMotionMode: projectionParallaxMotionModeInput.value,
+    projectionParallaxCameraOrientationMode: projectionParallaxCameraOrientationModeInput.value,
+    projectionParallaxCameraDelaySeconds: Number(projectionParallaxCameraDelaySecondsInput.value),
     projectionParallaxStrength: Number(projectionParallaxStrengthInput.value),
     projectionParallaxPopoutStrength: Number(projectionParallaxPopoutStrengthInput.value),
     projectionParallaxDepthMultiplier: Number(projectionParallaxDepthMultiplierInput.value),
@@ -1335,6 +1366,7 @@ function currentProjectionParallaxPayload() {
 
 function scheduleProjectionParallaxPreview() {
   projectionSettingsEditingUntil = Date.now() + 1800;
+  syncProjectionCameraOrientationInputs();
   syncProjectionSliderOutputs();
   setProjectionSettingsState(projectionSettingsDirty ? "編集中 / 視差プレビュー反映待ち" : "視差プレビュー反映待ち");
   if (projectionParallaxPreviewTimer) {
@@ -1401,6 +1433,8 @@ function currentProjectionSettingsPayload() {
     projectionExperimentalParallaxEnabled: projectionExperimentalParallaxInput.checked,
     projectionParallaxMarkerEnabled: projectionParallaxMarkerInput.checked,
     projectionParallaxMotionMode: projectionParallaxMotionModeInput.value,
+    projectionParallaxCameraOrientationMode: projectionParallaxCameraOrientationModeInput.value,
+    projectionParallaxCameraDelaySeconds: Number(projectionParallaxCameraDelaySecondsInput.value),
     projectionParallaxStrength: Number(projectionParallaxStrengthInput.value),
     projectionParallaxPopoutStrength: Number(projectionParallaxPopoutStrengthInput.value),
     projectionParallaxDepthMultiplier: Number(projectionParallaxDepthMultiplierInput.value),
@@ -1460,6 +1494,8 @@ if (
   projectionExperimentalParallaxInput &&
   projectionParallaxMarkerInput &&
   projectionParallaxMotionModeInput &&
+  projectionParallaxCameraOrientationModeInput &&
+  projectionParallaxCameraDelaySecondsInput &&
   projectionParallaxStrengthInput &&
   projectionParallaxPopoutStrengthInput &&
   projectionParallaxDepthMultiplierInput &&

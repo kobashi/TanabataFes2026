@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>七夕願い事 投影</title>
     <link rel="stylesheet" href="/styles.css?v=projection-admin-fonts-20260704-75">
-    <script src="/projection.js?v=projection-admin-fonts-20260704-84" defer></script>
+    <script src="/projection.js?v=projection-admin-fonts-20260704-85" defer></script>
   </head>
   <body class="projection-page">
     <main class="projection-stage" aria-label="七夕祭り投影画面">
@@ -115,6 +115,13 @@
           </div>
           <div class="projection-layout-control-group" aria-label="カメラ注視点">
             <p>注視点</p>
+            <label class="projection-layout-control" for="layout-parallax-camera-orientation-mode">
+              <span>方向</span>
+              <select id="layout-parallax-camera-orientation-mode">
+                <option value="target">注視点ロック</option>
+                <option value="parallel">壁面に平行</option>
+              </select>
+            </label>
             <label class="projection-layout-control" for="layout-parallax-camera-target-x">
               <span>X <output id="layout-parallax-camera-target-x-value" for="layout-parallax-camera-target-x">0</output></span>
               <input id="layout-parallax-camera-target-x" type="range" min="-8" max="8" step="0.05">
@@ -139,6 +146,10 @@
               <span>速度 <output id="layout-oracle-motion-speed-value" for="layout-oracle-motion-speed">1</output></span>
               <input id="layout-oracle-motion-speed" type="range" min="0.2" max="3" step="0.05">
             </label>
+            <label class="projection-layout-control" for="layout-parallax-camera-delay-seconds">
+              <span>カメラ遅延 <output id="layout-parallax-camera-delay-seconds-value" for="layout-parallax-camera-delay-seconds">0.5秒</output></span>
+              <input id="layout-parallax-camera-delay-seconds" type="range" min="0" max="1" step="0.1">
+            </label>
             <label class="projection-layout-control" for="layout-oracle-motion-direction">
               <span>方向</span>
               <select id="layout-oracle-motion-direction">
@@ -159,6 +170,7 @@
         <div class="projection-layout-menu-actions">
           <button id="layout-fullscreen-button" type="button">全画面</button>
           <button id="layout-center-button" type="button">短冊を中央整列</button>
+          <button id="layout-align-height-button" type="button">短冊の高さを揃える</button>
           <button id="layout-save-button" type="button">配置と調整を保存</button>
           <button id="layout-load-button" type="button">配置と調整を呼び出し</button>
           <button id="layout-clear-button" type="button">保存値をクリア</button>

@@ -16,6 +16,7 @@ const layoutLoadButton = document.querySelector("#layout-load-button");
 const layoutClearButton = document.querySelector("#layout-clear-button");
 const layoutFullscreenButton = document.querySelector("#layout-fullscreen-button");
 const layoutCenterButton = document.querySelector("#layout-center-button");
+const layoutAlignHeightButton = document.querySelector("#layout-align-height-button");
 const tanzakuFontSelect = document.querySelector("#tanzaku-font-select");
 const tanzakuFontSizeInput = document.querySelector("#tanzaku-font-size");
 const tanzakuFontSizeValue = document.querySelector("#tanzaku-font-size-value");
@@ -50,11 +51,14 @@ const layoutParallaxCameraTargetXInput = document.querySelector("#layout-paralla
 const layoutParallaxCameraTargetXValue = document.querySelector("#layout-parallax-camera-target-x-value");
 const layoutParallaxCameraTargetYInput = document.querySelector("#layout-parallax-camera-target-y");
 const layoutParallaxCameraTargetYValue = document.querySelector("#layout-parallax-camera-target-y-value");
+const layoutParallaxCameraOrientationModeInput = document.querySelector("#layout-parallax-camera-orientation-mode");
 const layoutParallaxEnabledInput = document.querySelector("#layout-parallax-enabled");
 const layoutParallaxMarkerEnabledInput = document.querySelector("#layout-parallax-marker-enabled");
 const layoutParallaxMotionModeInput = document.querySelector("#layout-parallax-motion-mode");
 const layoutOracleMotionSpeedInput = document.querySelector("#layout-oracle-motion-speed");
 const layoutOracleMotionSpeedValue = document.querySelector("#layout-oracle-motion-speed-value");
+const layoutParallaxCameraDelaySecondsInput = document.querySelector("#layout-parallax-camera-delay-seconds");
+const layoutParallaxCameraDelaySecondsValue = document.querySelector("#layout-parallax-camera-delay-seconds-value");
 const layoutOracleMotionDirectionInput = document.querySelector("#layout-oracle-motion-direction");
 const layoutParallaxStrengthInput = document.querySelector("#layout-parallax-strength");
 const layoutParallaxStrengthValue = document.querySelector("#layout-parallax-strength-value");
@@ -203,10 +207,12 @@ const APPEARANCE_OVERRIDE_KEYS = [
   "parallaxCameraTargetExplicit",
   "parallaxCameraTargetX",
   "parallaxCameraTargetY",
+  "parallaxCameraOrientationMode",
   "experimentalParallaxEnabled",
   "parallaxMarkerEnabled",
   "parallaxMotionMode",
   "oracleMotionSpeed",
+  "parallaxCameraDelaySeconds",
   "oracleMotionDirection",
   "parallaxStrength",
   "parallaxPopoutStrength"
@@ -283,6 +289,8 @@ let projectionSettings = {
   parallaxViewerDistance: 2.5,
   parallaxCameraTargetX: null,
   parallaxCameraTargetY: null,
+  parallaxCameraOrientationMode: "target",
+  parallaxCameraDelaySeconds: 0.5,
   perspectiveBoxX: PERSPECTIVE_BOX_WALL_X_DEFAULT,
   perspectiveBoxY: PERSPECTIVE_BOX_WALL_Y_DEFAULT,
   viewportMargin: 0
@@ -581,6 +589,12 @@ function normalizeAppearanceSettings(settings = {}) {
     parallaxCameraTargetY: hasExplicitCameraTarget
       ? normalizeParallaxCameraTarget(read("parallaxCameraTargetY", fallback.parallaxCameraTargetY ?? null), "y")
       : null,
+    parallaxCameraOrientationMode: normalizeParallaxCameraOrientationMode(
+      read("parallaxCameraOrientationMode", fallback.parallaxCameraOrientationMode ?? "target")
+    ),
+    parallaxCameraDelaySeconds: normalizeParallaxCameraDelaySeconds(
+      read("parallaxCameraDelaySeconds", fallback.parallaxCameraDelaySeconds ?? 0.5)
+    ),
     experimentalParallaxEnabled: read("experimentalParallaxEnabled", fallback.experimentalParallaxEnabled === true) === true,
     parallaxMarkerEnabled: read("parallaxMarkerEnabled", fallback.parallaxMarkerEnabled === true) === true,
     parallaxMotionMode: normalizeParallaxMotionMode(read("parallaxMotionMode", fallback.parallaxMotionMode ?? "mapping")),
@@ -689,6 +703,16 @@ function normalizeParallaxMotionMode(value) {
   return ["display", "mapping", "camera", "camera-display"].includes(mode) ? mode : "mapping";
 }
 
+function normalizeParallaxCameraOrientationMode(value) {
+  return value === "parallel" ? "parallel" : "target";
+}
+
+function normalizeParallaxCameraDelaySeconds(value) {
+  const delay = Number(value);
+  if (!Number.isFinite(delay)) return 0.5;
+  return Number(Math.max(0, Math.min(1, delay)).toFixed(1));
+}
+
 function normalizeOracleMotionSpeed(value) {
   const speed = Number(value);
   if (!Number.isFinite(speed)) return 1;
@@ -742,6 +766,8 @@ function applyLocalProjectionSettings(settings) {
   projectionSettings.parallaxVanishingPointY = settings.parallaxVanishingPointY;
   projectionSettings.parallaxCameraTargetX = settings.parallaxCameraTargetX;
   projectionSettings.parallaxCameraTargetY = settings.parallaxCameraTargetY;
+  projectionSettings.parallaxCameraOrientationMode = settings.parallaxCameraOrientationMode;
+  projectionSettings.parallaxCameraDelaySeconds = settings.parallaxCameraDelaySeconds;
   projectionSettings.experimentalParallaxEnabled = settings.experimentalParallaxEnabled;
   projectionSettings.parallaxMarkerEnabled = settings.parallaxMarkerEnabled;
   projectionSettings.parallaxMotionMode = settings.parallaxMotionMode;
@@ -771,6 +797,8 @@ function getServerBackedAppearanceDefaults() {
       baseline.parallaxCameraTargetY != null,
     parallaxCameraTargetX: baseline.parallaxCameraTargetX ?? null,
     parallaxCameraTargetY: baseline.parallaxCameraTargetY ?? null,
+    parallaxCameraOrientationMode: baseline.parallaxCameraOrientationMode ?? "target",
+    parallaxCameraDelaySeconds: baseline.parallaxCameraDelaySeconds ?? 0.5,
     experimentalParallaxEnabled: baseline.experimentalParallaxEnabled === true,
     parallaxMarkerEnabled: baseline.parallaxMarkerEnabled === true,
     parallaxMotionMode: baseline.parallaxMotionMode ?? "mapping",
@@ -798,9 +826,14 @@ function syncParallaxSceneFromProjectionSettings(settings = loadAppearanceSettin
     projectionSettings.parallaxCameraTargetX,
     projectionSettings.parallaxCameraTargetY
   );
+  parallaxScene.setCameraOrientationMode(projectionSettings.parallaxCameraOrientationMode);
   parallaxScene.setPopoutStrength(projectionSettings.parallaxPopoutStrength);
   parallaxScene.setPerspectiveBoxPosition(projectionSettings.perspectiveBoxX, projectionSettings.perspectiveBoxY);
-  parallaxScene.setMotionTiming(settings.oracleMotionSpeed, settings.oracleMotionDirection);
+  parallaxScene.setMotionTiming(
+    settings.oracleMotionSpeed,
+    settings.oracleMotionDirection,
+    projectionSettings.parallaxCameraDelaySeconds
+  );
   parallaxScene.setMarkerEnabled(projectionSettings.parallaxMarkerEnabled);
   parallaxScene.setEnabled(projectionSettings.experimentalParallaxEnabled);
 }
@@ -825,10 +858,12 @@ function getAppearanceControlEntries() {
     [layoutParallaxVanishingYInput, "parallaxVanishingPointY"],
     [layoutParallaxCameraTargetXInput, "parallaxCameraTargetX"],
     [layoutParallaxCameraTargetYInput, "parallaxCameraTargetY"],
+    [layoutParallaxCameraOrientationModeInput, "parallaxCameraOrientationMode"],
     [layoutParallaxEnabledInput, "experimentalParallaxEnabled"],
     [layoutParallaxMarkerEnabledInput, "parallaxMarkerEnabled"],
     [layoutParallaxMotionModeInput, "parallaxMotionMode"],
     [layoutOracleMotionSpeedInput, "oracleMotionSpeed"],
+    [layoutParallaxCameraDelaySecondsInput, "parallaxCameraDelaySeconds"],
     [layoutOracleMotionDirectionInput, "oracleMotionDirection"],
     [layoutParallaxStrengthInput, "parallaxStrength"],
     [layoutParallaxPopoutInput, "parallaxPopoutStrength"]
@@ -890,10 +925,14 @@ function buildAppearanceSettingsFromControls(overrides = layoutAppearanceOverrid
     parallaxCameraTargetY: layoutCameraTargetExplicit
       ? viewerScaleToVanishingPoint(layoutParallaxCameraTargetYInput?.value, "y")
       : null,
+    parallaxCameraOrientationMode: normalizeParallaxCameraOrientationMode(
+      layoutParallaxCameraOrientationModeInput?.value
+    ),
     experimentalParallaxEnabled: layoutParallaxEnabledInput?.checked === true,
     parallaxMarkerEnabled: layoutParallaxMarkerEnabledInput?.checked === true,
     parallaxMotionMode: normalizeParallaxMotionMode(layoutParallaxMotionModeInput?.value),
     oracleMotionSpeed: normalizeOracleMotionSpeed(layoutOracleMotionSpeedInput?.value),
+    parallaxCameraDelaySeconds: normalizeParallaxCameraDelaySeconds(layoutParallaxCameraDelaySecondsInput?.value),
     oracleMotionDirection: normalizeOracleMotionDirection(layoutOracleMotionDirectionInput?.value),
     parallaxStrength: normalizeParallaxStrength(layoutParallaxStrengthInput?.value),
     parallaxPopoutStrength: normalizeParallaxPopoutStrength(layoutParallaxPopoutInput?.value)
@@ -1060,6 +1099,16 @@ function applyAppearanceSettings(settings = loadAppearanceSettings()) {
   if (layoutParallaxCameraTargetYValue) {
     layoutParallaxCameraTargetYValue.textContent = cameraTargetY.toFixed(2);
   }
+  if (layoutParallaxCameraOrientationModeInput) {
+    layoutParallaxCameraOrientationModeInput.value = normalizedSettings.parallaxCameraOrientationMode;
+  }
+  const cameraTargetDisabled = normalizedSettings.parallaxCameraOrientationMode === "parallel";
+  if (layoutParallaxCameraTargetXInput) {
+    layoutParallaxCameraTargetXInput.disabled = cameraTargetDisabled;
+  }
+  if (layoutParallaxCameraTargetYInput) {
+    layoutParallaxCameraTargetYInput.disabled = cameraTargetDisabled;
+  }
   if (layoutParallaxEnabledInput) {
     layoutParallaxEnabledInput.checked = normalizedSettings.experimentalParallaxEnabled;
   }
@@ -1075,6 +1124,12 @@ function applyAppearanceSettings(settings = loadAppearanceSettings()) {
   }
   if (layoutOracleMotionSpeedValue) {
     layoutOracleMotionSpeedValue.textContent = normalizedSettings.oracleMotionSpeed.toFixed(2);
+  }
+  if (layoutParallaxCameraDelaySecondsInput) {
+    layoutParallaxCameraDelaySecondsInput.value = String(normalizedSettings.parallaxCameraDelaySeconds);
+  }
+  if (layoutParallaxCameraDelaySecondsValue) {
+    layoutParallaxCameraDelaySecondsValue.textContent = `${normalizedSettings.parallaxCameraDelaySeconds.toFixed(1)}秒`;
   }
   if (layoutOracleMotionDirectionInput) {
     layoutOracleMotionDirectionInput.value = normalizedSettings.oracleMotionDirection;
@@ -1121,6 +1176,12 @@ function syncAppearanceSettingsFromControls(event) {
   }
   if (changedKeys.includes("parallaxCameraTargetY")) {
     patchPayload.projectionParallaxCameraTargetY = projectionSettings.parallaxCameraTargetY;
+  }
+  if (changedKeys.includes("parallaxCameraOrientationMode")) {
+    patchPayload.projectionParallaxCameraOrientationMode = projectionSettings.parallaxCameraOrientationMode;
+  }
+  if (changedKeys.includes("parallaxCameraDelaySeconds")) {
+    patchPayload.projectionParallaxCameraDelaySeconds = projectionSettings.parallaxCameraDelaySeconds;
   }
   scheduleProjectionControlSettingsPatch(patchPayload);
   saveAppearanceSettings(nextSettings);
@@ -1239,6 +1300,7 @@ function setupAppearanceControls() {
     layoutParallaxCameraTargetXInput,
     layoutParallaxCameraTargetYInput,
     layoutOracleMotionSpeedInput,
+    layoutParallaxCameraDelaySecondsInput,
     layoutParallaxStrengthInput,
     layoutParallaxPopoutInput
   ].forEach((input) => {
@@ -1249,6 +1311,7 @@ function setupAppearanceControls() {
 
   [
     layoutParallaxMotionModeInput,
+    layoutParallaxCameraOrientationModeInput,
     layoutOracleMotionDirectionInput,
     layoutParallaxEnabledInput,
     layoutParallaxMarkerEnabledInput
@@ -1433,6 +1496,34 @@ function centerAlignVisibleTanzaku() {
   }
 }
 
+function getMedian(values) {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? (sorted[middle - 1] + sorted[middle]) / 2
+    : sorted[middle];
+}
+
+function alignVisibleTanzakuHeights() {
+  if (activeDrag) {
+    endDrag();
+  }
+
+  const visibleSlots = getDisplaySlots().filter((slot) => slot.wish && slot.state !== "leaving");
+  if (!visibleSlots.length) {
+    updateLayoutMenuState("高さを揃えられる短冊がありません");
+    return;
+  }
+
+  const commonY = Number(getMedian(visibleSlots.map((slot) => slot.meta.y)).toFixed(2));
+  visibleSlots.forEach((slot) => {
+    updateSlotPosition(slot, slot.meta.x, commonY, { persist: false });
+  });
+  saveLayout();
+  updateLayoutMenuState(`${visibleSlots.length}枚の短冊の高さを揃えました`);
+}
+
 function applyLayoutPreset() {
   const preset = loadLayoutPreset();
   if (!preset) {
@@ -1461,7 +1552,9 @@ function applyLayoutPreset() {
       projectionPerspectiveBoxX: projectionSettings.perspectiveBoxX,
       projectionPerspectiveBoxY: projectionSettings.perspectiveBoxY,
       projectionParallaxCameraTargetX: projectionSettings.parallaxCameraTargetX,
-      projectionParallaxCameraTargetY: projectionSettings.parallaxCameraTargetY
+      projectionParallaxCameraTargetY: projectionSettings.parallaxCameraTargetY,
+      projectionParallaxCameraOrientationMode: projectionSettings.parallaxCameraOrientationMode,
+      projectionParallaxCameraDelaySeconds: projectionSettings.parallaxCameraDelaySeconds
     }, { immediate: true });
   }
   saveLayout();
@@ -1613,6 +1706,12 @@ function normalizeProjectionSettings(settings = {}) {
     settings.projectionParallaxCameraTargetY === undefined
     ? null
     : normalizeParallaxCameraTarget(settings.projectionParallaxCameraTargetY, "y", nextViewportMargin);
+  const parallaxCameraOrientationMode = normalizeParallaxCameraOrientationMode(
+    settings.projectionParallaxCameraOrientationMode
+  );
+  const parallaxCameraDelaySeconds = normalizeParallaxCameraDelaySeconds(
+    settings.projectionParallaxCameraDelaySeconds
+  );
   const perspectiveBoxX = Number(settings.projectionPerspectiveBoxX);
   const nextPerspectiveBoxX = Number.isFinite(perspectiveBoxX)
     ? normalizePerspectiveBoxCoordinate(perspectiveBoxX)
@@ -1687,6 +1786,8 @@ function normalizeProjectionSettings(settings = {}) {
     parallaxVanishingPointY: nextParallaxVanishingPointY,
     parallaxCameraTargetX: nextParallaxCameraTargetX,
     parallaxCameraTargetY: nextParallaxCameraTargetY,
+    parallaxCameraOrientationMode,
+    parallaxCameraDelaySeconds,
     perspectiveBoxX: nextPerspectiveBoxX,
     perspectiveBoxY: nextPerspectiveBoxY,
     parallaxMarkerEnabled,
@@ -1892,6 +1993,8 @@ function getProjectionSettingsSignature(settings) {
     parallaxVanishingPointY: settings.parallaxVanishingPointY,
     parallaxCameraTargetX: settings.parallaxCameraTargetX,
     parallaxCameraTargetY: settings.parallaxCameraTargetY,
+    parallaxCameraOrientationMode: settings.parallaxCameraOrientationMode,
+    parallaxCameraDelaySeconds: settings.parallaxCameraDelaySeconds,
     perspectiveBoxX: settings.perspectiveBoxX,
     perspectiveBoxY: settings.perspectiveBoxY,
     parallaxMarkerEnabled: settings.parallaxMarkerEnabled,
@@ -1947,11 +2050,15 @@ function createParallaxScene() {
     viewerX: 0,
     viewerY: 0,
     viewerZ: 0,
+    oracleViewerX: 0,
+    oracleViewerY: 0,
+    oracleViewerZ: 0,
     strength: 1,
     vanishingPointX: 0,
     vanishingPointY: 0,
     cameraTargetX: null,
     cameraTargetY: null,
+    cameraOrientationMode: "target",
     popoutStrength: 0,
     motionMode: "mapping",
     viewerOffsetX: 0,
@@ -1961,6 +2068,7 @@ function createParallaxScene() {
     perspectiveBoxY: PERSPECTIVE_BOX_WALL_Y_DEFAULT,
     motionSpeed: 1,
     motionDirection: "forward",
+    cameraDelaySeconds: 0.5,
     viewportMargin: 0,
     markerEnabled: false,
     lastOverlayFrameAt: 0,
@@ -1972,27 +2080,38 @@ function createParallaxScene() {
     return value * value * (3 - (2 * value));
   }
 
-  function sample(now) {
+  function sampleMotion(now) {
     const sourcePath = usesDisplayPlaneMotion(scene.motionMode) ? displayPath : mappingPath;
     const path = scene.motionDirection === "reverse" ? sourcePath.slice().reverse() : sourcePath;
     const totalSegments = path.length - 1;
     const motionSpeed = Math.max(ORACLE_MOTION_SPEED_MIN, Math.min(ORACLE_MOTION_SPEED_MAX, scene.motionSpeed));
-    const elapsed = Number.isFinite(now - scene.startedAt)
-      ? ((now - scene.startedAt) * motionSpeed) % (totalSegments * PARALLAX_VIEWER_STEP_MS)
+    const rawElapsed = Number.isFinite(now - scene.startedAt)
+      ? Math.max(0, (now - scene.startedAt) * motionSpeed)
       : 0;
+    const elapsed = rawElapsed % (totalSegments * PARALLAX_VIEWER_STEP_MS);
     const segment = Math.min(totalSegments - 1, Math.max(0, Math.floor(elapsed / PARALLAX_VIEWER_STEP_MS)));
     const from = path[segment];
     const to = path[segment + 1];
     if (!from || !to) {
-      scene.viewerX = 0;
-      scene.viewerY = 0;
-      scene.viewerZ = 0;
-      return;
+      return { x: 0, y: 0, z: 0 };
     }
     const progress = smooth((elapsed - (segment * PARALLAX_VIEWER_STEP_MS)) / PARALLAX_VIEWER_STEP_MS);
-    scene.viewerX = from.x + ((to.x - from.x) * progress);
-    scene.viewerY = from.y + ((to.y - from.y) * progress);
-    scene.viewerZ = from.z + ((to.z - from.z) * progress);
+    return {
+      x: from.x + ((to.x - from.x) * progress),
+      y: from.y + ((to.y - from.y) * progress),
+      z: from.z + ((to.z - from.z) * progress)
+    };
+  }
+
+  function sample(now) {
+    const oracleMotion = sampleMotion(now);
+    const cameraMotion = sampleMotion(now - (scene.cameraDelaySeconds * 1000));
+    scene.oracleViewerX = oracleMotion.x;
+    scene.oracleViewerY = oracleMotion.y;
+    scene.oracleViewerZ = oracleMotion.z;
+    scene.viewerX = cameraMotion.x;
+    scene.viewerY = cameraMotion.y;
+    scene.viewerZ = cameraMotion.z;
   }
 
   function vectorAdd(a, b) {
@@ -2157,19 +2276,16 @@ function createParallaxScene() {
     };
   }
 
-  function getCameraBasePosition() {
-    return {
-      x: scene.viewerOffsetX / PARALLAX_VANISHING_POINT_VIEWER_SCALE,
-      y: scene.viewerOffsetY / PARALLAX_VANISHING_POINT_VIEWER_SCALE,
-      z: -scene.viewerDistance
-    };
-  }
-
   function getCameraModel(plane = getProjectionPlaneMetrics()) {
     const position = getCameraPosition();
     const targetPoint = getInnerPlaneCameraTarget(plane);
-    const target = { x: targetPoint.x, y: targetPoint.y, z: 0 };
-    const forward = vectorNormalize(vectorSubtract(target, position), { x: 0, y: 0, z: 1 });
+    const usesParallelCamera = scene.cameraOrientationMode === "parallel";
+    const target = usesParallelCamera
+      ? { x: position.x, y: position.y, z: 0 }
+      : { x: targetPoint.x, y: targetPoint.y, z: 0 };
+    const forward = usesParallelCamera
+      ? { x: 0, y: 0, z: 1 }
+      : vectorNormalize(vectorSubtract(target, position), { x: 0, y: 0, z: 1 });
     const worldDown = { x: 0, y: 1, z: 0 };
     const right = vectorNormalize(vectorCross(worldDown, forward), { x: 1, y: 0, z: 0 });
     const down = vectorNormalize(vectorCross(forward, right), worldDown);
@@ -2189,15 +2305,6 @@ function createParallaxScene() {
 
   function getWorldDepthDirection(model = getCameraModel()) {
     const vanishingPoint = getInnerPlaneVanishingPoint(model.plane);
-    if (usesRealCameraProjection(scene.motionMode)) {
-      // 現場カメラの基準位置から短冊目標へ奥行軸を向ける。
-      // アニメーション中の位置を使うと仮想空間がカメラと一緒に回転して
-      // 本来の視差が消えるため、固定の基準位置を使う。
-      return vectorNormalize(
-        vectorSubtract({ x: vanishingPoint.x, y: vanishingPoint.y, z: 0 }, getCameraBasePosition()),
-        { x: 0, y: 0, z: 1 }
-      );
-    }
     return vectorNormalize({
       x: vanishingPoint.x / model.focalLength,
       y: vanishingPoint.y / model.focalLength,
@@ -2236,7 +2343,7 @@ function createParallaxScene() {
   function projectLayer(baseX, baseY, depth) {
     const model = getCameraModel();
     const worldPoint = getWorldPointForTanzakuDepth(baseX, baseY, depth, model);
-    const projectedPoint = projectWorldPoint(worldPoint, model);
+    const projectedPoint = projectWorldPoint(worldPoint, model, { x: baseX, y: baseY, z: 0 });
     const safeZ = Math.max(PARALLAX_CAMERA_NEAR_CLIP_Z, projectedPoint.viewZ);
     // 壁投影モードでは壁面へ落ちる影の倍率、それ以外はピンホールの遠近倍率。
     // focalLength === viewerDistance なので両者は実質同じ値になる。
@@ -2271,9 +2378,9 @@ function createParallaxScene() {
     );
   }
 
-  function projectWorldPoint(worldPoint, model = getCameraModel()) {
+  function projectWorldPoint(worldPoint, model = getCameraModel(), basePoint = null) {
     if (usesRealCameraProjection(scene.motionMode)) {
-      return projectWorldPointToProjectionPlane(worldPoint, model);
+      return projectWorldPointToProjectionPlane(worldPoint, model, basePoint);
     }
     return projectWorldPointToCameraView(worldPoint, model);
   }
@@ -2296,7 +2403,26 @@ function createParallaxScene() {
     };
   }
 
-  function projectWorldPointToProjectionPlane(worldPoint, model) {
+  function projectWorldPointToProjectionPlane(worldPoint, model, basePoint = null) {
+    if (scene.cameraOrientationMode === "target" && basePoint) {
+      const projectedWorld = projectWorldPointToCameraView(worldPoint, model);
+      const projectedBase = projectWorldPointToCameraView(basePoint, model);
+      const innerX = basePoint.x + (projectedWorld.innerX - projectedBase.innerX);
+      const innerY = basePoint.y + (projectedWorld.innerY - projectedBase.innerY);
+      const viewport = innerPlanePointToViewport({ x: innerX, y: innerY }, model.plane);
+      const scaleDenominator = Math.abs(projectedWorld.viewZ) < 0.0001
+        ? (projectedWorld.viewZ < 0 ? -0.0001 : 0.0001)
+        : projectedWorld.viewZ;
+      return {
+        x: viewport.x,
+        y: viewport.y,
+        innerX,
+        innerY,
+        // 投影面自体の画角変化を相殺し、奥行差の倍率だけを残す。
+        planeScale: projectedBase.viewZ / scaleDenominator,
+        viewZ: projectedWorld.viewZ
+      };
+    }
     const relative = vectorSubtract(worldPoint, model.position);
     const viewZ = vectorDot(relative, model.forward);
     if (Math.abs(relative.z) < 0.0001) {
@@ -2488,16 +2614,16 @@ function createParallaxScene() {
       getWorldPointForTanzakuDepth(point.x, point.y, rearDepth, model)
     ));
     const front = [
-      projectWorldPoint(frontWorld[0], model),
-      projectWorldPoint(frontWorld[1], model),
-      projectWorldPoint(frontWorld[2], model),
-      projectWorldPoint(frontWorld[3], model)
+      projectWorldPoint(frontWorld[0], model, { ...baseCorners[0], z: 0 }),
+      projectWorldPoint(frontWorld[1], model, { ...baseCorners[1], z: 0 }),
+      projectWorldPoint(frontWorld[2], model, { ...baseCorners[2], z: 0 }),
+      projectWorldPoint(frontWorld[3], model, { ...baseCorners[3], z: 0 })
     ];
     const rear = [
-      projectWorldPoint(rearWorld[0], model),
-      projectWorldPoint(rearWorld[1], model),
-      projectWorldPoint(rearWorld[2], model),
-      projectWorldPoint(rearWorld[3], model)
+      projectWorldPoint(rearWorld[0], model, { ...baseCorners[0], z: 0 }),
+      projectWorldPoint(rearWorld[1], model, { ...baseCorners[1], z: 0 }),
+      projectWorldPoint(rearWorld[2], model, { ...baseCorners[2], z: 0 }),
+      projectWorldPoint(rearWorld[3], model, { ...baseCorners[3], z: 0 })
     ];
     const viewerGuidePoint = getViewerGuidePoint();
     const pointCommand = (point) => `${quantizePixel(point.x).toFixed(1)} ${quantizePixel(point.y).toFixed(1)}`;
@@ -2692,10 +2818,10 @@ function createParallaxScene() {
   }
 
   function applyOracle() {
-    const viewerX = (scene.viewerOffsetX * 18) + (scene.viewerX * 34 * scene.strength);
-    const viewerY = (scene.viewerOffsetY * 12) + (usesDisplayPlaneMotion(scene.motionMode) ? scene.viewerY * 18 * scene.popoutStrength : 0);
+    const viewerX = (scene.viewerOffsetX * 18) + (scene.oracleViewerX * 34 * scene.strength);
+    const viewerY = (scene.viewerOffsetY * 12) + (usesDisplayPlaneMotion(scene.motionMode) ? scene.oracleViewerY * 18 * scene.popoutStrength : 0);
     const viewerZ = usesCameraDepthMotion(scene.motionMode)
-      ? scene.viewerZ * scene.popoutStrength
+      ? scene.oracleViewerZ * scene.popoutStrength
       : 0;
     const oracleScale = getOracleMotionScale(viewerZ);
     const clamped = clampOracleOffset(viewerX, viewerY, viewerZ);
@@ -2710,6 +2836,9 @@ function createParallaxScene() {
     scene.viewerX = 0;
     scene.viewerY = 0;
     scene.viewerZ = 0;
+    scene.oracleViewerX = 0;
+    scene.oracleViewerY = 0;
+    scene.oracleViewerZ = 0;
     projectionStage.classList.remove("projection-stage--parallax");
     projectionStage.classList.remove("projection-stage--parallax-marker");
     projectionStage.style.removeProperty("--bamboo-left-parallax-x");
@@ -2788,6 +2917,10 @@ function createParallaxScene() {
       scene.cameraTargetY = clampSceneCameraTarget(y, "y");
       this.refresh();
     },
+    setCameraOrientationMode(mode) {
+      scene.cameraOrientationMode = normalizeParallaxCameraOrientationMode(mode);
+      this.refresh();
+    },
     setPopoutStrength(strength) {
       scene.popoutStrength = Math.max(0, Math.min(3, Number.isFinite(strength) ? strength : 0));
       this.refresh();
@@ -2816,16 +2949,25 @@ function createParallaxScene() {
       return viewportPointToWorldBasePoint(viewportX, viewportY, PERSPECTIVE_BOX_FRONT_DEPTH);
     },
     getPerspectiveBoxViewportBounds,
-    setMotionTiming(speed, direction) {
+    setMotionTiming(speed, direction, cameraDelaySeconds) {
       const nextSpeed = normalizeOracleMotionSpeed(speed);
       const nextDirection = normalizeOracleMotionDirection(direction);
-      if (scene.motionSpeed === nextSpeed && scene.motionDirection === nextDirection) return;
+      const nextCameraDelaySeconds = normalizeParallaxCameraDelaySeconds(cameraDelaySeconds);
+      if (
+        scene.motionSpeed === nextSpeed &&
+        scene.motionDirection === nextDirection &&
+        scene.cameraDelaySeconds === nextCameraDelaySeconds
+      ) return;
       scene.motionSpeed = nextSpeed;
       scene.motionDirection = nextDirection;
+      scene.cameraDelaySeconds = nextCameraDelaySeconds;
       scene.startedAt = performance.now();
       scene.viewerX = 0;
       scene.viewerY = 0;
       scene.viewerZ = 0;
+      scene.oracleViewerX = 0;
+      scene.oracleViewerY = 0;
+      scene.oracleViewerZ = 0;
       this.refresh();
     },
     setMotionMode(mode) {
@@ -2836,6 +2978,9 @@ function createParallaxScene() {
       scene.viewerX = 0;
       scene.viewerY = 0;
       scene.viewerZ = 0;
+      scene.oracleViewerX = 0;
+      scene.oracleViewerY = 0;
+      scene.oracleViewerZ = 0;
       this.refresh();
     },
     setViewportMargin(margin) {
@@ -4604,6 +4749,8 @@ function applyProjectionSettings(settings, wishes = []) {
     nextSettings.parallaxViewerDistance !== projectionSettings.parallaxViewerDistance ||
     nextSettings.parallaxCameraTargetX !== projectionSettings.parallaxCameraTargetX ||
     nextSettings.parallaxCameraTargetY !== projectionSettings.parallaxCameraTargetY ||
+    nextSettings.parallaxCameraOrientationMode !== projectionSettings.parallaxCameraOrientationMode ||
+    nextSettings.parallaxCameraDelaySeconds !== projectionSettings.parallaxCameraDelaySeconds ||
     nextSettings.viewportMargin !== projectionSettings.viewportMargin;
   const addedDisplayStart = initialSeeded && nextSettings.displayCount > previousDisplayCount
     ? previousDisplayCount
@@ -5402,6 +5549,10 @@ if (layoutFullscreenButton) {
 
 if (layoutCenterButton) {
   layoutCenterButton.addEventListener("click", centerAlignVisibleTanzaku);
+}
+
+if (layoutAlignHeightButton) {
+  layoutAlignHeightButton.addEventListener("click", alignVisibleTanzakuHeights);
 }
 
 setupAppearanceControls();

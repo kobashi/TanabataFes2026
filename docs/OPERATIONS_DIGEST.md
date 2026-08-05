@@ -84,7 +84,9 @@ lsof -nP -iTCP:3000 -sTCP:LISTEN
 
 ## 新バージョンへ切り替え
 
-現在のNodeを止めずに、開発用Nodeを反対側ポートで起動します。初回が `3001` 運用なら `3002` 開発、`3002` へ切り替えた後の次回は `3001` 開発です。
+現在のNodeを止めずに、開発用Nodeを空いているポートで起動します。`npm run dev` は3001/3002の使用状況を確認し、`3001` が使用中なら `3002`、`3002` が使用中なら `3001` を選びます。
+
+両方が使用中なら既存プロセスを止めずにエラー終了します。不要な旧Nodeを停止して再実行してください。一時的な単体確認では `PORT=3003 npm run dev` のように別ポートを指定できますが、Caddyの切替運用は3001/3002を使います。
 
 テスト投稿や承認操作を確認する場合は、まず開発テスト用の管理キーを指定して隔離データで起動します。このテスト投稿は `data/dev/` に入り、本番の `data/wishes.json` には混ざりません。
 隔離モードの設定は `data/dev/settings.json` に入るため、本番の `data/settings.json` には自動反映されません。
@@ -116,7 +118,7 @@ npm run smoke:prod
 `npm run proxy:switch` は Caddy が起動済みのときだけ使えます。`connect: connection refused` が出たら、先に `npm run proxy:start` を実行します。
 Caddy の向きを切り替えた後は、投影画面 `/projection` と管理画面 `/admin` を再読み込みします。
 
-本番Nodeだけ再起動したい場合も、現在のNodeを直接止めずに同じ切り替え手順を使います。`cat data/proxy-state.json` で現在の `activeUpstream` を確認し、反対側を `npm run dev` で起動して `smoke:dev`、`proxy:switch`、`smoke:prod` の順に進めます。
+本番Nodeだけ再起動したい場合も、現在のNodeを直接止めずに同じ切り替え手順を使います。`npm run dev` で空いている方を起動し、表示されたポートを確認して `smoke:dev`、`proxy:switch`、`smoke:prod` の順に進めます。
 
 確認後、旧Nodeを停止します。
 

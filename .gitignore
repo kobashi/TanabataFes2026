@@ -6,4 +6,5 @@ data/backups/
 data/settings.json
 data/dev/
 data/proxy-state.json
+data/dev-server-state.json
 data/*.log
