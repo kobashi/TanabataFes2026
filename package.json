@@ -1,6 +1,6 @@
 {
   "name": "tanabata-fes-2026",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "private": true,
   "description": "Local Tanabata wish submission, moderation, and projection mapping display.",
   "license": "MIT",
