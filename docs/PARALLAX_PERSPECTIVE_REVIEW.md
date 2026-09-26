@@ -18,8 +18,9 @@
 
 ### 評価対象は壁面上の絵ではなく実カメラ映像
 
-このシステムは **実カメラが壁面に対して前後左右・上下左右へ平行移動しながら撮影する** 前提。
-評価すべきは次の合成結果。
+このシステムは、実カメラの位置移動と仮想カメラの位置移動を同期して撮影する前提。
+カメラ方向は、光軸を壁面へ垂直に保つ `parallel` と、壁面上の固定点を向き続ける
+`target` のどちらかを実機運用に合わせて選ぶ。評価すべきは次の合成結果。
 
 ```
 実カメラ映像での動き = 壁面上の絵の動き + 実カメラ自身の移動
@@ -33,14 +34,20 @@
 実カメラ映像での変位  (u−δ)/D = −δ/(z+D)      ← 距離の単調減少関数、全レイヤー同方向
 ```
 
+この式は `parallel`、またはカメラ位置と注視点が正対して光軸が壁面へ垂直になる瞬間の式。
+`target` でカメラが注視点から左右・上下へ外れると、パン/チルトによってカメラ基底と
+各点のビュー深度が変わるため、壁面応答とスケールは位置にも依存する。実カメラ側も同じ
+注視点を追う場合は、その回転を含めて仮想カメラと対応させる必要がある。
+
 壁面上の絵だけを見ると「投影面上の点は動かず、投影面から離れるほど大きく動く」V字応答になる。
 **これは窓/影投影として正しい挙動**で、実カメラの移動分でちょうど打ち消される。
 
 ### 初回の診断は誤りだった（記録）
 
-最初のレビューでは**壁面上の絵だけを測って**V字応答を検出し、「注視点固定をやめて純平行移動に
-する」修正を提案した。これは**合成を壊す誤った修正**で、実カメラの移動を前提に入れ直して
-再計算したところ撤回に至った。
+最初のレビューでは**壁面上の絵だけを測って**V字応答を検出し、実カメラの向きを確認せず
+「注視点固定をやめて純平行移動にする」修正を提案した。これは注視点ロックで撮影する運用の
+合成を壊す誤った提案で、実カメラの移動を前提に入れ直して再計算したところ撤回に至った。
+純平行移動そのものは、実カメラも壁面に平行な向きを保つ運用では正しい選択肢。
 
 **壁面上の絵だけを見て視差の正しさを判断してはいけない。**
 
@@ -93,8 +100,10 @@ D=8.0 →   1.12x （理想 1.47x）  ← ほぼ深度差なし
 | 実カメラがパン/チルトすると `mapping` の応答がV字に戻る | `f727d8a` で `projectionParallaxCameraOrientationMode` を追加。`target`（注視点ロック、既定）と `parallel`（壁面に平行、光軸を壁面へ垂直に固定）から選択 |
 | 実カメラとの同期手段がない | `f727d8a` で `projectionParallaxCameraDelaySeconds`（0.0〜1.0秒、既定0.5）を追加。笹舟が先行合図として動き、仮想カメラが遅れて追従する。**部分対応** — 下記「較正」は依然として運用側の責任 |
 
-`cameraOrientationMode` の2モードは、壁面応答・`planeScale` とも同じ値を返す
-（検証項目5で確認）。使い分けは実カメラの実際の運用に合わせる。
+`cameraOrientationMode` の2モードは、カメラ位置と注視点が正対し、光軸が壁面へ垂直な条件では
+壁面応答・`planeScale` が一致する。一方、`target` でカメラが注視点から外れるとパン/チルトが
+入り、短冊の壁面上の位置とスケールは `parallel` と一般には一致しない（検証項目5で確認）。
+これは不具合ではなく、異なる実カメラの向きを再現するための差なので、実際の運用に合わせて選ぶ。
 
 - 実カメラを三脚に据えて注視点を保つ運用 → `target`
 - スライダー/ドリーで壁面と平行を保つ運用 → `parallel`
@@ -197,13 +206,35 @@ const worldZ  = d => (NEUT - projDepth(d)) * WD;       // viewerDistance に依�
 const amp     = (s=1) => CX*s;                          // 仮想カメラ振幅（distanceFactor なし）
 const visible = (z,D) => (z+D) > NEAR;                  // applySlot の visible 判定
 
-// 壁面上の像の応答。f === D なので parallel(シャドウキャスト) と target(basePoint差分) は一致する。
-//   parallel : intersection.x = (1-t)*δ + t*W.x,  t = D/(z+D)        -> du/dδ = z/(z+D)
-//   target   : innerX = base.x + (innerX_world - innerX_base)        -> du/dδ = z/(z+D)
+// 壁面上の像の応答。以下の単純式は parallel、または光軸が壁面へ垂直な瞬間に対応する。
+// parallel : intersection.x = (1-t)*δ + t*W.x,  t = D/(z+D) -> du/dδ = z/(z+D)
 const wallResponse = (z,D) => z/(z+D);
 const wall  = (z,D,delta) => wallResponse(z,D)*delta;
 const shot  = (z,D,delta) => (wall(z,D,delta)-delta)/D; // 実カメラも同量平行移動した合成
-const planeScale = (z,D) => D/(z+D);                    // 両モードとも同じ
+const planeScale = (z,D) => D/(z+D);                    // parallel / 正対時
+
+const dot=(a,b)=>a.reduce((sum,value,index)=>sum+(value*b[index]),0);
+const sub=(a,b)=>a.map((value,index)=>value-b[index]);
+const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+const normalize=(v)=>{ const length=Math.hypot(...v); return v.map(value=>value/length); };
+function targetProjection(baseX,z,D,cameraX,targetX){
+  const position=[cameraX,0,-D];
+  const forward=normalize(sub([targetX,0,0],position));
+  const right=normalize(cross([0,1,0],forward));
+  const project=(point)=>{
+    const relative=sub(point,position);
+    const viewZ=dot(relative,forward);
+    return {innerX:D*dot(relative,right)/viewZ,viewZ};
+  };
+  const base=project([baseX,0,0]);
+  const world=project([baseX,0,z]);
+  return {offset:world.innerX-base.innerX,scale:base.viewZ/world.viewZ};
+}
+function parallelProjection(baseX,z,D,cameraX){
+  const scale=D/(z+D);
+  const innerX=cameraX+(scale*(baseX-cameraX));
+  return {offset:innerX-baseX,scale};
+}
 
 let fail=0; const ok=(c,m)=>{ console.log((c?"  PASS  ":"  FAIL  ")+m); if(!c)fail++; };
 const depths=[-1,-0.5,0,0.25,0.5,0.75,1,1.25];
@@ -232,20 +263,24 @@ console.log("\n[3] 振幅不変性: viewerDistance を変えても仮想カメ�
 console.log("\n[4] ワールド不変性: viewerDistance を変えても worldZ が不変");
 ok(true, `worldZ = [${depths.map(d=>worldZ(d).toFixed(3)).join(", ")}]`);
 
-console.log("\n[5] カメラ方向モード一致: parallel と target が同じ壁面応答/スケールを返す");
-for(const D of [1.5,2.5,8]) for(const d of [0,0.5,1]){
-  const z=worldZ(d);
-  // parallel: シャドウキャスト distance = -position.z / relative.z
-  const parallelScale = D/(z+D);
-  // target:   planeScale = projectedBase.viewZ / projectedWorld.viewZ = D/(z+D)
-  const targetScale = D/(z+D);
-  const parallelResp = 1 - D/(z+D);        // 1 - t
-  const targetResp   = z/(z+D);            // basePoint 差分
-  ok(Math.abs(parallelScale-targetScale)<1e-12 && Math.abs(parallelResp-targetResp)<1e-12,
-     `D=${D} depth=${d}: scale ${parallelScale.toFixed(4)}, 応答 ${targetResp.toFixed(4)} (両モード一致)`);
+console.log("\n[5] カメラ方向モード: 正対時は一致し、注視点から外れると差が出る");
+{
+  const D=1.5,z=-0.5,baseX=-1;
+  const centeredTarget=targetProjection(baseX,z,D,0,0);
+  const centeredParallel=parallelProjection(baseX,z,D,0);
+  ok(Math.abs(centeredTarget.offset-centeredParallel.offset)<1e-12 &&
+     Math.abs(centeredTarget.scale-centeredParallel.scale)<1e-12,
+     `正対時: offset ${centeredTarget.offset.toFixed(4)}, scale ${centeredTarget.scale.toFixed(4)} (一致)`);
+
+  const offAxisTarget=targetProjection(baseX,z,D,0.48,0);
+  const offAxisParallel=parallelProjection(baseX,z,D,0.48);
+  ok(Math.abs(offAxisTarget.offset-offAxisParallel.offset)>1e-3 &&
+     Math.abs(offAxisTarget.scale-offAxisParallel.scale)>1e-3,
+     `非正対時: target offset/scale ${offAxisTarget.offset.toFixed(4)}/${offAxisTarget.scale.toFixed(4)}, `+
+     `parallel ${offAxisParallel.offset.toFixed(4)}/${offAxisParallel.scale.toFixed(4)} (意図通り差がある)`);
 }
 
-console.log("\n[6] スケール整合: planeScale == focalLength/safeZ (f === D)");
+console.log("\n[6] parallel / 正対時のスケール整合: planeScale == focalLength/safeZ (f === D)");
 for(const D of [1.5,2.5,8]) for(const d of [0,0.5,1]){
   const z=worldZ(d);
   const pinhole = D/Math.max(NEAR,z+D);
